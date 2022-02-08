@@ -5,6 +5,9 @@ description = "Description"
 authors = ["Fernando Ayats <ayatsfer@gmail.com>"]
 license = "MIT"
 
+[tool.poetry.scripts]
+nh = "nh.commands:cli"
+
 [tool.poetry.dependencies]
 python = "^3.9"
 click = "^8.0.3"
