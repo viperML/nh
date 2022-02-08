@@ -10,10 +10,14 @@ nix run github:viperML/nh
 
 ## Hacking
 
-Recommended `.envrc`:
+```bash
+nix develop
+```
+
+Or, a `.envrc` like this (the python env will be linked into `./.venv`):
 
 ```bash
-use nix
+use flake
 local venv="$(dirname $(which python))/.."
 local venv_resolved=$(builtin cd $venv; pwd)
 ln -Tsf "$venv_resolved" .venv

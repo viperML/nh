@@ -9,6 +9,13 @@
   outputs = { self, nixpkgs, flake-utils }: flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
+      nh-env = (pkgs.poetry2nix.mkPoetryEnv {
+        projectDir = ./.;
+      }).env.overrideAttrs (prev: {
+        buildInputs = with pkgs; [
+          poetry
+        ];
+      });
     in
     rec {
       packages.nh = pkgs.callPackage ./default.nix { };
@@ -18,5 +25,6 @@
         exePath = "/bin/nh";
       };
       defaultApp = apps.nh;
+      devShell = nh-env;
     });
 }

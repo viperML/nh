@@ -3,3 +3,4 @@ result
 __pycache__
 .vscode
 .venv
+.direnv
