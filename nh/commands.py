@@ -21,6 +21,9 @@ def repl(path):
         flake_path = find_flake(path).parent
         repl = pathlib.Path(__file__).parent / "repl.nix"
         subprocess.run([
+            "nix", "flake", "show", str(flake_path)
+        ])
+        subprocess.run([
             "nix",
             "repl",
             "--arg", "flakePath", str(flake_path),
