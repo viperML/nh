@@ -7,4 +7,8 @@ in poetry-env.env.overrideAttrs (prev: {
   buildInputs = with pkgs; [
     poetry
   ];
+  # shellHook = ''
+  #   mkdir -p .env
+  #   ln -sf ${poetry-env} .env/python
+  # '';
 })
