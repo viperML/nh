@@ -32,5 +32,6 @@ ln -Tsf "$venv_resolved" .venv
 - [ ] nix-build, nix build wrapper
 - [ ] NixOS update wrapper with nvd
 - [ ] garbage-collect on steroids (hunt gc roots and prompt to remove them) (nix-du?)
-- [ ] nix-bundle?
-- [ ] format?
+- [ ] nix-bundle integration?
+- [ ] format nix files with nixkgs-fmt?
+- [ ] better search (maybe query search.nixos.org?)
