@@ -11,10 +11,12 @@ nix run github:viperML/nh
 ## Hacking
 
 ```bash
+git clone https://github.com/viperML/nh && cd nh
 nix develop
+python -m nh
 ```
 
-Or, a `.envrc` like this (the python env will be linked into `./.venv`):
+A `.envrc` like this can be convenient (the python env will be linked into `./.venv`):
 
 ```bash
 use flake
