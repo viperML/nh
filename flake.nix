@@ -19,7 +19,6 @@
     in
     rec {
       packages.nh = pkgs.callPackage ./default.nix { };
-      defaultPackage = packages.nh;
       apps.nh = flake-utils.lib.mkApp {
         drv = packages.nh;
         exePath = "/bin/nh";

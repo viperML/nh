@@ -31,3 +31,6 @@ ln -Tsf "$venv_resolved" .venv
 - [ ] Flake update helper (last update of inputs, etc)
 - [ ] nix-build, nix build wrapper
 - [ ] NixOS update wrapper with nvd
+- [ ] garbage-collect on steroids (hunt gc roots and prompt to remove them) (nix-du?)
+- [ ] nix-bundle?
+- [ ] format?
