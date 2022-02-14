@@ -18,7 +18,7 @@ def repl(path):
     Start a Nix Repl and import files
     """
 
-    repl_nixfile = Path(__file__).parent / "repl.nix"
+    repl_flake = Path(__file__).parent / "repl-flake.nix"
 
     try:
         my_nixfile = nixfile(path)
@@ -34,10 +34,10 @@ def repl(path):
                 "--arg",
                 "flakepath",
                 str(my_nixfile.path),
-                str(repl_nixfile),
+                str(repl_flake),
             ]
         )
     else:
-        print("Not implemented")
+        print(f"You are trying to load ${my_nixfile.path}, which is not a flake")
 
     pass

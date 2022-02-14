@@ -10,8 +10,10 @@
     let
       pkgs = nixpkgs.legacyPackages.${system};
       pre-commit-hook = pkgs.writeShellScript "pre-commit" ''
+        find . -name \*.py -exec black {} \;
         nix flake check
         nix build .#nh --no-link
+        git add .
       '';
       nh-env = (pkgs.poetry2nix.mkPoetryEnv {
         projectDir = ./.;
