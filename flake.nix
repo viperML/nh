@@ -9,12 +9,19 @@
   outputs = { self, nixpkgs, flake-utils }: flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
+      pre-commit-hook = pkgs.writeShellScript "pre-commit" ''
+        nix flake check
+        # nix build .#nh --no-link
+      '';
       nh-env = (pkgs.poetry2nix.mkPoetryEnv {
         projectDir = ./.;
       }).env.overrideAttrs (prev: {
         buildInputs = with pkgs; [
           poetry
         ];
+        shellHook = ''
+          ln -sf ${pre-commit-hook} .git/hooks/pre-commit
+        '';
       });
     in
     rec {

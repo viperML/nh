@@ -8,5 +8,8 @@ poetry2nix.mkPoetryApplication rec {
 
   meta = with lib; {
     inherit (python.meta) platforms;
+    description = "NH is yet another Nix cli Help utility";
+    license = licenses.mit;
+    homepage = "https://github.com/viperML/nh";
   };
 }
