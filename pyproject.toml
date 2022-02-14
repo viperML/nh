@@ -11,10 +11,12 @@ nh = "nh.commands:cli"
 [tool.poetry.dependencies]
 python = "^3.9"
 click = "^8.0.3"
+path = "^16.3.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"
 flake8 = "^4.0.1"
+ipython = "^8.0.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

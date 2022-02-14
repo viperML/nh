@@ -1,9 +1,9 @@
 import subprocess
-import pathlib
+from path import Path
 
 import click
 
-from .utils import find_flake
+from .utils import nixfile
 
 
 @click.group()
@@ -17,20 +17,26 @@ def repl(path):
     """
     Start a Nix Repl and import files
     """
+    repl_nixfile = Path(__file__).parent / "repl.nix"
     try:
-        flake_path = find_flake(path).parent
-        repl = pathlib.Path(__file__).parent / "repl.nix"
-        subprocess.run([
-            "nix", "flake", "show", str(flake_path)
-        ])
-        subprocess.run([
-            "nix",
-            "repl",
-            "--arg", "flakePath", str(flake_path),
-            str(repl)
-        ])
+        my_nixfile = nixfile(path)
 
     except FileNotFoundError as e:
         raise FileNotFoundError from e
+
+    if my_nixfile.is_flake:
+        subprocess.run(["nix", "flake", "show", str(my_nixfile.path)])
+        subprocess.run(
+            [
+                "nix",
+                "repl",
+                "--arg",
+                "flakepath",
+                str(my_nixfile.path),
+                str(repl_nixfile),
+            ]
+        )
+    else:
+        print("Not implemented")
 
     pass
