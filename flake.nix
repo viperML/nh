@@ -11,7 +11,7 @@
       pkgs = nixpkgs.legacyPackages.${system};
       pre-commit-hook = pkgs.writeShellScript "pre-commit" ''
         nix flake check
-        # nix build .#nh --no-link
+        nix build .#nh --no-link
       '';
       nh-env = (pkgs.poetry2nix.mkPoetryEnv {
         projectDir = ./.;

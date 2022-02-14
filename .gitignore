@@ -1,4 +1,4 @@
 result
 __pycache__
-.venv
+.venv*
 .direnv

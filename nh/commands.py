@@ -1,5 +1,5 @@
 import subprocess
-from path import Path
+from pathlib import Path
 
 import click
 
@@ -17,10 +17,11 @@ def repl(path):
     """
     Start a Nix Repl and import files
     """
+
     repl_nixfile = Path(__file__).parent / "repl.nix"
+
     try:
         my_nixfile = nixfile(path)
-
     except FileNotFoundError as e:
         raise FileNotFoundError from e
 
