@@ -26,4 +26,5 @@ class nixfile(object):
             self.is_flake = False
 
 
-pass
+def find_nixfiles(path_str) -> list[nixfile]:
+    pass

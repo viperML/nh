@@ -2,3 +2,4 @@ result
 __pycache__
 .venv*
 .direnv
+.mypy*

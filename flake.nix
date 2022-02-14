@@ -11,6 +11,7 @@
       pkgs = nixpkgs.legacyPackages.${system};
       pre-commit-hook = pkgs.writeShellScript "pre-commit" ''
         find . -name \*.py -exec black {} \;
+        find . -name \*.py -exec mypy {} \;
         nix flake check
         nix build .#nh --no-link
         git add .
