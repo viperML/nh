@@ -1,4 +1,4 @@
-{ lib, poetry2nix , python3, nvd, update-nix-fetchgit }:
+{ lib, poetry2nix , python3, nvd, update-nix-fetchgit, gnused }:
 
 poetry2nix.mkPoetryApplication rec {
   python = python3;
@@ -6,11 +6,9 @@ poetry2nix.mkPoetryApplication rec {
   src = ./.;
   projectDir = src;
 
-  postFixup = ''
-    substituteInPlace nh/deps.py \
-        --replace 'nvd' '${nvd}/bin/nvd'
-    substituteInPlace nh/deps.py \
-        --replace 'update-nix-fetchgit' '${update-nix-fetchgit}/bin/update-nix-fetchgit'
+  prePatch = ''
+    ${gnused}/bin/sed -i "s#nvd#${nvd}/bin/nvd#g" nh/deps.py
+    ${gnused}/bin/sed -i "s#update-nix-fetchgit#${update-nix-fetchgit}/bin/update-nix-fetchgit#g" nh/deps.py
   '';
 
   meta = with lib; {
