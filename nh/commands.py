@@ -5,6 +5,8 @@ import click
 
 from .utils import nixfile, find_nixfiles
 
+PATH_DOC = ""
+
 
 @click.group()
 def cli() -> None:
@@ -16,6 +18,8 @@ def cli() -> None:
 def repl(path):
     """
     Load a flake into a nix repl
+
+    PATH to any nix file or container folder. If nothing is passed, the environment variable FLAKE will be used
     """
 
     repl_flake = Path(__file__).parent / "repl-flake.nix"
@@ -40,11 +44,18 @@ def repl(path):
 
 @cli.command()
 @click.argument("path", type=click.Path(exists=True), envvar="FLAKE")
-@click.option("-R", "--recursive", is_flag=True)
-@click.option("-n", "--dry-run", is_flag=True)
+@click.option(
+    "-R",
+    "--recursive",
+    is_flag=True,
+    help="If path is a directory, recurse nix file through it",
+)
+@click.option("-n", "--dry-run", is_flag=True, help="Print commands and exit")
 def update(path, recursive, dry_run):
     """
-    Update a flake or any nix file
+    Update a flake or any nix file containing fetchFromGitHub
+
+    PATH to any nix file or container folder. If nothing is passed, the environment variable FLAKE will be used
     """
 
     my_path = Path(path).resolve()
@@ -56,7 +67,7 @@ def update(path, recursive, dry_run):
 
     for nf in my_nixfiles:
         if nf.is_flake:
-            cmd = ["nix", "flake", "update", str(nf.path)]
+            cmd = ["nix", "flake", "update", str((nf.path / "..").resolve())]
             click.echo("$ " + " ".join(cmd))
             if not dry_run:
                 subprocess.run(cmd)
