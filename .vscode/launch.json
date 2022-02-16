@@ -11,8 +11,10 @@
             "console": "internalConsole",
             "module": "nh",
             "args": [
-                "repl",
-                "."
+                "update",
+                "-R",
+                "--dry-run",
+                "/home/ayats/Documents/dotfiles"
             ],
         },
         {

@@ -1,0 +1,2 @@
+class FlakeNotInitialized(Exception):
+    pass

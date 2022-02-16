@@ -5,7 +5,7 @@ _Because "yet another Nix Helper" was too long..._
 ## Running
 
 ```bash
-nix run github:viperML/nh
+nix run github:viperML/nh -- --help
 ```
 
 ## Hacking
@@ -16,10 +16,14 @@ nix develop
 python -m nh
 ```
 
+## Requirements
+
+- update-nix-fetchgit
+
 ## Todo's
 
-- [ ] Repl helper
-- [ ] Flake update helper (last update of inputs, recurse fetchFromGitHub)
+- [x] Repl helper
+- [x] Flake update helper (last update of inputs, recurse fetchFromGitHub)
 - [ ] nix-build, nix build wrapper
 - [ ] NixOS update wrapper with nvd
 - [ ] garbage-collect on steroids (hunt gc roots and prompt to remove them) (nix-du?)

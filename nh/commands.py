@@ -3,7 +3,7 @@ from pathlib import Path
 
 import click
 
-from .utils import nixfile
+from .utils import nixfile, find_nixfiles
 
 
 @click.group()
@@ -41,15 +41,28 @@ def repl(path):
 @cli.command()
 @click.argument("path", type=click.Path(exists=True), envvar="FLAKE")
 @click.option("-R", "--recursive", is_flag=True)
-def update(path, recursive):
+@click.option("-n", "--dry-run", is_flag=True)
+def update(path, recursive, dry_run):
     """
     Update a flake or any nix file
     """
 
-    my_nixfiles = [nixfile(path)]
-    if recursive:
-        # Transverse folder
-        pass
+    my_path = Path(path).resolve()
+
+    if recursive and my_path.is_dir():
+        my_nixfiles = find_nixfiles(my_path)
+    else:
+        my_nixfiles = [nixfile(my_path)]
 
     for nf in my_nixfiles:
-        print(nf)
+        if nf.is_flake:
+            cmd = ["nix", "flake", "update", str(nf.path)]
+            click.echo("$ " + " ".join(cmd))
+            if not dry_run:
+                subprocess.run(cmd)
+
+        elif nf.has_fetchFromGitHub:
+            cmd = ["update-nix-fetchgit", str(nf.path)]
+            click.echo("$ " + " ".join(cmd))
+            if not dry_run:
+                subprocess.run(cmd)
