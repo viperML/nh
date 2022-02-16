@@ -1,6 +1,6 @@
 # nh
 
-_Because "yet another **n**ix **h**elper" was too long..._
+_Because "yet-another-**n**ix-**h**elper" was too long..._
 
 ## What and why?
 

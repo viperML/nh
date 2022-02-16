@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run nh",
+            "name": "nh update",
             "type": "python",
             "request": "launch",
             "console": "internalConsole",
@@ -14,6 +14,17 @@
                 "update",
                 "-R",
                 "--dry-run",
+                "/home/ayats/Documents/dotfiles"
+            ],
+        },
+        {
+            "name": "nh switch",
+            "type": "python",
+            "request": "launch",
+            "console": "internalConsole",
+            "module": "nh",
+            "args": [
+                "switch",
                 "/home/ayats/Documents/dotfiles"
             ],
         },

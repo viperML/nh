@@ -5,7 +5,7 @@ import click
 from .exceptions import FlakeNotInitialized
 
 
-class nixfile(object):
+class NixFile(object):
     is_flake = False
     path = None
     updater = None
@@ -42,13 +42,17 @@ class nixfile(object):
         return "nixfile: " + str(self.path)
 
 
-def find_nixfiles(path: Path) -> list[nixfile]:
+def find_nixfiles(path: Path) -> list[NixFile]:
     result = []
 
     for f in path.rglob("*.nix"):
         try:
-            result.append(nixfile(f))
+            result.append(NixFile(f))
         except FlakeNotInitialized:
             click.echo(f"Skipping {f} as it is a flake without lock file")
 
     return result
+
+
+def cmd_print(cmd: list[str]) -> None:
+    click.echo("$ " + " ".join(cmd))
