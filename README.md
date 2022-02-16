@@ -21,10 +21,6 @@ nix develop
 python -m nh
 ```
 
-## Requirements
-
-- update-nix-fetchgit
-
 ## Todo's
 
 - [x] Repl helper
