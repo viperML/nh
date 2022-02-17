@@ -97,6 +97,35 @@ def switch(flake, dry_run):
     if flake:
         fl = NixFile(Path(flake))
         cmd = [*cmd, "--flake", str(fl.path) + f"#{platform.node()}"]
+
+    cmd_print(cmd)
+
+    if not dry_run:
+        subprocess.run(cmd)
+        profile_new = Path("/nix/var/nix/profiles/system").resolve()
+        cmd_nvd = [deps.NVD, "diff", str(profile_prev), str(profile_new)]
+        subprocess.run(cmd_nvd)
+
+
+@cli.command()
+@click.argument("flake", type=click.Path(exists=True), envvar="FLAKE", required=False)
+@click.option("-n", "--dry-run", is_flag=True, help="Print commands and exit")
+def boot(flake, dry_run):
+    """
+    Call nixos-rebuild switch, and show the diff with nvd
+
+    FLAKE path may be passed if the path is non standard (/etc/nixos).
+    You can instead use the enviroment variable $FLAKE.
+    """
+    # TODO pass sudo as arg
+    cmd = ["sudo", "nixos-rebuild", "boot"]
+
+    profile_prev = Path("/nix/var/nix/profiles/system").resolve()
+
+    if flake:
+        fl = NixFile(Path(flake))
+        cmd = [*cmd, "--flake", str(fl.path) + f"#{platform.node()}"]
+
     cmd_print(cmd)
 
     if not dry_run:

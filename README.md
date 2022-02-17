@@ -13,6 +13,8 @@ This could be made with shell scripts and aliases, but using a python library to
 nix run github:viperML/nh -- --help
 ```
 
+The environment variable `FLAKE` is used in multiple commands. This is intended to be the path to your NixOS's system flake, or a flake you use often.
+
 ## Hacking
 
 ```bash
@@ -24,9 +26,9 @@ python -m nh
 ## Todo's
 
 - [x] Repl helper
-- [x] Flake update helper (last update of inputs, recurse fetchFromGitHub)
+- [x] NixOS update wrapper with nvd
+- [ ] Flake update helper (last update of inputs, recurse fetchFromGitHub)
 - [ ] nix-build, nix build wrapper
-- [ ] NixOS update wrapper with nvd
 - [ ] garbage-collect on steroids (hunt gc roots and prompt to remove them) (nix-du?)
 - [ ] nix-bundle integration?
 - [ ] format nix files with nixkgs-fmt?
