@@ -17,7 +17,7 @@ The environment variable `FLAKE` is used in multiple commands. This is intended 
 
 ## Installation
 
-This a example installtion to a NixOS system. Adapt accordingly if you want it in home-manager, a devShell, etc
+This a example installation to a NixOS system. Adapt accordingly if you want it in home-manager, a devShell, etc
 
 ```nix
 {
@@ -34,6 +34,8 @@ This a example installtion to a NixOS system. Adapt accordingly if you want it i
       modules = [
         {
           environment.systemPackages = [inputs.nh.packages.${system}.nh];
+          # Not necessary, but recommended to use your flake by default
+          environment.variables.FLAKE = "/path/to/your/flake/root";
         }
       ];
     };
