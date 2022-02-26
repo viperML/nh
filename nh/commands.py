@@ -1,12 +1,11 @@
+import json
 import platform
-from re import sub
 import subprocess
 from pathlib import Path
-import json
 
 import click
-from pyfzf.pyfzf import FzfPrompt
 from colorama import Fore as F
+from pyfzf.pyfzf import FzfPrompt
 
 from nh import __version__, deps
 from nh.utils import NixFile, cmd_print, find_nixfiles
