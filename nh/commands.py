@@ -208,6 +208,7 @@ def search(flake):
         .decode()
         .replace('"', "")
         .strip()
+        .split(":")[0]
     )
     homepage = (
         subprocess.check_output(["nix", "eval", f"{flake}#{response}.meta.homepage"])
