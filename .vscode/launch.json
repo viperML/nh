@@ -31,6 +31,17 @@
             ],
         },
         {
+            "name": "nh repl",
+            "type": "python",
+            "request": "launch",
+            "console": "internalConsole",
+            "module": "nh",
+            "args": [
+                "repl",
+                "/home/ayats/Documents/dotfiles"
+            ],
+        },
+        {
             "name": "Debug utils",
             "type": "python",
             "request": "launch",

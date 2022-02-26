@@ -26,9 +26,6 @@ def repl(path):
     repl_flake = Path(__file__).parent / "repl-flake.nix"
 
     my_nixfile = NixFile(path)
-    if my_nixfile.is_flake:
-        # Don't use the flake.nix, but the folder containing it
-        my_nixfile.path = (my_nixfile.path / "..").resolve()
 
     if my_nixfile.is_flake:
         subprocess.run(["nix", "flake", "show", str(my_nixfile.path)])
@@ -71,7 +68,7 @@ def update(path, recursive, dry_run):
 
     for nf in my_nixfiles:
         if nf.is_flake:
-            cmd = ["nix", "flake", "update", str((nf.path / "..").resolve())]
+            cmd = ["nix", "flake", "update", str(nf)]
             cmd_print(cmd)
             if not dry_run:
                 subprocess.run(cmd)
@@ -132,7 +129,9 @@ def nixos_rebuild_boot(ctx, flake, dry_run):
         allow_extra_args=True,
     ),
 )
-@click.argument("flake", type=click.Path(exists=True), envvar="FLAKE", required=False)
+@click.argument(
+    "flake", type=click.Path(exists=True, dir_okay=True), envvar="FLAKE", required=False
+)
 @click.option("-n", "--dry-run", is_flag=True, help="Print commands and exit.")
 @click.pass_context
 def nixos_rebuild_test(ctx, flake, dry_run):
@@ -153,7 +152,7 @@ def nixos_rebuild(ctx: click.core.Context):
         "nixos-rebuild",
         ctx.command.name,
         "--flake",
-        str(my_flake.path) + f"#{platform.node()}",
+        str(my_flake) + f"#{platform.node()}",
     ]
     if ctx.args:
         cmd.append(" ".join(ctx.args))

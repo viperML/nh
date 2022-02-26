@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nh"
-version = "0.3.0"
+version = "0.4.0"
 description = "Description"
 authors = ["Fernando Ayats <ayatsfer@gmail.com>"]
 license = "MIT"

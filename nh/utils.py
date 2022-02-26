@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Union
 
 import click
 
@@ -11,35 +12,34 @@ class NixFile(object):
     updater = None
     has_fetchFromGitHub = False
 
-    def __init__(self, path_str: str):
-        self.path = Path(path_str).resolve()
+    def __init__(self, path: Union[Path, str]):
+        self.path = Path(path).resolve()
 
-        # If we receive a folder, try to resolve the file containing
+        if not self.path.exists():
+            raise FileNotFoundError
+
+        # Canonicalize flake
+        if self.path.name == "flake.nix":
+            self.path = (self.path / "..").resolve()
+
         if self.path.is_dir():
-            flake_path = self.path / "flake.nix"
-            default_path = self.path / "default.nix"
-
-            if flake_path.exists():
-                self.path = flake_path
-            elif default_path.exists():
-                self.path = default_path
+            if (self.path / "flake.nix").exists():
+                self.is_flake = True
+            elif (self.path / "default.nix").exists():
+                self.path = self.path / "default.nix"
             else:
                 raise FileNotFoundError
 
-        if self.path.name == "flake.nix":
-            # Probably rewrite this
-            lockfile = (self.path / ".." / "flake.lock").resolve()
-            if lockfile.exists():
-                self.is_flake = True
-            else:
-                raise FlakeNotInitialized
-        else:
+        if self.is_flake and not (self.path / "flake.lock").exists():
+            raise FlakeNotInitialized
+
+        if not self.is_flake:
             with open(self.path, "r") as f:
                 if "fetchFromGitHub" in f.read():
                     self.has_fetchFromGitHub = True
 
     def __str__(self) -> str:
-        return "nixfile: " + str(self.path)
+        return str(self.path)
 
 
 def find_nixfiles(path: Path) -> list[NixFile]:
