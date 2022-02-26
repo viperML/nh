@@ -11,10 +11,10 @@ poetry2nix.mkPoetryApplication rec {
     ${gnused}/bin/sed -i "s#update-nix-fetchgit#${update-nix-fetchgit}/bin/update-nix-fetchgit#g" nh/deps.py
   '';
 
-  meta = with lib; {
+  meta = {
     inherit (python.meta) platforms;
     description = "NH is yet another Nix cli Help utility";
-    license = licenses.mit;
+    license = lib.licenses.mit;
     homepage = "https://github.com/viperML/nh";
   };
 }

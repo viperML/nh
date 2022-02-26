@@ -6,7 +6,7 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }: flake-utils.lib.eachSystem ["x86_64-linux"] (system:
+  outputs = { self, nixpkgs, flake-utils }: flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
       pre-commit-hook = pkgs.writeShellScript "pre-commit" ''

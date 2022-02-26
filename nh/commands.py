@@ -5,10 +5,11 @@ import platform
 import click
 
 from nh.utils import NixFile, find_nixfiles, cmd_print
-from nh import deps
+from nh import deps, __version__
 
 
 @click.group()
+@click.version_option(__version__)
 def cli() -> None:
     pass
 
