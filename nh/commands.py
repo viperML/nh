@@ -174,16 +174,20 @@ def nixos_rebuild(ctx: click.core.Context):
 @click.option("--flake", type=str, default="nixpkgs", show_default=True, required=False)
 @cli.command()
 def search(flake):
+    """
+    Search for packages
+    """
     fzf = FzfPrompt(deps.FZF)
 
     pkgs_json = json.loads(
         subprocess.check_output(["nix", "search", "--json", flake]).decode()
     )
 
-    pkgs = []
+    pkgs = set()
     for p in pkgs_json:
-        pkgs.append(f"{pkgs_json[p]['pname']}")
+        pkgs.add(f"{pkgs_json[p]['pname']}")
 
+    # Free memory maybe?
     del pkgs_json
     response = fzf.prompt(pkgs, fzf_options="--height=20%")[0]
 
