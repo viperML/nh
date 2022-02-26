@@ -11,6 +11,7 @@ nh = "nh.commands:cli"
 [tool.poetry.dependencies]
 python = "^3.9"
 click = "^8.0.3"
+pyfzf = "^0.3.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"
