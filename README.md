@@ -56,9 +56,6 @@ python -m nh
 
 - [x] Repl helper
 - [x] NixOS update wrapper with nvd
-- [ ] Flake update helper (last update of inputs, recurse fetchFromGitHub)
-- [ ] nix-build, nix build wrapper
+- [x] Flake update helper (last update of inputs, recurse fetchFromGitHub)
 - [ ] garbage-collect on steroids (hunt gc roots and prompt to remove them) (nix-du?)
-- [ ] nix-bundle integration?
-- [ ] format nix files with nixkgs-fmt?
 - [ ] better search (maybe query search.nixos.org?)
