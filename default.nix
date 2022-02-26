@@ -1,5 +1,12 @@
-{ lib, poetry2nix , python3, nvd, update-nix-fetchgit, gnused }:
-
+{
+  lib,
+  poetry2nix,
+  python3,
+  nvd,
+  update-nix-fetchgit,
+  gnused,
+  fzf,
+}:
 poetry2nix.mkPoetryApplication rec {
   python = python3;
 
@@ -9,6 +16,7 @@ poetry2nix.mkPoetryApplication rec {
   prePatch = ''
     ${gnused}/bin/sed -i "s#nvd#${nvd}/bin/nvd#g" nh/deps.py
     ${gnused}/bin/sed -i "s#update-nix-fetchgit#${update-nix-fetchgit}/bin/update-nix-fetchgit#g" nh/deps.py
+    ${gnused}/bin/sed -i "s#fzf#${fzf}/bin/fzf#g" nh/deps.py
   '';
 
   meta = {

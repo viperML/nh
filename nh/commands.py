@@ -1,11 +1,15 @@
+import platform
+from re import sub
 import subprocess
 from pathlib import Path
-import platform
+import json
 
 import click
+from pyfzf.pyfzf import FzfPrompt
+from colorama import Fore as F
 
-from nh.utils import NixFile, find_nixfiles, cmd_print
-from nh import deps, __version__
+from nh import __version__, deps
+from nh.utils import NixFile, cmd_print, find_nixfiles
 
 
 @click.group()
@@ -166,3 +170,54 @@ def nixos_rebuild(ctx: click.core.Context):
         profile_new = Path("/run/current-system").resolve()
         cmd_nvd = [deps.NVD, "diff", str(profile_prev), str(profile_new)]
         subprocess.run(cmd_nvd)
+
+
+@click.option("--flake", type=str, default="nixpkgs", show_default=True, required=False)
+@cli.command()
+def search(flake):
+    fzf = FzfPrompt(deps.FZF)
+
+    pkgs_json = json.loads(
+        subprocess.check_output(["nix", "search", "--json", flake]).decode()
+    )
+
+    pkgs = []
+    for p in pkgs_json:
+        pkgs.append(f"{pkgs_json[p]['pname']}")
+
+    del pkgs_json
+    response = fzf.prompt(pkgs, fzf_options="--height=20%")[0]
+
+    description = (
+        subprocess.check_output(["nix", "eval", f"{flake}#{response}.meta.description"])
+        .decode()
+        .replace('"', "")
+        .strip()
+    )
+    version = (
+        subprocess.check_output(["nix", "eval", f"{flake}#{response}.version"])
+        .decode()
+        .replace('"', "")
+        .strip()
+    )
+    position = (
+        subprocess.check_output(["nix", "eval", f"{flake}#{response}.meta.position"])
+        .decode()
+        .replace('"', "")
+        .strip()
+    )
+    homepage = (
+        subprocess.check_output(["nix", "eval", f"{flake}#{response}.meta.homepage"])
+        .decode()
+        .replace('"', "")
+        .strip()
+    )
+
+    print()
+    print(f"{F.BLUE}{response}{F.RESET} ({F.GREEN}{version}{F.RESET})")
+    print(f" {description}")
+    print(f" Homepage: {homepage}")
+    print(f" Source: {position}")
+    print()
+
+    pass
