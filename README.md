@@ -9,15 +9,42 @@ This could be made with shell scripts and aliases, but using a python library to
 
 ## Running
 
-```bash
+```console
 nix run github:viperML/nh -- --help
 ```
 
 The environment variable `FLAKE` is used in multiple commands. This is intended to be the path to your NixOS's system flake, or a flake you use often.
 
+## Installation
+
+This a example installtion to a NixOS system. Adapt accordingly if you want it in home-manager, a devShell, etc
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nh.url = "github:viperML/nh";
+    nh.inputs.nixpkgs.follows = "nixpkgs";
+    # ...
+  };
+  outputs = inputs @ {self, nixpkgs, ... }: {
+    nixosConfigurations.my-host = nixpkgs.lib.nixosSystem rec {
+      # ...
+      system = "x86_64-linux";
+      modules = [
+        {
+          environment.systemPackages = [inputs.nh.packages.${system}.nh];
+        }
+      ];
+    };
+    # ...
+  }
+}
+```
+
 ## Hacking
 
-```bash
+```console
 git clone https://github.com/viperML/nh && cd nh
 nix develop
 python -m nh
