@@ -1,26 +1,3 @@
-# nh
-
-_Because "yet-another-**n**ix-**h**elper" was too long..._
-
-## What and why?
-
-This tool is a set of commands that encapsulate commands that I used often.
-This could be made with shell scripts and aliases, but using a python library to create the command makes it easier to maintain and debug.
-```
-Usage: nh [OPTIONS] COMMAND [ARGS]...
-
-Options:
-  --version  Show the version and exit.
-  --help     Show this message and exit.
-
-Commands:
-  boot    Wrapper around nixos-rebuild <boot> and nvd.
-  repl    Load a flake into a nix repl
-  search  Search for packages
-  switch  Wrapper around nixos-rebuild <switch> and nvd.
-  test    Wrapper around nixos-rebuild <test> and nvd.
-  update  Update a flake or any nix file containing fetchFromGitHub
-```
 ## Running
 
 ```console
