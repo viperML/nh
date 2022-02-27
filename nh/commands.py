@@ -1,14 +1,16 @@
-from importlib.metadata import requires
 import json
 import platform
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from pathlib import Path
 
 import click
+from diskcache import Cache
 from pyfzf.pyfzf import FzfPrompt
 
 from nh import __version__, deps
-from nh.utils import NixFile, cmd_print, find_nixfiles, SearchResult
+from nh.utils import NixFile, SearchResult, cmd_print, find_nixfiles
 
 
 @click.group()
@@ -172,9 +174,10 @@ def nixos_rebuild(ctx: click.core.Context):
 
 
 @click.option("--flake", type=str, default="nixpkgs", show_default=True, required=False)
+@click.option("--max-results", type=int, default=10, show_default=True, required=False)
 @click.argument("query", type=str, default=None, required=False)
 @cli.command()
-def search(flake, query):
+def search(flake, query, max_results):
     """
     Search for packages
     """
@@ -193,12 +196,12 @@ def search(flake, query):
     if query:
         fzf_options += f" --filter='{query}'"
     responses = fzf.prompt(pkgs, fzf_options=fzf_options)
+    responses = responses[:max_results]
+    responses.reverse()
 
-    results = list()
-    for r in responses:
-        results.append(SearchResult(pname=r, flake=flake))
-
-    results.reverse()
+    searchResultPartial = partial(SearchResult, flake=flake)
+    with ThreadPoolExecutor() as executor:
+        results = executor.map(searchResultPartial, responses)
 
     for r in results:
         print()
