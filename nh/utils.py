@@ -1,4 +1,5 @@
 import subprocess
+import concurrent.futures
 from pathlib import Path
 from typing import Union
 
@@ -60,62 +61,41 @@ def cmd_print(cmd: list[str]) -> None:
     click.echo("$ " + " ".join(cmd))
 
 
+def nix_eval(query: str) -> str:
+    try:
+        result = subprocess.check_output(
+            ["nix", "eval", "--raw", query],
+            stderr=subprocess.DEVNULL,
+        ).decode()
+
+        if "meta.position" in query:
+            result = result.split(":")[0]
+        return result
+    except subprocess.CalledProcessError:
+        return ""
+
+
 class SearchResult:
     def __init__(self, pname: str, flake: str) -> None:
         self.pname = pname
 
-        try:
-            self.description = (
-                subprocess.check_output(
-                    ["nix", "eval", f"{flake}#{pname}.meta.description"],
-                    stderr=subprocess.DEVNULL,
-                )
-                .decode()
-                .replace('"', "")
-                .strip()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = dict()
+            futures["description"] = executor.submit(
+                nix_eval, f"{flake}#{pname}.meta.description"
             )
-        except subprocess.CalledProcessError:
-            self.description = None
+            futures["version"] = executor.submit(nix_eval, f"{flake}#{pname}.version")
+            futures["homepage"] = executor.submit(
+                nix_eval, f"{flake}#{pname}.meta.homepage"
+            )
+            futures["position"] = executor.submit(
+                nix_eval, f"{flake}#{pname}.meta.position"
+            )
 
-        try:
-            self.version = (
-                subprocess.check_output(
-                    ["nix", "eval", f"{flake}#{pname}.version"],
-                    stderr=subprocess.DEVNULL,
-                )
-                .decode()
-                .replace('"', "")
-                .strip()
-            )
-        except subprocess.CalledProcessError:
-            self.version = None
-
-        try:
-            self.homepage = (
-                subprocess.check_output(
-                    ["nix", "eval", f"{flake}#{pname}.meta.homepage"],
-                    stderr=subprocess.DEVNULL,
-                )
-                .decode()
-                .replace('"', "")
-                .strip()
-            )
-        except subprocess.CalledProcessError:
-            self.homepage = None
-
-        try:
-            self.position = (
-                subprocess.check_output(
-                    ["nix", "eval", f"{flake}#{pname}.meta.position"],
-                    stderr=subprocess.DEVNULL,
-                )
-                .decode()
-                .replace('"', "")
-                .strip()
-                .split(":")[0]
-            )
-        except subprocess.CalledProcessError:
-            self.position = None
+        self.description = futures["description"].result()
+        self.version = futures["version"].result()
+        self.homepage = futures["homepage"].result()
+        self.position = futures["position"].result()
 
     def print(self):
         print(f"{F.BLUE}{self.pname}{F.RESET}", end=" ")

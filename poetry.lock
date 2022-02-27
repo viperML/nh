@@ -380,10 +380,21 @@ category = "main"
 optional = false
 python-versions = ">=3.6,<4.0"
 
+[[package]]
+name = "yappi"
+version = "1.3.3"
+description = "Yet Another Python Profiler"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.extras]
+test = ["gevent (>=20.6.2)"]
+
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "dc476c2611085479710999d2984fa58ffdca6e78f61b42cfcb20570db60688b6"
+content-hash = "38c13dc7bba5a87ac92d7ecdbcbd4ff265a317ec076f5e8f4cfa7cbf5f570fd0"
 
 [metadata.files]
 appnope = [
@@ -564,4 +575,7 @@ wcwidth = [
 xdg = [
     {file = "xdg-5.1.1-py3-none-any.whl", hash = "sha256:865a7b56ed1d4cd2fce2ead1eddf97360843619757f473cd90b75f1817ca541d"},
     {file = "xdg-5.1.1.tar.gz", hash = "sha256:aa619f26ccec6088b2a6018721d4ee86e602099b24644a90a8d3308a25acd06c"},
+]
+yappi = [
+    {file = "yappi-1.3.3.tar.gz", hash = "sha256:855890cd9a90d833dd2df632d648de8ccd0a4c3131f1edc8abd004db0625b5e8"},
 ]

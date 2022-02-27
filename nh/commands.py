@@ -203,12 +203,12 @@ def search(flake, query, max_results):
     if query:
         fzf_options += f" --filter='{query}'"
     responses = fzf.prompt(pkgs, fzf_options=fzf_options)
+
     responses = responses[:max_results]
     responses.reverse()
 
-    searchResultPartial = partial(SearchResult, flake=flake)
     with ThreadPoolExecutor() as executor:
-        results = executor.map(searchResultPartial, responses)
+        results = executor.map(partial(SearchResult, flake=flake), responses)
 
     for r in results:
         print()
