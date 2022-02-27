@@ -40,7 +40,6 @@ This a example installation to a NixOS system. Adapt accordingly if you want it 
 ```console
 git clone https://github.com/viperML/nh && cd nh
 nix develop
-python -m nh
 ```
 
 ## Todo's
