@@ -1,14 +1,14 @@
+from importlib.metadata import requires
 import json
 import platform
 import subprocess
 from pathlib import Path
 
 import click
-from colorama import Fore as F
 from pyfzf.pyfzf import FzfPrompt
 
 from nh import __version__, deps
-from nh.utils import NixFile, cmd_print, find_nixfiles
+from nh.utils import NixFile, cmd_print, find_nixfiles, SearchResult
 
 
 @click.group()
@@ -172,8 +172,9 @@ def nixos_rebuild(ctx: click.core.Context):
 
 
 @click.option("--flake", type=str, default="nixpkgs", show_default=True, required=False)
+@click.argument("query", type=str, default=None, required=False)
 @cli.command()
-def search(flake):
+def search(flake, query):
     """
     Search for packages
     """
@@ -182,46 +183,25 @@ def search(flake):
     pkgs_json = json.loads(
         subprocess.check_output(["nix", "search", "--json", flake]).decode()
     )
-
     pkgs = set()
     for p in pkgs_json:
         pkgs.add(f"{pkgs_json[p]['pname']}")
-
     # Free memory maybe?
     del pkgs_json
-    response = fzf.prompt(pkgs, fzf_options="--height=20%")[0]
 
-    description = (
-        subprocess.check_output(["nix", "eval", f"{flake}#{response}.meta.description"])
-        .decode()
-        .replace('"', "")
-        .strip()
-    )
-    version = (
-        subprocess.check_output(["nix", "eval", f"{flake}#{response}.version"])
-        .decode()
-        .replace('"', "")
-        .strip()
-    )
-    position = (
-        subprocess.check_output(["nix", "eval", f"{flake}#{response}.meta.position"])
-        .decode()
-        .replace('"', "")
-        .strip()
-        .split(":")[0]
-    )
-    homepage = (
-        subprocess.check_output(["nix", "eval", f"{flake}#{response}.meta.homepage"])
-        .decode()
-        .replace('"', "")
-        .strip()
-    )
+    fzf_options = "--height=20%"
+    if query:
+        fzf_options += f" --filter='{query}'"
+    responses = fzf.prompt(pkgs, fzf_options=fzf_options)
+
+    results = list()
+    for r in responses:
+        results.append(SearchResult(pname=r, flake=flake))
+
+    results.reverse()
+
+    for r in results:
+        print()
+        r.print()
 
     print()
-    print(f"{F.BLUE}{response}{F.RESET} ({F.GREEN}{version}{F.RESET})")
-    print(f" {description}")
-    print(f" Homepage: {homepage}")
-    print(f" Source: {position}")
-    print()
-
-    pass

@@ -1,7 +1,9 @@
+import subprocess
 from pathlib import Path
 from typing import Union
 
 import click
+from colorama import Fore as F
 
 from .exceptions import FlakeNotInitialized
 
@@ -56,3 +58,74 @@ def find_nixfiles(path: Path) -> list[NixFile]:
 
 def cmd_print(cmd: list[str]) -> None:
     click.echo("$ " + " ".join(cmd))
+
+
+class SearchResult:
+    def __init__(self, pname: str, flake: str) -> None:
+        self.pname = pname
+
+        try:
+            self.description = (
+                subprocess.check_output(
+                    ["nix", "eval", f"{flake}#{pname}.meta.description"],
+                    stderr=subprocess.DEVNULL,
+                )
+                .decode()
+                .replace('"', "")
+                .strip()
+            )
+        except subprocess.CalledProcessError:
+            self.description = None
+
+        try:
+            self.version = (
+                subprocess.check_output(
+                    ["nix", "eval", f"{flake}#{pname}.version"],
+                    stderr=subprocess.DEVNULL,
+                )
+                .decode()
+                .replace('"', "")
+                .strip()
+            )
+        except subprocess.CalledProcessError:
+            self.version = None
+
+        try:
+            self.homepage = (
+                subprocess.check_output(
+                    ["nix", "eval", f"{flake}#{pname}.meta.homepage"],
+                    stderr=subprocess.DEVNULL,
+                )
+                .decode()
+                .replace('"', "")
+                .strip()
+            )
+        except subprocess.CalledProcessError:
+            self.homepage = None
+
+        try:
+            self.position = (
+                subprocess.check_output(
+                    ["nix", "eval", f"{flake}#{pname}.meta.position"],
+                    stderr=subprocess.DEVNULL,
+                )
+                .decode()
+                .replace('"', "")
+                .strip()
+                .split(":")[0]
+            )
+        except subprocess.CalledProcessError:
+            self.position = None
+
+    def print(self):
+        print(f"{F.BLUE}{self.pname}{F.RESET}", end=" ")
+        if self.version:
+            print(f"({F.GREEN}{self.version}{F.RESET})")
+        else:
+            print()
+        if self.description:
+            print(f" {self.description}")
+        if self.homepage:
+            print(f" Homepage: {self.homepage}")
+        if self.position:
+            print(f" Source: {self.position}")
