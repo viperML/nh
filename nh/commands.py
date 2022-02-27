@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 from diskcache import Cache
 from pyfzf.pyfzf import FzfPrompt
+from xdg import xdg_cache_home
 
 from nh import __version__, deps
 from nh.utils import NixFile, SearchResult, cmd_print, find_nixfiles
@@ -183,14 +184,20 @@ def search(flake, query, max_results):
     """
     fzf = FzfPrompt(deps.FZF)
 
-    pkgs_json = json.loads(
-        subprocess.check_output(["nix", "search", "--json", flake]).decode()
-    )
-    pkgs = set()
-    for p in pkgs_json:
-        pkgs.add(f"{pkgs_json[p]['pname']}")
-    # Free memory maybe?
-    del pkgs_json
+    try:
+        search_cache = Cache(directory=str(xdg_cache_home() / "nix-nh"))
+        pkgs = search_cache.get(f"pkgs-{flake}")
+        assert pkgs
+    except AssertionError:
+        pkgs_json = json.loads(
+            subprocess.check_output(["nix", "search", "--json", flake]).decode()
+        )
+        pkgs = set()
+        for p in pkgs_json:
+            pkgs.add(f"{pkgs_json[p]['pname']}")
+        # Free memory maybe?
+        del pkgs_json
+        search_cache.set(f"pkgs-{flake}", pkgs, expire=259200)
 
     fzf_options = "--height=20%"
     if query:
