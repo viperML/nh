@@ -1,4 +1,12 @@
-# nh
+<h1 align="center">nh</h1>
+
+<p align="center">
+  <img
+    alt="build: passing"
+    src="https://img.shields.io/github/workflow/status/viperML/nh/Check%20and%20build"
+  >
+  </a>
+</p>
 
 _Because "yet-another-**n**ix-**h**elper" was too long..._
 
