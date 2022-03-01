@@ -28,8 +28,6 @@
       }).env.overrideAttrs (prev: {
         buildInputs = with pkgs; [
           poetry
-          update-nix-fetchgit
-          nvd
         ];
         shellHook = ''
           ln -sf ${pre-commit-hook} .git/hooks/pre-commit

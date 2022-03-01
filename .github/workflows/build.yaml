@@ -1,4 +1,4 @@
-name: "Check and build"
+name: "build"
 
 on:
   pull_request:
@@ -10,12 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2.4.0
-      # with:
-      #   fetch-depth: 0 # Nix Flakes doesn't work on shallow clones
     - uses: cachix/install-nix-action@v16
       with:
         install_url: https://github.com/numtide/nix-unstable-installer/releases/download/nix-2.6.0pre20220122_c9a4ddb/install
         extra_nix_config: |
           experimental-features = nix-command flakes
-    - run: nix flake check
-    - run: nix build .#nh
+          extra-substituters = https://viperml.cachix.org
+          extra-trusted-public-keys = viperml.cachix.org-1:qZhKBMTfmcLL+OG6fj/hzsMEedgKvZVFRRAhq7j8Vh8=
+    - uses: cachix/cachix-action@v10
+      with:
+        name: viperml
+        extraPullNames: nix-community
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+    - run: nix flake check -L
+    - run: nix build .#nh -L
