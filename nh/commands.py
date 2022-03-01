@@ -104,7 +104,7 @@ def update(path, recursive, dry_run):
 @click.pass_context
 def nixos_rebuild_switch(ctx, flake, dry_run):
     """
-    Like 'nixos-rebuild switch', but with a diff with added/removed/changed packages.
+    Like 'nixos-rebuild switch', but with a diff showing added/removed/changed packages.
 
     FLAKE: path to the flake to use. Will use environment variable $FLAKE, if nothing is passed.
 
@@ -125,7 +125,7 @@ def nixos_rebuild_switch(ctx, flake, dry_run):
 @click.pass_context
 def nixos_rebuild_boot(ctx, flake, dry_run):
     """
-    Like 'nixos-rebuild boot', but with a diff with added/removed/changed packages.
+    Like 'nixos-rebuild boot', but with a diff showing added/removed/changed packages.
 
     FLAKE: path to the flake to use. Will use environment variable $FLAKE, if nothing is passed.
 
@@ -148,7 +148,7 @@ def nixos_rebuild_boot(ctx, flake, dry_run):
 @click.pass_context
 def nixos_rebuild_test(ctx, flake, dry_run):
     """
-    Like 'nixos-rebuild test', but with a diff with added/removed/changed packages.
+    Like 'nixos-rebuild test', but with a diff showing added/removed/changed packages.
 
     FLAKE: path to the flake to use. Will use environment variable $FLAKE, if nothing is passed.
 
