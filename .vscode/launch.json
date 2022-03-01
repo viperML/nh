@@ -53,6 +53,19 @@
             ],
         },
         {
+            "name": "nh gcr-clean",
+            "type": "python",
+            "request": "launch",
+            "console": "internalConsole",
+            "module": "nh",
+            "args": [
+                "gcr-clean",
+                "--age",
+                "7d",
+                "--dry-run"
+            ],
+        },
+        {
             "name": "Debug utils",
             "type": "python",
             "request": "launch",

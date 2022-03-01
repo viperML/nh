@@ -2,16 +2,19 @@ import json
 import platform
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from functools import partial
 from pathlib import Path
+from time import time
 
 import click
+import dateparser
 from diskcache import Cache
 from pyfzf.pyfzf import FzfPrompt
 from xdg import xdg_cache_home
 
 from nh import __version__, deps
-from nh.utils import NixFile, SearchResult, cmd_print, find_nixfiles
+from nh.utils import NixFile, SearchResult, cmd_print, find_gcroots, find_nixfiles
 
 
 @click.group()
@@ -215,3 +218,30 @@ def search(flake, query, max_results):
         r.print()
 
     print()
+
+
+@cli.command(name="gcr-clean")
+@click.option("--age", type=str, default="", show_default=True, required=False, help="")
+@click.option("-n", "--dry-run", is_flag=True, help="Don't actually remove anything")
+@click.option(
+    "--root",
+    type=click.Path(exists=True, dir_okay=True),
+    default=Path.home(),
+    required=False,
+)
+def gcr_clean(age, dry_run, root):
+    """
+    Find gcroots from a root directory, and delete them. A garbage collect root is a symlink from the store into a normal folder, and registered for gcroots, such that the dependencies of it won't be cleaned until you remove it (e.g build artifacts).
+    """
+    roots = find_gcroots(root)
+
+    if age:
+        max_age = dateparser.parse(age)
+    else:
+        max_age = datetime.now()
+
+    for r in roots:
+        if r.registration_time < max_age:
+            print(f"Removing {r.destination}")
+            if not dry_run:
+                r.remove()

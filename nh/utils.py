@@ -1,7 +1,10 @@
-import subprocess
 import concurrent.futures
+import json
+import subprocess
+from datetime import datetime
 from pathlib import Path
 from typing import Union
+import os
 
 import click
 from colorama import Fore as F
@@ -76,7 +79,7 @@ def nix_eval(query: str) -> str:
 
 
 class SearchResult:
-    def __init__(self, pname: str, flake: str) -> None:
+    def __init__(self, pname: str, flake: str):
         self.pname = pname
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -109,3 +112,43 @@ class SearchResult:
             print(f" Homepage: {self.homepage}")
         if self.position:
             print(f" Source: {self.position}")
+
+
+class GCRoot:
+    def __init__(self, source: Union[Path, str], destination: Union[Path, str]):
+        self.source = Path(source)
+        self.destination = Path(destination)
+
+        self.path_info = json.loads(
+            subprocess.check_output(
+                ["nix", "path-info", "-hS", "--json", str(self.source)]
+            ).decode()
+        )[0]
+
+        self.registration_time = datetime.fromtimestamp(
+            self.path_info["registrationTime"]
+        )
+
+    def remove(self) -> None:
+        os.remove(self.destination)
+
+
+def find_gcroots(root) -> list[GCRoot]:
+    raw_lines = (
+        subprocess.check_output(["nix-store", "--gc", "--print-roots"])
+        .decode()
+        .split("\n")
+    )
+
+    result = list()
+
+    for line in raw_lines:
+        if line and "censored" not in line:
+            destination, source = tuple(map(lambda x: x.strip(), line.split("->")))
+            destination = Path(destination)
+            source = Path(source)
+
+            if root in destination.parents:
+                result.append(GCRoot(source=source, destination=destination))
+
+    return result

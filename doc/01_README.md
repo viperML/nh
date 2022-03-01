@@ -6,10 +6,11 @@ Options:
   --help     Show this message and exit.
 
 Commands:
-  boot    Wrapper around nixos-rebuild <boot> and nvd.
-  repl    Load a flake into a nix repl
-  search  Search for packages
-  switch  Wrapper around nixos-rebuild <switch> and nvd.
-  test    Wrapper around nixos-rebuild <test> and nvd.
-  update  Update a flake or any nix file containing fetchFromGitHub
+  boot       Wrapper around nixos-rebuild <boot> and nvd.
+  gcr-clean  Find gcroots from a root directory, and delete them.
+  repl       Load a flake into a nix repl
+  search     Search for packages
+  switch     Wrapper around nixos-rebuild <switch> and nvd.
+  test       Wrapper around nixos-rebuild <test> and nvd.
+  update     Update a flake or any nix file containing fetchFromGitHub
 ```
