@@ -1,10 +1,10 @@
 import concurrent.futures
 import json
+import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Union
-import os
 
 import click
 from colorama import Fore as F

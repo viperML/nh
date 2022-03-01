@@ -5,7 +5,6 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from functools import partial
 from pathlib import Path
-from time import time
 
 import click
 import dateparser
@@ -24,7 +23,11 @@ def cli() -> None:
 
 
 @cli.command()
-@click.argument("path", type=click.Path(exists=True), envvar="FLAKE")
+@click.argument(
+    "path",
+    type=click.Path(exists=True),
+    envvar="FLAKE",
+)
 def repl(path):
     """
     Load a flake into a nix repl
@@ -53,13 +56,13 @@ def repl(path):
 
 
 @cli.command()
-@click.argument("path", type=click.Path(exists=True), envvar="FLAKE")
 @click.option(
     "-R",
     "--recursive",
     is_flag=True,
-    help="If path is a directory, recurse nix file through it",
+    help="If path is a directory, recurse through it.",
 )
+@click.argument("path", type=click.Path(exists=True), envvar="FLAKE")
 @click.option("-n", "--dry-run", is_flag=True, help="Print commands and exit")
 def update(path, recursive, dry_run):
     """
@@ -96,12 +99,12 @@ def update(path, recursive, dry_run):
         allow_extra_args=True,
     ),
 )
-@click.argument("flake", type=click.Path(exists=True), envvar="FLAKE", required=False)
 @click.option("-n", "--dry-run", is_flag=True, help="Print commands and exit.")
+@click.argument("flake", type=click.Path(exists=True), envvar="FLAKE", required=False)
 @click.pass_context
 def nixos_rebuild_switch(ctx, flake, dry_run):
     """
-    Wrapper around nixos-rebuild <switch> and nvd.
+    Like 'nixos-rebuild switch', but with a diff with added/removed/changed packages.
 
     FLAKE: path to the flake to use. Will use environment variable $FLAKE, if nothing is passed.
 
@@ -122,7 +125,7 @@ def nixos_rebuild_switch(ctx, flake, dry_run):
 @click.pass_context
 def nixos_rebuild_boot(ctx, flake, dry_run):
     """
-    Wrapper around nixos-rebuild <boot> and nvd.
+    Like 'nixos-rebuild boot', but with a diff with added/removed/changed packages.
 
     FLAKE: path to the flake to use. Will use environment variable $FLAKE, if nothing is passed.
 
@@ -145,7 +148,7 @@ def nixos_rebuild_boot(ctx, flake, dry_run):
 @click.pass_context
 def nixos_rebuild_test(ctx, flake, dry_run):
     """
-    Wrapper around nixos-rebuild <test> and nvd.
+    Like 'nixos-rebuild test', but with a diff with added/removed/changed packages.
 
     FLAKE: path to the flake to use. Will use environment variable $FLAKE, if nothing is passed.
 
@@ -177,13 +180,30 @@ def nixos_rebuild(ctx: click.core.Context):
         subprocess.run(cmd_nvd)
 
 
-@click.option("--flake", type=str, default="nixpkgs", show_default=True, required=False)
-@click.option("--max-results", type=int, default=10, show_default=True, required=False)
+@click.option(
+    "--flake",
+    type=str,
+    default="nixpkgs",
+    show_default=True,
+    required=False,
+    help="""Flake to search in.""",
+)
+@click.option(
+    "--max-results",
+    type=int,
+    default=10,
+    show_default=True,
+    required=False,
+    help="""Maximum number of results with non-interactive search.
+    May impact performance""",
+)
 @click.argument("query", type=str, default=None, required=False)
 @cli.command()
 def search(flake, query, max_results):
     """
-    Search for packages
+    Super fast search for packages (optionally interactive)
+
+    QUERY can be left empty to get a interactive search with fzf.
     """
     fzf = FzfPrompt(deps.FZF)
 
@@ -221,17 +241,29 @@ def search(flake, query, max_results):
 
 
 @cli.command(name="gcr-clean")
-@click.option("--age", type=str, default="", show_default=True, required=False, help="")
-@click.option("-n", "--dry-run", is_flag=True, help="Don't actually remove anything")
+@click.option(
+    "--age",
+    type=str,
+    default="",
+    show_default=True,
+    required=False,
+    help="""Any gcroot created at a time older will be selected for removal.
+            Accepts human readable values (e.g. '7 days ago').""",
+)
+@click.option("-n", "--dry-run", is_flag=True, help="Don't actually remove anything.")
 @click.option(
     "--root",
     type=click.Path(exists=True, dir_okay=True),
     default=Path.home(),
     required=False,
+    help="Root directory to scan from.",
 )
 def gcr_clean(age, dry_run, root):
     """
-    Find gcroots from a root directory, and delete them. A garbage collect root is a symlink from the store into a normal folder, and registered for gcroots, such that the dependencies of it won't be cleaned until you remove it (e.g build artifacts).
+    Find gcroots from a root directory, and delete them.
+    A garbage collect root is a symlink from the store into a normal folder,
+    and registered for gcroots, such that the dependencies of it won't be cleaned
+    until you remove it (e.g build artifacts).
     """
     roots = find_gcroots(root)
 
