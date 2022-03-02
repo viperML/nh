@@ -1,5 +1,7 @@
 <h1 align="center">nh</h1>
 
+<h6 align="center">Because "yet-another-nix-helper" was too long...</h1>
+
 <p align="center">
   <img
     alt="build: passing"
@@ -8,7 +10,6 @@
   </a>
 </p>
 
-_Because "yet-another-**n**ix-**h**elper" was too long..._
 
 ## What and why?
 
