@@ -256,7 +256,7 @@ def search(flake, query, max_results):
     type=click.Path(exists=True, dir_okay=True),
     default=Path.home(),
     required=False,
-    help="Root directory to scan from.",
+    help="Root directory to scan from. Default: user's home dir.",
 )
 def gcr_clean(age, dry_run, root):
     """
