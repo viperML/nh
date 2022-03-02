@@ -41,11 +41,3 @@ This a example installation to a NixOS system. Adapt accordingly if you want it 
 git clone https://github.com/viperML/nh && cd nh
 nix develop
 ```
-
-## Todo's
-
-- [x] Repl helper
-- [x] NixOS update wrapper with nvd
-- [x] Flake update helper (last update of inputs, recurse fetchFromGitHub)
-- [ ] garbage-collect on steroids (hunt gc roots and prompt to remove them) (nix-du?)
-- [ ] better search (maybe query search.nixos.org?)
