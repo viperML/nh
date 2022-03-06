@@ -24,7 +24,7 @@
             "console": "internalConsole",
             "module": "nh",
             "args": [
-                "test",
+                "switch",
                 "/home/ayats/Documents/dotfiles",
                 "--dry-run",
                 "-L"

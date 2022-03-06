@@ -6,9 +6,9 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }: flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
-    let
-      pkgs = nixpkgs.legacyPackages.${system};
+  outputs = inputs:
+    inputs.flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
+      pkgs = inputs.nixpkgs.legacyPackages.${system};
       pre-commit-hook = pkgs.writeShellScript "pre-commit" ''
         set -ux
         find . -name \*.py -exec black {} \;
@@ -23,20 +23,25 @@
         cat doc/*_README.md > README.md
         git add .
       '';
-      nh-env = (pkgs.poetry2nix.mkPoetryEnv {
-        projectDir = ./.;
-      }).env.overrideAttrs (prev: {
-        buildInputs = with pkgs; [
-          poetry
-        ];
-        shellHook = ''
-          ln -sf ${pre-commit-hook} .git/hooks/pre-commit
-        '';
-      });
-    in
-    rec {
-      packages.nh = pkgs.callPackage ./default.nix { };
-      apps.nh = flake-utils.lib.mkApp {
+      nh-env =
+        (pkgs.poetry2nix.mkPoetryEnv {
+          projectDir = ./.;
+        })
+        .env
+        .overrideAttrs (prev: {
+          buildInputs = with pkgs; [
+            poetry
+            nvd
+            update-nix-fetchgit
+            fzf
+          ];
+          shellHook = ''
+            ln -sf ${pre-commit-hook} .git/hooks/pre-commit
+          '';
+        });
+    in rec {
+      packages.nh = pkgs.callPackage ./default.nix {};
+      apps.nh = inputs.flake-utils.lib.mkApp {
         drv = packages.nh;
         exePath = "/bin/nh";
       };

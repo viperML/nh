@@ -1,5 +1,7 @@
 import json
 import platform
+import random
+import string
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -13,7 +15,7 @@ from pyfzf.pyfzf import FzfPrompt
 from xdg import xdg_cache_home
 
 from nh import __version__, deps
-from nh.utils import NixFile, SearchResult, cmd_print, find_gcroots, find_nixfiles
+from nh.utils import NixFile, SearchResult, find_gcroots, find_nixfiles, run_cmd
 
 
 @click.group()
@@ -80,41 +82,13 @@ def update(path, recursive, dry_run):
 
     for nf in my_nixfiles:
         if nf.is_flake:
-            cmd = ["nix", "flake", "update", str(nf)]
-            cmd_print(cmd)
-            if not dry_run:
-                subprocess.run(cmd)
+            run_cmd(cmd=f"nix flake update {str(nf)}", dry=False, tooltip=None)
 
         elif nf.has_fetchFromGitHub:
-            cmd = [deps.UNF, str(nf.path)]
-            cmd_print(cmd)
-            if not dry_run:
-                subprocess.run(cmd)
+            run_cmd(cmd=f"{deps.UNF} {str(nf.path)}", dry=False, tooltip=None)
 
 
 @cli.command(
-    name="switch",
-    context_settings=dict(
-        ignore_unknown_options=True,
-        allow_extra_args=True,
-    ),
-)
-@click.option("-n", "--dry-run", is_flag=True, help="Print commands and exit.")
-@click.argument("flake", type=click.Path(exists=True), envvar="FLAKE", required=False)
-@click.pass_context
-def nixos_rebuild_switch(ctx, flake, dry_run):
-    """
-    Like 'nixos-rebuild switch', but with a diff showing added/removed/changed packages.
-
-    FLAKE: path to the flake to use. Will use environment variable $FLAKE, if nothing is passed.
-
-    Extra options will be forwarded to nixos-rebuild.
-    """
-    nixos_rebuild(ctx)
-
-
-@cli.command(
-    name="boot",
     context_settings=dict(
         ignore_unknown_options=True,
         allow_extra_args=True,
@@ -122,20 +96,42 @@ def nixos_rebuild_switch(ctx, flake, dry_run):
 )
 @click.argument("flake", type=click.Path(exists=True), envvar="FLAKE", required=False)
 @click.option("-n", "--dry-run", is_flag=True, help="Print commands and exit.")
+@click.option(
+    "-S",
+    "--no-auto-specialisation",
+    is_flag=True,
+    help="Disable automatic specialisation detection by reading /run/current-system-configuration-name",
+)
+@click.option("-s", "--specialisation", help="Name of the specialisation to use")
 @click.pass_context
-def nixos_rebuild_boot(ctx, flake, dry_run):
+def switch(ctx, **kwargs):
     """
-    Like 'nixos-rebuild boot', but with a diff showing added/removed/changed packages.
+    Reimplementation of nixos-rebuild switch.
 
-    FLAKE: path to the flake to use. Will use environment variable $FLAKE, if nothing is passed.
-
-    Extra options will be forwarded to nixos-rebuild.
+    Integrated with nvd, to show installed, removed and updated packages.
     """
     nixos_rebuild(ctx)
 
 
 @cli.command(
-    name="test",
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True,
+    ),
+)
+@click.argument("flake", type=click.Path(exists=True), envvar="FLAKE", required=False)
+@click.option("-n", "--dry-run", is_flag=True, help="Print commands and exit.")
+@click.pass_context
+def boot(ctx, **kwargs):
+    """
+    Reimplementation of nixos-rebuild boot.
+
+    Integrated with nvd, to show installed, removed and updated packages.
+    """
+    nixos_rebuild(ctx)
+
+
+@cli.command(
     context_settings=dict(
         ignore_unknown_options=True,
         allow_extra_args=True,
@@ -145,39 +141,64 @@ def nixos_rebuild_boot(ctx, flake, dry_run):
     "flake", type=click.Path(exists=True, dir_okay=True), envvar="FLAKE", required=False
 )
 @click.option("-n", "--dry-run", is_flag=True, help="Print commands and exit.")
+@click.option(
+    "-S",
+    "--no-auto-specialisation",
+    is_flag=True,
+    help="Disable automatic specialisation detection by reading /run/current-system-configuration-name",
+)
+@click.option("-s", "--specialisation", help="Name of the specialisation to use")
 @click.pass_context
-def nixos_rebuild_test(ctx, flake, dry_run):
+def test(ctx, **kwargs):
     """
-    Like 'nixos-rebuild test', but with a diff showing added/removed/changed packages.
+    Reimplementation of nixos-rebuild test.
 
-    FLAKE: path to the flake to use. Will use environment variable $FLAKE, if nothing is passed.
-
-    Extra options will be forwarded to nixos-rebuild.
+    Integrated with nvd, to show installed, removed and updated packages.
     """
     nixos_rebuild(ctx)
 
 
 def nixos_rebuild(ctx: click.core.Context):
-    my_flake = NixFile(Path(ctx.params["flake"]))
-    cmd = [
-        "sudo",
-        "nixos-rebuild",
-        ctx.command.name,
-        "--flake",
-        str(my_flake) + f"#{platform.node()}",
-    ]
-    if ctx.args:
-        cmd.append(" ".join(ctx.args))
+    system_flake = NixFile(Path(ctx.params["flake"]))
+    dry = ctx.params["dry_run"]
 
-    cmd_print(cmd)
+    tmp_path = Path(
+        f'/tmp/nix-nh/{"".join(random.choice(string.ascii_letters) for i in range(17))}'
+    )
 
-    profile_prev = Path("/run/current-system").resolve()
+    previous_profile = Path("/run/current-system").resolve()
 
-    if not ctx.params["dry_run"]:
-        subprocess.run(cmd)
-        profile_new = Path("/run/current-system").resolve()
-        cmd_nvd = [deps.NVD, "diff", str(profile_prev), str(profile_new)]
-        subprocess.run(cmd_nvd)
+    if ctx.params["specialisation"]:
+        spec = ctx.params["specialisation"]
+    elif not ctx.params["no_auto_specialisation"]:
+        with open("/run/current-system/configuration-name", "r") as f:
+            spec = f.read()
+    else:
+        spec = None
+
+    if spec:
+        new_profile = tmp_path / "specialisation" / spec
+    else:
+        new_profile = tmp_path
+
+    cmd = f"sudo nix build --profile /nix/var/nix/profiles/system --out-link {str(tmp_path)} {str(system_flake)}#nixosConfigurations.{platform.node()}.config.system.build.toplevel"
+
+    run_cmd(cmd=cmd, dry=dry, tooltip="Building system configuration")
+
+    # cmd = [deps.NVD, "diff", str(previous_profile), str(new_profile)]
+    cmd = f"{deps.NVD} diff {str(previous_profile)} {str(new_profile)}"
+    run_cmd(cmd=cmd, dry=dry, tooltip="Calculating transaction")
+
+    if ctx.command.name == "test" or ctx.command.name == "switch":
+        script_path = new_profile / "bin" / "switch-to-configuration"
+        cmd = f"sudo {str(script_path)} test"
+        run_cmd(cmd=cmd, dry=dry, tooltip="Activating profile")
+
+    if ctx.command.name == "boot" or ctx.command.name == "switch":
+        # Don't use the specialisation one, as it will mess up grub
+        script_path = tmp_path / "bin" / "switch-to-configuration"
+        cmd = f"sudo {str(script_path)} boot"
+        run_cmd(cmd=cmd, dry=dry, tooltip="Adding profile to bootloader")
 
 
 @click.option(

@@ -4,7 +4,7 @@ import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import click
 from colorama import Fore as F
@@ -152,3 +152,16 @@ def find_gcroots(root) -> list[GCRoot]:
                 result.append(GCRoot(source=source, destination=destination))
 
     return result
+
+
+def run_cmd(cmd: str, tooltip: Optional[str], dry: bool) -> None:
+    if tooltip:
+        print(f">>> {F.GREEN}{tooltip}{F.RESET}")
+    print(f"{F.LIGHTBLACK_EX}$ {cmd}{F.RESET}")
+
+    try:
+        if not dry:
+            subprocess.run(cmd.split(" "))
+    except KeyboardInterrupt:
+        print(f">>> {F.RED}Operation cancelled!{F.RESET}")
+        raise KeyboardInterrupt
