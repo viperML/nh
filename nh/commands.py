@@ -103,6 +103,12 @@ def update(path, recursive, dry_run):
     help="Disable automatic specialisation detection by reading /run/current-system-configuration-name",
 )
 @click.option("-s", "--specialisation", help="Name of the specialisation to use")
+@click.option(
+    "-a",
+    "--ask",
+    is_flag=True,
+    help="Display the transaction and ask for confirmation.",
+)
 @click.pass_context
 def switch(ctx, **kwargs):
     """
@@ -121,6 +127,19 @@ def switch(ctx, **kwargs):
 )
 @click.argument("flake", type=click.Path(exists=True), envvar="FLAKE", required=False)
 @click.option("-n", "--dry-run", is_flag=True, help="Print commands and exit.")
+@click.option(
+    "-S",
+    "--no-auto-specialisation",
+    is_flag=True,
+    help="Disable automatic specialisation detection by reading /run/current-system-configuration-name",
+)
+@click.option("-s", "--specialisation", help="Name of the specialisation to use")
+@click.option(
+    "-a",
+    "--ask",
+    is_flag=True,
+    help="Display the transaction and ask for confirmation.",
+)
 @click.pass_context
 def boot(ctx, **kwargs):
     """
@@ -148,6 +167,12 @@ def boot(ctx, **kwargs):
     help="Disable automatic specialisation detection by reading /run/current-system-configuration-name",
 )
 @click.option("-s", "--specialisation", help="Name of the specialisation to use")
+@click.option(
+    "-a",
+    "--ask",
+    is_flag=True,
+    help="Display the transaction and ask for confirmation.",
+)
 @click.pass_context
 def test(ctx, **kwargs):
     """
@@ -188,6 +213,13 @@ def nixos_rebuild(ctx: click.core.Context):
     # cmd = [deps.NVD, "diff", str(previous_profile), str(new_profile)]
     cmd = f"{deps.NVD} diff {str(previous_profile)} {str(new_profile)}"
     run_cmd(cmd=cmd, dry=dry, tooltip="Calculating transaction")
+
+    if (
+        ctx.params["ask"]
+        and not click.confirm("Do you want to continue?", default=True)
+        and not ctx.params["dry_run"]
+    ):
+        exit(0)
 
     if ctx.command.name == "test" or ctx.command.name == "switch":
         script_path = new_profile / "bin" / "switch-to-configuration"
