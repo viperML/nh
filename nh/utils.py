@@ -9,7 +9,7 @@ from typing import Optional, Union
 import click
 from colorama import Fore as F
 
-from .exceptions import FlakeNotInitialized
+from .exceptions import FlakeNotInitialized, CommandFailed
 
 
 class NixFile(object):
@@ -159,9 +159,22 @@ def run_cmd(cmd: str, tooltip: Optional[str], dry: bool) -> None:
         print(f">>> {F.GREEN}{tooltip}{F.RESET}")
     print(f"{F.LIGHTBLACK_EX}$ {cmd}{F.RESET}")
 
-    try:
-        if not dry:
-            subprocess.run(cmd.split(" "))
-    except KeyboardInterrupt:
-        print(f">>> {F.RED}Operation cancelled!{F.RESET}")
-        raise KeyboardInterrupt
+    if not dry:
+        try:
+            subprocess.run(cmd.split(" "), check=True)
+        except KeyboardInterrupt:
+            print(f">>> {F.RED}Operation cancelled by user!{F.RESET}")
+            raise CommandFailed
+        except subprocess.CalledProcessError:
+            print(f">>> {F.RED}Operation cancelled, error during evaluation!{F.RESET}")
+            raise CommandFailed
+
+
+def run_maybefail(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except CommandFailed:
+            pass
+
+    return wrapper

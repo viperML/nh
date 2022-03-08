@@ -20,14 +20,15 @@
         {
             "name": "nh switch",
             "type": "python",
+            "debugger": "debugpy",
             "request": "launch",
             "console": "internalConsole",
             "module": "nh",
             "args": [
                 "switch",
                 "/home/ayats/Documents/dotfiles",
-                "--dry-run",
-                "-L"
+                // "--dry-run",
+                // "-L"
             ],
         },
         {

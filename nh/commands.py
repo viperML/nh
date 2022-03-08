@@ -15,7 +15,14 @@ from pyfzf.pyfzf import FzfPrompt
 from xdg import xdg_cache_home
 
 from nh import __version__, deps
-from nh.utils import NixFile, SearchResult, find_gcroots, find_nixfiles, run_cmd
+from nh.utils import (
+    NixFile,
+    SearchResult,
+    find_gcroots,
+    find_nixfiles,
+    run_cmd,
+    run_maybefail,
+)
 
 
 @click.group()
@@ -183,6 +190,7 @@ def test(ctx, **kwargs):
     nixos_rebuild(ctx)
 
 
+@run_maybefail
 def nixos_rebuild(ctx: click.core.Context):
     system_flake = NixFile(Path(ctx.params["flake"]))
     dry = ctx.params["dry_run"]
@@ -206,7 +214,7 @@ def nixos_rebuild(ctx: click.core.Context):
     else:
         new_profile = tmp_path
 
-    cmd = f"sudo nix build --profile /nix/var/nix/profiles/system --out-link {str(tmp_path)} {str(system_flake)}#nixosConfigurations.{platform.node()}.config.system.build.toplevel"
+    cmd = f"nix build --profile /nix/var/nix/profiles/system --out-link {str(tmp_path)} {str(system_flake)}#nixosConfigurations.{platform.node()}.config.system.build.toplevel"
 
     run_cmd(cmd=cmd, dry=dry, tooltip="Building system configuration")
 
@@ -223,13 +231,13 @@ def nixos_rebuild(ctx: click.core.Context):
 
     if ctx.command.name == "test" or ctx.command.name == "switch":
         script_path = new_profile / "bin" / "switch-to-configuration"
-        cmd = f"sudo {str(script_path)} test"
+        cmd = f"{str(script_path)} test"
         run_cmd(cmd=cmd, dry=dry, tooltip="Activating profile")
 
     if ctx.command.name == "boot" or ctx.command.name == "switch":
         # Don't use the specialisation one, as it will mess up grub
         script_path = tmp_path / "bin" / "switch-to-configuration"
-        cmd = f"sudo {str(script_path)} boot"
+        cmd = f"{str(script_path)} boot"
         run_cmd(cmd=cmd, dry=dry, tooltip="Adding profile to bootloader")
 
 
