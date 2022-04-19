@@ -204,7 +204,7 @@ def nixos_rebuild(ctx: click.core.Context):
     if ctx.params["specialisation"]:
         spec = ctx.params["specialisation"]
     elif not ctx.params["no_auto_specialisation"]:
-        with open("/run/current-system/configuration-name", "r") as f:
+        with open("/run/current-system/etc/specialisation", "r") as f:
             spec = f.read()
     else:
         spec = None
