@@ -24,8 +24,8 @@
           find . -name \*.py -exec mypy {} \;
           flake8 --max-line-length=99
           nix flake check
-          nix build .#nh --no-link
-          my_nh=`nix eval --raw .#nh.outPath`
+          nix build --no-link
+          my_nh=`nix eval --raw .#default`
           echo "\`\`\`" > doc/01_README.md
           $my_nh/bin/nh --help >> doc/01_README.md
           echo "\`\`\`" >> doc/01_README.md
