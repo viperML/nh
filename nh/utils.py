@@ -1,6 +1,9 @@
 import concurrent.futures
 import json
 import os
+import platform
+import random
+import string
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -9,7 +12,8 @@ from typing import Optional, Union
 import click
 from colorama import Fore as F
 
-from .exceptions import FlakeNotInitialized, CommandFailed
+from .exceptions import CommandFailed, FlakeNotInitialized
+from nh import deps
 
 
 class NixFile(object):
@@ -170,11 +174,54 @@ def run_cmd(cmd: str, tooltip: Optional[str], dry: bool) -> None:
             raise CommandFailed
 
 
-def run_maybefail(func):
-    def wrapper(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except CommandFailed:
-            pass
+def nixos_rebuild(ctx: click.core.Context) -> None:
+    flake = NixFile(Path(ctx.params["flake"]))
+    dry = ctx.params["dry_run"]
 
-    return wrapper
+    new_profile = Path(
+        f'/tmp/nix-nh/{"".join(random.choice(string.ascii_letters) for i in range(17))}'
+    )
+
+    previous_profile = Path("/run/current-system").resolve()
+
+    cmd = f"nix build --profile /nix/var/nix/profiles/system --out-link {str(new_profile)} {str(flake)}#nixosConfigurations.{platform.node()}.config.system.build.toplevel"
+    run_cmd(cmd=cmd, dry=dry, tooltip="Building configuration")
+
+    try:
+        with open(Path("/etc/specialisation"), "r") as f:
+            previous_spec = f.read()
+        if (new_profile / "specialisation" / previous_spec).exists():
+            new_spec = previous_spec
+            new_profile = new_profile / "specialisation" / new_spec
+        elif ctx.command.name == "test" or ctx.command.name == "switch":
+            print(
+                f">>> {F.RED}Your current specialisation {previous_spec} is not available in the new profile{F.RESET}"
+            )
+            print(
+                f">>> {F.RED}Please use 'nh boot' or pass --specialisation NEW_SPEC{F.RESET}"
+            )
+            exit(1)
+    except FileNotFoundError:
+        previous_spec = None
+
+    # cmd = [deps.NVD, "diff", str(previous_profile), str(new_profile)]
+    cmd = f"{deps.NVD} diff {str(previous_profile)} {str(new_profile)}"
+    run_cmd(cmd=cmd, dry=dry, tooltip="Calculating transaction")
+
+    if (
+        ctx.params["ask"]
+        and not click.confirm(f">>> {F.YELLOW}Apply?{F.RESET}", default=True)
+        and not ctx.params["dry_run"]
+    ):
+        exit(0)
+
+    if ctx.command.name == "test" or ctx.command.name == "switch":
+        script_path = new_profile / "bin" / "switch-to-configuration"
+        cmd = f"{str(script_path)} test"
+        run_cmd(cmd=cmd, dry=dry, tooltip="Activating profile")
+
+    if ctx.command.name == "boot" or ctx.command.name == "switch":
+        # Don't use the specialisation one, as it will mess up grub
+        script_path = new_profile / "bin" / "switch-to-configuration"
+        cmd = f"{str(script_path)} boot"
+        run_cmd(cmd=cmd, dry=dry, tooltip="Adding profile to bootloader")

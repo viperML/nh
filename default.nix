@@ -13,11 +13,11 @@ poetry2nix.mkPoetryApplication rec {
   src = ./.;
   projectDir = src;
 
-  prePatch = ''
-    ${gnused}/bin/sed -i "s#nvd#${nvd}/bin/nvd#g" nh/deps.py
-    ${gnused}/bin/sed -i "s#update-nix-fetchgit#${update-nix-fetchgit}/bin/update-nix-fetchgit#g" nh/deps.py
-    ${gnused}/bin/sed -i "s#fzf#${fzf}/bin/fzf#g" nh/deps.py
-  '';
+  propagatedBuildInputs = [
+    nvd
+    update-nix-fetchgit
+    gnused
+  ];
 
   meta = {
     inherit (python.meta) platforms;

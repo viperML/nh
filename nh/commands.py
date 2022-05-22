@@ -1,7 +1,4 @@
 import json
-import platform
-import random
-import string
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -15,14 +12,7 @@ from pyfzf.pyfzf import FzfPrompt
 from xdg import xdg_cache_home
 
 from nh import __version__, deps
-from nh.utils import (
-    NixFile,
-    SearchResult,
-    find_gcroots,
-    find_nixfiles,
-    run_cmd,
-    run_maybefail,
-)
+from nh.utils import NixFile, SearchResult, find_gcroots, nixos_rebuild
 
 
 @click.group()
@@ -62,37 +52,6 @@ def repl(path):
         )
     else:
         print(f"You are trying to load ${my_nixfile.path}, which is not a flake")
-
-
-@cli.command()
-@click.option(
-    "-R",
-    "--recursive",
-    is_flag=True,
-    help="If path is a directory, recurse through it.",
-)
-@click.argument("path", type=click.Path(exists=True), envvar="FLAKE")
-@click.option("-n", "--dry-run", is_flag=True, help="Print commands and exit")
-def update(path, recursive, dry_run):
-    """
-    Update a flake or any nix file containing fetchFromGitHub
-
-    PATH to any nix file or container folder. If nothing is passed, the environment variable $FLAKE will be used
-    """
-
-    my_path = Path(path).resolve()
-
-    if recursive and my_path.is_dir():
-        my_nixfiles = find_nixfiles(my_path)
-    else:
-        my_nixfiles = [NixFile(my_path)]
-
-    for nf in my_nixfiles:
-        if nf.is_flake:
-            run_cmd(cmd=f"nix flake update {str(nf)}", dry=False, tooltip=None)
-
-        elif nf.has_fetchFromGitHub:
-            run_cmd(cmd=f"{deps.UNF} {str(nf.path)}", dry=False, tooltip=None)
 
 
 @cli.command(
@@ -190,57 +149,6 @@ def test(ctx, **kwargs):
     nixos_rebuild(ctx)
 
 
-@run_maybefail
-def nixos_rebuild(ctx: click.core.Context):
-    system_flake = NixFile(Path(ctx.params["flake"]))
-    dry = ctx.params["dry_run"]
-
-    tmp_path = Path(
-        f'/tmp/nix-nh/{"".join(random.choice(string.ascii_letters) for i in range(17))}'
-    )
-
-    previous_profile = Path("/run/current-system").resolve()
-
-    if ctx.params["specialisation"]:
-        spec = ctx.params["specialisation"]
-    elif not ctx.params["no_auto_specialisation"]:
-        with open("/run/current-system/etc/specialisation", "r") as f:
-            spec = f.read()
-    else:
-        spec = None
-
-    if spec:
-        new_profile = tmp_path / "specialisation" / spec
-    else:
-        new_profile = tmp_path
-
-    cmd = f"nix build --profile /nix/var/nix/profiles/system --out-link {str(tmp_path)} {str(system_flake)}#nixosConfigurations.{platform.node()}.config.system.build.toplevel"
-
-    run_cmd(cmd=cmd, dry=dry, tooltip="Building system configuration")
-
-    # cmd = [deps.NVD, "diff", str(previous_profile), str(new_profile)]
-    cmd = f"{deps.NVD} diff {str(previous_profile)} {str(new_profile)}"
-    run_cmd(cmd=cmd, dry=dry, tooltip="Calculating transaction")
-
-    if (
-        ctx.params["ask"]
-        and not click.confirm("Do you want to continue?", default=True)
-        and not ctx.params["dry_run"]
-    ):
-        exit(0)
-
-    if ctx.command.name == "test" or ctx.command.name == "switch":
-        script_path = new_profile / "bin" / "switch-to-configuration"
-        cmd = f"{str(script_path)} test"
-        run_cmd(cmd=cmd, dry=dry, tooltip="Activating profile")
-
-    if ctx.command.name == "boot" or ctx.command.name == "switch":
-        # Don't use the specialisation one, as it will mess up grub
-        script_path = tmp_path / "bin" / "switch-to-configuration"
-        cmd = f"{str(script_path)} boot"
-        run_cmd(cmd=cmd, dry=dry, tooltip="Adding profile to bootloader")
-
-
 @click.option(
     "--flake",
     type=str,
@@ -256,13 +164,16 @@ def nixos_rebuild(ctx: click.core.Context):
     show_default=True,
     required=False,
     help="""Maximum number of results with non-interactive search.
-    May impact performance""",
+    May impact performance.""",
 )
 @click.argument("query", type=str, default=None, required=False)
 @cli.command()
 def search(flake, query, max_results):
     """
-    Super fast search for packages (optionally interactive)
+    Super fast search for packages.
+
+    The first run will evaluate the flake and save a persistent snapshot
+    to disk.
 
     QUERY can be left empty to get a interactive search with fzf.
     """

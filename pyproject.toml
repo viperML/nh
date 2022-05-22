@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nh"
-version = "0.10.0"
+version = "1.0.0"
 description = "Description"
 authors = ["Fernando Ayats <ayatsfer@gmail.com>"]
 license = "MIT"
@@ -20,8 +20,7 @@ dateparser = "^1.1.0"
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"
 flake8 = "^4.0.1"
-ipython = "^8.0.1"
-mypy = "^0.931"
+# mypy = "^0.931"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
