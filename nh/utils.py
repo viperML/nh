@@ -15,6 +15,8 @@ from colorama import Fore as F
 from .exceptions import CommandFailed, FlakeNotInitialized
 from nh import deps
 
+from types import SimpleNamespace
+
 
 class NixFile(object):
     is_flake = False
@@ -159,6 +161,7 @@ def find_gcroots(root) -> list[GCRoot]:
 
 
 def run_cmd(cmd: str, tooltip: Optional[str], dry: bool) -> None:
+    print()
     if tooltip:
         print(f">>> {F.GREEN}{tooltip}{F.RESET}")
     print(f"{F.LIGHTBLACK_EX}$ {cmd}{F.RESET}")
@@ -174,39 +177,90 @@ def run_cmd(cmd: str, tooltip: Optional[str], dry: bool) -> None:
             raise CommandFailed
 
 
-def nixos_rebuild(ctx: click.core.Context) -> None:
-    flake = NixFile(Path(ctx.params["flake"]))
-    dry = ctx.params["dry_run"]
+class NixProfile:
+    SYSTEM_PROFILES = "/nix/var/nix/profiles/system"
 
-    new_profile = Path(
-        f'/tmp/nix-nh/{"".join(random.choice(string.ascii_letters) for i in range(17))}'
-    )
+    def __init__(self, path: Union[Path, str], default_spec: str, build: Optional[str]):
+        self.path = Path(path)
+        if build:
+            cmd = f"nix build --profile {self.SYSTEM_PROFILES} --out-link {self.path} {build}"
+            try:
+                run_cmd(cmd=cmd, dry=False, tooltip="Building NixOS configuration")
+            except CommandFailed:
+                print(f">>> {F.RED}Build failure !{F.RESET}")
+                exit(1)
 
-    previous_profile = Path("/run/current-system").resolve()
+        # Read all the subfolder names into self.specs
+        self.specs = [
+            x.name for x in (self.path / "specialisation").iterdir() if x.is_dir()
+        ]
+        self.default_spec = default_spec
 
-    cmd = f"nix build --profile /nix/var/nix/profiles/system --out-link {str(new_profile)} {str(flake)}#nixosConfigurations.{platform.node()}.config.system.build.toplevel"
-    run_cmd(cmd=cmd, dry=dry, tooltip="Building configuration")
+        if self.default_spec:
+            self.prefix = f"/specialisation/{self.default_spec}"
+        else:
+            self.prefix = ""
 
-    try:
-        with open(Path("/etc/specialisation"), "r") as f:
-            previous_spec = f.read()
-        if (new_profile / "specialisation" / previous_spec).exists():
-            new_spec = previous_spec
-            new_profile = new_profile / "specialisation" / new_spec
-        elif ctx.command.name == "test" or ctx.command.name == "switch":
+        if self.default_spec and self.default_spec not in self.specs:
             print(
-                f">>> {F.RED}Your current specialisation {previous_spec} is not available in the new profile{F.RESET}"
-            )
-            print(
-                f">>> {F.RED}Please use 'nh boot' or pass --specialisation NEW_SPEC{F.RESET}"
+                f">>> {F.RED}Specialisation {self.default_spec} not found in {self.path} !{F.RESET}"
+                f">>> {F.RED}If you are using auto-spec detection, manually pass it with --specialisation{F.RESET}"
             )
             exit(1)
-    except FileNotFoundError:
-        previous_spec = None
 
-    # cmd = [deps.NVD, "diff", str(previous_profile), str(new_profile)]
-    cmd = f"{deps.NVD} diff {str(previous_profile)} {str(new_profile)}"
-    run_cmd(cmd=cmd, dry=dry, tooltip="Calculating transaction")
+    def __str__(self) -> str:
+        return str(self.path)
+
+    def boot(self, dry: bool) -> None:
+        cmd = f"{self.path}/bin/switch-to-configuration boot"
+        run_cmd(
+            cmd=cmd,
+            dry=dry,
+            tooltip="Adding profile to the bootloader",
+        )
+
+    def test(self, dry: bool) -> None:
+        cmd = f"{self.path}{self.prefix}/bin/switch-to-configuration test"
+        run_cmd(cmd=cmd, dry=dry, tooltip="Activating profile")
+
+    # our self class as argument
+    def diff(self, other) -> None:
+        cmd = f"{deps.NVD} diff {self}{self.prefix} {other}{other.prefix}"
+        run_cmd(cmd=cmd, dry=False, tooltip="Calculating transaction")
+
+
+def current_spec() -> Optional[str]:
+    try:
+        with open(Path("/etc/specialisation"), "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        return None
+
+
+def nixos_rebuild(ctx: click.core.Context) -> None:
+    flake = str(NixFile(Path(ctx.params["flake"])))
+    dry = ctx.params["dry_run"]
+    hostname = platform.node()
+
+    if ctx.params["specialisation"]:
+        default_spec = ctx.params["specialisation"]
+    else:
+        default_spec = current_spec()
+
+    profiles = SimpleNamespace(
+        new=NixProfile(
+            path=f'/tmp/nix-nh/{"".join(random.choice(string.ascii_letters) for i in range(17))}',
+            default_spec=default_spec,
+            build=f"{flake}#nixosConfigurations.{hostname}.config.system.build.toplevel",
+        ),
+        old=NixProfile(
+            path="/run/current-system",
+            default_spec=None,
+            build=None,
+        ),
+    )
+
+    profiles.old.diff(profiles.new)
 
     if (
         ctx.params["ask"]
@@ -216,12 +270,7 @@ def nixos_rebuild(ctx: click.core.Context) -> None:
         exit(0)
 
     if ctx.command.name == "test" or ctx.command.name == "switch":
-        script_path = new_profile / "bin" / "switch-to-configuration"
-        cmd = f"{str(script_path)} test"
-        run_cmd(cmd=cmd, dry=dry, tooltip="Activating profile")
+        profiles.new.test(dry)
 
     if ctx.command.name == "boot" or ctx.command.name == "switch":
-        # Don't use the specialisation one, as it will mess up grub
-        script_path = new_profile / "bin" / "switch-to-configuration"
-        cmd = f"{str(script_path)} boot"
-        run_cmd(cmd=cmd, dry=dry, tooltip="Adding profile to bootloader")
+        profiles.new.boot(dry)
