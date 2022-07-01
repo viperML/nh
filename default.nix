@@ -3,8 +3,6 @@
   poetry2nix,
   python3,
   nvd,
-  update-nix-fetchgit,
-  gnused,
   fzf,
 }:
 poetry2nix.mkPoetryApplication rec {
@@ -15,8 +13,7 @@ poetry2nix.mkPoetryApplication rec {
 
   propagatedBuildInputs = [
     nvd
-    update-nix-fetchgit
-    gnused
+    fzf
   ];
 
   meta = {
