@@ -2,7 +2,7 @@
   description = "NH is yet another Nix cli Help utility";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.05";
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs.follows = "nixpkgs";
   };
@@ -23,12 +23,13 @@
         packages.default = pkgs.callPackage ./default.nix {};
         devShells.default = pkgs.mkShell {
           name = "nh-shell";
-          inputsFrom = [
-            self'.packages.default
+          packages = [
             pkgs.poetry
           ];
+          inputsFrom = [
+            self'.packages.default
+          ];
           shellHook = ''
-            set -x
             venv="$(cd $(dirname $(which python)); cd ..; pwd)"
             ln -Tsf "$venv" .venv
           '';
