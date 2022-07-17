@@ -13,7 +13,12 @@
     flake-parts,
   }:
     flake-parts.lib.mkFlake {inherit self;} {
-      systems = ["x86_64-linux" "aarch64-linux"];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
       flake.overlays.default = _: prev: {
         nh = prev.callPackage ./default.nix {};
       };
@@ -21,11 +26,12 @@
         pkgs,
         self',
         ...
-      }: let
-      in {
-        packages = self.overlays.default null pkgs // {
-          default = self'.packages.nh;
-        };
+      }: {
+        packages =
+          self.overlays.default null pkgs
+          // {
+            default = self'.packages.nh;
+          };
         devShells.default = pkgs.mkShell {
           name = "nh-shell";
           packages = [
@@ -35,6 +41,7 @@
             self'.packages.nh
           ];
           shellHook = ''
+            echo ">>> Linking python environment to $PWD/.venv"
             venv="$(cd $(dirname $(which python)); cd ..; pwd)"
             ln -Tsf "$venv" .venv
           '';

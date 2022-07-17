@@ -12,7 +12,7 @@ from pyfzf.pyfzf import FzfPrompt
 from xdg import xdg_cache_home
 
 from nh import __version__, deps
-from nh.utils import NixFile, SearchResult, find_gcroots, nixos_rebuild
+from nh.utils import SearchResult, find_gcroots, nixos_rebuild
 
 
 @click.group()
@@ -34,24 +34,7 @@ def repl(path):
     PATH to any nix file or container folder. If nothing is passed, the environment variable $FLAKE will be used
     """
 
-    repl_flake = Path(__file__).parent / "repl-flake.nix"
-
-    my_nixfile = NixFile(path)
-
-    if my_nixfile.is_flake:
-        subprocess.run(["nix", "flake", "show", str(my_nixfile.path)])
-        subprocess.run(
-            [
-                "nix",
-                "repl",
-                "--arg",
-                "flakepath",
-                str(my_nixfile.path),
-                str(repl_flake),
-            ]
-        )
-    else:
-        print(f"You are trying to load ${my_nixfile.path}, which is not a flake")
+    print("nh repl is deprecated. You can use `nix repl --file $FLAKE`")
 
 
 @cli.command(
