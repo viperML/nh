@@ -14,20 +14,25 @@
   }:
     flake-parts.lib.mkFlake {inherit self;} {
       systems = ["x86_64-linux" "aarch64-linux"];
+      flake.overlays.default = _: prev: {
+        nh = prev.callPackage ./default.nix {};
+      };
       perSystem = {
         pkgs,
         self',
         ...
       }: let
       in {
-        packages.default = pkgs.callPackage ./default.nix {};
+        packages = self.overlays.default null pkgs // {
+          default = self'.packages.nh;
+        };
         devShells.default = pkgs.mkShell {
           name = "nh-shell";
           packages = [
             pkgs.poetry
           ];
           inputsFrom = [
-            self'.packages.default
+            self'.packages.nh
           ];
           shellHook = ''
             venv="$(cd $(dirname $(which python)); cd ..; pwd)"
