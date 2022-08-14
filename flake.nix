@@ -32,7 +32,7 @@
           // {
             default = self'.packages.nh;
           };
-        devShells.default = pkgs.mkShell {
+        devShells.default = pkgs.mkShellNoCC {
           name = "nh-shell";
           packages = [
             pkgs.poetry
@@ -43,7 +43,7 @@
           shellHook = ''
             echo ">>> Linking python environment to $PWD/.venv"
             venv="$(cd $(dirname $(which python)); cd ..; pwd)"
-            ln -Tsf "$venv" .venv
+            ln -Tsfv "$venv" .venv
           '';
         };
       };

@@ -202,10 +202,8 @@ class NixProfile:
             self.prefix = ""
 
         if self.default_spec and self.default_spec not in self.specs:
-            print(
-                f">>> {F.RED}Specialisation {self.default_spec} not found in {self.path} !{F.RESET}"
-                f">>> {F.RED}If you are using auto-spec detection, manually pass it with --specialisation{F.RESET}"
-            )
+            print(f">>> {F.RED}Specialisation {self.default_spec} not found in {self.path} !{F.RESET}")
+            print(f">>> {F.RED}If you are using auto-spec detection, manually pass it with --specialisation{F.RESET}")
             exit(1)
 
     def __str__(self) -> str:

@@ -13,14 +13,12 @@ jobs:
     - name: Install nix
       uses: cachix/install-nix-action@v17
       with:
-        install_url: https://releases.nixos.org/nix/nix-2.8.0/install
+        install_url: https://nixos.org/nix/install
         extra_nix_config: |
-          auto-optimise-store = true
           experimental-features = nix-command flakes
           extra-substituters = https://viperml.cachix.org
           extra-trusted-public-keys = viperml.cachix.org-1:qZhKBMTfmcLL+OG6fj/hzsMEedgKvZVFRRAhq7j8Vh8=
-          extra-substituters = https://nix-community.cachix.org
-          extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+
     - uses: cachix/cachix-action@v10
       with:
         name: viperml
