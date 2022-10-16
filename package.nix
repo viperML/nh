@@ -8,17 +8,23 @@
   colorama,
   diskcache,
   xdg,
+  #
+  nvd,
+  fzf,
 }:
 buildPythonPackage {
   name = "nh";
   src = lib.cleanSource ./.;
 
-  propagatedBuildInputs= [
+  propagatedBuildInputs = [
     click
     dateparser
     pyfzf
     colorama
     diskcache
     xdg
+
+    nvd
+    fzf
   ];
 }
