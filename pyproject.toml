@@ -1,27 +1,26 @@
-[tool.poetry]
-name = "nh"
-version = "1.3.0"
-description = "Description"
-authors = ["Fernando Ayats <ayatsfer@gmail.com>"]
-license = "MIT"
-
-[tool.poetry.scripts]
-nh = "nh.commands:cli"
-
-[tool.poetry.dependencies]
-python = "^3.9"
-click = "^8.0.3"
-pyfzf = "^0.3.0"
-colorama = "^0.4.4"
-diskcache = "^5.4.0"
-xdg = "^5.1.1"
-dateparser = "^1.1.0"
-
-[tool.poetry.dev-dependencies]
-black = "^22.1.0"
-flake8 = "^4.0.1"
-# mypy = "^0.931"
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = [
+    "setuptools",
+    "setuptools-scm",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nh"
+version = "1.4.0"
+description = "My package description"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["nix", "cli", "helper"]
+license = { text = "MIT" }
+dependencies = [
+    "xdg",
+    "diskcache",
+    "colorama",
+    "pyfzf",
+    "dateparser",
+    "click",
+]
+
+[project.scripts]
+nh = "nh.commands:cli"

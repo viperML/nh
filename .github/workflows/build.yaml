@@ -8,10 +8,10 @@ on:
 jobs:
   main:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v2.4.0
     - name: Install nix
-      uses: cachix/install-nix-action@v17
+      uses: cachix/install-nix-action@master
       with:
         install_url: https://nixos.org/nix/install
         extra_nix_config: |
@@ -19,10 +19,9 @@ jobs:
           extra-substituters = https://viperml.cachix.org
           extra-trusted-public-keys = viperml.cachix.org-1:qZhKBMTfmcLL+OG6fj/hzsMEedgKvZVFRRAhq7j8Vh8=
 
-    - uses: cachix/cachix-action@v10
-      with:
-        name: viperml
-        extraPullNames: nix-community
-        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+    - uses: actions/checkout@v3
+      name: Checkout
+
     - run: nix flake check -L
+
     - run: nix build -L
