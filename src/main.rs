@@ -1,7 +1,5 @@
 pub mod cli;
 
-use clap::Parser;
-
 use crate::cli::NHParser;
 
 fn main() {
