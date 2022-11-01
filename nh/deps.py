@@ -1,2 +1,0 @@
-NVD = "nvd"
-FZF = "fzf"
