@@ -2,10 +2,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.05";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    naersk = {
-      url = "github:nix-community/naersk";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -13,20 +9,19 @@
     nix-filter.url = "github:numtide/nix-filter";
   };
 
-  outputs = {
+  outputs = inputs @ {
     self,
     nixpkgs,
     flake-parts,
-    naersk,
-    fenix,
-    nix-filter,
+    ...
   }: let
-    src = nix-filter.lib {
+    src = inputs.nix-filter.lib {
       root = ./.;
       exclude = [
-        (nix-filter.lib.matchExt "nix")
+        (inputs.nix-filter.lib.matchExt "nix")
       ];
     };
+
     cargo-toml = builtins.fromTOML (builtins.readFile (src + "/Cargo.toml"));
   in
     flake-parts.lib.mkFlake {inherit self;} {
@@ -41,9 +36,21 @@
         pkgs,
         config,
         ...
-      }: {
+      }: let
+        extraArgs = {
+          nativeBuildInputs = [
+            pkgs.installShellFiles
+          ];
+          preFixup = ''
+            ls -la $releaseDir/build/nh-*/out/nh.bash
+            installShellCompletion $releaseDir/build/nh-*/out/nh.{bash,fish}
+            installShellCompletion --zsh $releaseDir/build/nh-*/out/_nh
+            ls -la $out
+          '';
+        };
+      in {
         packages = {
-          toolchain-dev = with fenix.packages.${system};
+          toolchain-dev = with inputs.fenix.packages.${system};
             combine [
               (complete.withComponents [
                 "rustc"
@@ -54,7 +61,7 @@
               ])
             ];
 
-          toolchain = with fenix.packages.${system};
+          toolchain = with inputs.fenix.packages.${system};
             combine [
               (complete.withComponents [
                 "rustc"
@@ -67,27 +74,29 @@
               cargo = config.packages.toolchain-dev;
               rustc = config.packages.toolchain-dev;
             })
-            .buildRustPackage {
-              inherit src;
-              pname = cargo-toml.package.name;
-              inherit (cargo-toml.package) version;
-              cargoLock.lockFile = src + "/Cargo.lock";
-              RUST_SRC_PATH = "${config.packages.toolchain-dev}/lib/rustlib/src/rust/library";
-            };
+            .buildRustPackage ({
+                inherit src;
+                pname = cargo-toml.package.name;
+                inherit (cargo-toml.package) version;
+                cargoLock.lockFile = src + "/Cargo.lock";
+                RUST_SRC_PATH = "${config.packages.toolchain-dev}/lib/rustlib/src/rust/library";
+              }
+              // extraArgs);
 
           nh =
             (pkgs.makeRustPlatform {
               cargo = config.packages.toolchain;
               rustc = config.packages.toolchain;
             })
-            .buildRustPackage {
-              inherit src;
-              pname = cargo-toml.package.name;
-              inherit (cargo-toml.package) version;
-              cargoLock.lockFile = src + "/Cargo.lock";
-            };
+            .buildRustPackage ({
+                inherit src;
+                pname = cargo-toml.package.name;
+                inherit (cargo-toml.package) version;
+                cargoLock.lockFile = src + "/Cargo.lock";
+              }
+              // extraArgs);
 
-            default = config.packages.nh;
+          default = config.packages.nh;
         };
 
         devShells.extra = with pkgs;
