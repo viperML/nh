@@ -3,7 +3,7 @@ pub mod nixos;
 
 use log::{debug, SetLoggerError};
 
-use crate::interface::{NHCommand, NHParser};
+use crate::interface::{NHParser};
 
 fn main() -> anyhow::Result<()> {
     setup_logging()?;
@@ -24,7 +24,7 @@ fn setup_logging() -> Result<(), SetLoggerError> {
     };
 
     fern::Dispatch::new()
-        .format(|out, message, record| {
+        .format(|out, message, _record| {
             out.finish(format_args!(
                 ">> {}",
                 // record.target(),

@@ -1,6 +1,6 @@
 use crate::interface;
 
-use log::{debug, info};
+
 
 
 // pub fn rebuild(args: &cli::RebuildArgs, rebuild_type: crate::cli::RebuildType) {
@@ -9,7 +9,7 @@ use log::{debug, info};
 // }
 
 impl interface::RebuildArgs {
-    pub fn rebuild(&self, rebuild_type: interface::RebuildType) {
+    pub fn rebuild(&self, _rebuild_type: interface::RebuildType) {
         todo!()
     }
 }
