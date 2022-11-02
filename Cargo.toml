@@ -8,13 +8,16 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.0", features = [
     "derive",
-    "env"
+    "env",
 ] }
 clap_complete = { version = "4.0" }
+fern = { version = "0.6" }
+log = { version = "0.4" }
+anyhow = { version = "1.0" }
 
 [build-dependencies]
 clap = { version = "4.0", features = [
     "derive",
-    "env"
+    "env",
 ] }
 clap_complete = { version = "4.0" }

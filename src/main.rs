@@ -1,13 +1,40 @@
-pub mod cli;
+pub mod interface;
+pub mod nixos;
 
-use crate::cli::NHParser;
+use log::{debug, SetLoggerError};
 
-fn main() {
+use crate::interface::{NHCommand, NHParser};
+
+fn main() -> anyhow::Result<()> {
+    setup_logging()?;
+    debug!("Logging setup!");
+
     let args = <NHParser as clap::Parser>::parse();
 
-    // match &args.command {
-    //     None => println!("Please provide a command!"),
-    //     Some(c) => {}
-    // }
-    // let command = <NHParser as clap::CommandFactory>::command().get_matches();
+    args.command.run();
+
+    Ok(())
+}
+
+fn setup_logging() -> Result<(), SetLoggerError> {
+    let loglevel = if cfg!(debug_assertions) {
+        log::LevelFilter::Debug
+    } else {
+        log::LevelFilter::Info
+    };
+
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                ">> {}",
+                // record.target(),
+                // record.level(),
+                message
+            ))
+        })
+        .level(loglevel)
+        // - and per-module overrides
+        // .level_for("hyper", log::LevelFilter::Info)
+        .chain(std::io::stdout())
+        .apply()
 }

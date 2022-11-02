@@ -1,4 +1,8 @@
+// Dont't use crate::
+// We are getting called by build.rs
+
 use clap;
+
 
 #[derive(clap::Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -6,32 +10,39 @@ use clap;
 /// Yet another nix helper
 pub struct NHParser {
     #[command(subcommand)]
-    command: Command,
+    pub command: NHCommand,
 }
 
 #[derive(clap::Args, Debug)]
 /// Reimplementation of nixos-rebuild
-pub struct Rebuild {
+pub struct RebuildArgs {
     #[arg(long, short)]
     /// Only print actions to perform
-    dry: bool,
+    pub dry: bool,
 
     #[arg(long, short)]
     /// Confirm before performing the activation
-    ask: bool,
+    pub ask: bool,
 
     #[arg(long, short)]
     /// Specialisation name
-    specialisation: Option<String>,
+    pub specialisation: Option<String>,
 
     #[arg(env = "FLAKE")]
     /// Path to flake
-    flake: std::path::PathBuf
+    pub flake: std::path::PathBuf
+}
+
+#[derive(Debug)]
+pub enum RebuildType {
+    Switch,
+    Boot,
+    Test,
 }
 
 #[derive(clap::Args, Debug)]
 /// Search for a package
-pub struct Search {
+pub struct SearchArgs {
     #[arg(long, short)]
     max_results: usize,
     #[arg(long, short)]
@@ -40,13 +51,13 @@ pub struct Search {
 
 #[derive(clap::Args, Debug)]
 /// Clean-up garbage
-pub struct Clean {}
+pub struct CleanArgs {}
 
 #[derive(clap::Subcommand, Debug)]
-pub enum Command {
-    Switch(Rebuild),
-    Boot(Rebuild),
-    Test(Rebuild),
-    Search(Search),
-    Clean(Clean),
+pub enum NHCommand {
+    Switch(RebuildArgs),
+    Boot(RebuildArgs),
+    Test(RebuildArgs),
+    Search(SearchArgs),
+    Clean(CleanArgs),
 }

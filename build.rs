@@ -1,8 +1,10 @@
+
+
 use clap_complete::{generate_to, shells};
 use std::env;
 use std::io::Error;
 
-include!("src/cli.rs");
+include!("src/interface.rs");
 
 fn main() -> Result<(), Error> {
     let outdir = env::var_os("OUT_DIR").expect("OUT_DIR not set by the build system!");
