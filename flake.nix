@@ -42,10 +42,8 @@
             pkgs.installShellFiles
           ];
           preFixup = ''
-            ls -la $releaseDir/build/nh-*/out/nh.bash
             installShellCompletion $releaseDir/build/nh-*/out/nh.{bash,fish}
             installShellCompletion --zsh $releaseDir/build/nh-*/out/_nh
-            ls -la $out
           '';
         };
       in {
@@ -93,6 +91,9 @@
                 pname = cargo-toml.package.name;
                 inherit (cargo-toml.package) version;
                 cargoLock.lockFile = src + "/Cargo.lock";
+                cargoBuildFlags = [
+                  "--features=complete"
+                ];
               }
               // extraArgs);
 
