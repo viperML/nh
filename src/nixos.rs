@@ -1,16 +1,39 @@
+use clean_path::Clean;
+use log::info;
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+use std::path::PathBuf;
+
 use crate::interface;
 
-
-
-
-// pub fn rebuild(args: &cli::RebuildArgs, rebuild_type: crate::cli::RebuildType) {
-//     println!("{}", args.dry);
-//     todo!();
-// }
+const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 
 impl interface::RebuildArgs {
-    pub fn rebuild(&self, _rebuild_type: interface::RebuildType) {
-        todo!()
+    pub fn rebuild(&self, rebuild_kind: interface::RebuildType) {
+        let hostname = hostname::get().expect("Failed to get hostname!");
+
+        let flake_clean = self.flake.clean();
+
+        let suffix_bytes = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(10)
+            .collect::<Vec<_>>();
+        let suffix = String::from_utf8_lossy(&suffix_bytes);
+
+        let command = vec![
+            "nix",
+            "build",
+            "--out-link",
+            &format!("/tmp/nh/result-{}", suffix),
+            "--profile",
+            SYSTEM_PROFILE,
+            &format!("{}#{}", &flake_clean.to_string_lossy(), &hostname.to_string_lossy())
+        ]
+        .join(" ");
+
+        info!("{command}");
+
+        todo!("rebuild not implemented!");
     }
 }
 
@@ -19,14 +42,10 @@ impl interface::NHCommand {
         match self {
             interface::NHCommand::Switch(r) => {
                 r.rebuild(interface::RebuildType::Switch);
-            },
-            // NHCommand::Boot(r) => {
-            //     nixos::rebuild(r, RebuildType::Boot)
-            // },
-            // NHCommand::Test(r) => {
-            //     nixos::rebuild(r, RebuildType::Test)
-            // },
-            variant => todo!("{variant:?}")
+            }
+            interface::NHCommand::Boot(r) => r.rebuild(interface::RebuildType::Boot),
+            interface::NHCommand::Test(r) => r.rebuild(interface::RebuildType::Test),
+            variant => todo!("nh command not implemented {variant:?}"),
         }
     }
 }
