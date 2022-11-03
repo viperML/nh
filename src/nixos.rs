@@ -2,11 +2,23 @@ use clean_path::Clean;
 use log::info;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use std::path::PathBuf;
 
 use crate::interface;
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
+
+fn run_command(cmd: &str, dry: bool) -> std::io::Result<()> {
+    // let output = std::process::Command::new()
+    // info!("{arg0}");
+    info!("{cmd}");
+    if !dry {
+        let mut argv = cmd.split(" ");
+        let arg0 = argv.nth(0).expect("Bad command");
+        let output = std::process::Command::new(arg0).args(argv).spawn()?;
+    };
+
+    Ok(())
+}
 
 impl interface::RebuildArgs {
     pub fn rebuild(&self, rebuild_kind: interface::RebuildType) {
@@ -20,32 +32,23 @@ impl interface::RebuildArgs {
             .collect::<Vec<_>>();
         let suffix = String::from_utf8_lossy(&suffix_bytes);
 
-        let command = vec![
+        let cmd = vec![
             "nix",
             "build",
             "--out-link",
             &format!("/tmp/nh/result-{}", suffix),
             "--profile",
             SYSTEM_PROFILE,
-            &format!("{}#{}", &flake_clean.to_string_lossy(), &hostname.to_string_lossy())
+            &format!(
+                "{}#{}",
+                &flake_clean.to_string_lossy(),
+                &hostname.to_string_lossy()
+            ),
         ]
         .join(" ");
 
-        info!("{command}");
+        run_command(&cmd, self.dry);
 
         todo!("rebuild not implemented!");
-    }
-}
-
-impl interface::NHCommand {
-    pub fn run(&self) {
-        match self {
-            interface::NHCommand::Switch(r) => {
-                r.rebuild(interface::RebuildType::Switch);
-            }
-            interface::NHCommand::Boot(r) => r.rebuild(interface::RebuildType::Boot),
-            interface::NHCommand::Test(r) => r.rebuild(interface::RebuildType::Test),
-            variant => todo!("nh command not implemented {variant:?}"),
-        }
     }
 }

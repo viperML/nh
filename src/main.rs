@@ -1,5 +1,6 @@
 pub mod interface;
 pub mod nixos;
+pub mod commands;
 
 use log::{debug, SetLoggerError};
 
