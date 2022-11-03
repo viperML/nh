@@ -3,25 +3,23 @@ use log::info;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
-use crate::interface;
+use crate::interface::{self, RebuildType};
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 
 fn run_command(cmd: &str, dry: bool) -> std::io::Result<()> {
-    // let output = std::process::Command::new()
-    // info!("{arg0}");
     info!("{cmd}");
     if !dry {
         let mut argv = cmd.split(" ");
         let arg0 = argv.nth(0).expect("Bad command");
-        let output = std::process::Command::new(arg0).args(argv).spawn()?;
+        let _output = std::process::Command::new(arg0).args(argv).spawn()?;
     };
 
     Ok(())
 }
 
 impl interface::RebuildArgs {
-    pub fn rebuild(&self, rebuild_kind: interface::RebuildType) {
+    pub fn rebuild(&self, rebuild_kind: RebuildType) {
         let hostname = hostname::get().expect("Failed to get hostname!");
 
         let flake_clean = self.flake.clean();
@@ -32,11 +30,13 @@ impl interface::RebuildArgs {
             .collect::<Vec<_>>();
         let suffix = String::from_utf8_lossy(&suffix_bytes);
 
-        let cmd = vec![
+        let out_link: &str = &format!("/tmp/nh/result-{}", suffix);
+
+        let cmd_build = vec![
             "nix",
             "build",
             "--out-link",
-            &format!("/tmp/nh/result-{}", suffix),
+            out_link,
             "--profile",
             SYSTEM_PROFILE,
             &format!(
@@ -47,7 +47,20 @@ impl interface::RebuildArgs {
         ]
         .join(" ");
 
-        run_command(&cmd, self.dry);
+        run_command(&cmd_build, self.dry);
+
+        match rebuild_kind {
+            RebuildType::Test | RebuildType::Switch => {
+                let prefix: String = match self.specialisation {
+                    None => "/".to_string(),
+                    Some(s) => format!("/specialisation/{}", s),
+                };
+                let file: &str = &format!("{}/bin/switch-to-configuration", out_link);
+                let cmd_activate: String = vec![file, "test"].join(" ");
+                run_command(&cmd_activate, self.dry);
+            }
+            RebuildType::Boot => {}
+        }
 
         todo!("rebuild not implemented!");
     }
