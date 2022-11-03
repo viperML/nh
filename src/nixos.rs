@@ -1,5 +1,5 @@
 use clean_path::Clean;
-use log::info;
+use log::{debug, info, warn};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
@@ -7,12 +7,34 @@ use crate::interface::{self, RebuildType};
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 
-fn run_command(cmd: &str, dry: bool) -> std::io::Result<()> {
+#[derive(Debug)]
+enum RunError {
+    PopenError,
+    ExitError,
+}
+
+impl From<subprocess::PopenError> for RunError {
+    fn from(_: subprocess::PopenError) -> Self {
+        RunError::PopenError
+    }
+}
+
+fn run_command(cmd: &str, dry: bool) -> Result<(), RunError> {
+    // let output = std::process::Command::new()
+    // info!("{arg0}");
     info!("{cmd}");
     if !dry {
         let mut argv = cmd.split(" ");
         let arg0 = argv.nth(0).expect("Bad command");
-        let _output = std::process::Command::new(arg0).args(argv).spawn()?;
+        let output = subprocess::Exec::cmd(arg0)
+            .args(&argv.collect::<Vec<_>>())
+            .capture()?;
+
+        if ! output.success() {
+            return Err(RunError::ExitError)
+        }
+
+        debug!("{:?}", output);
     };
 
     Ok(())
@@ -40,7 +62,7 @@ impl interface::RebuildArgs {
             "--profile",
             SYSTEM_PROFILE,
             &format!(
-                "{}#{}",
+                "{}#nixosConfigurations.{}.config.system.build.toplevel",
                 &flake_clean.to_string_lossy(),
                 &hostname.to_string_lossy()
             ),

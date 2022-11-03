@@ -6,24 +6,26 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-complete = []
+complete = [
+]
 
 [dependencies]
 clap = { version = "4.0", features = [
     "derive",
     "env",
 ] }
-clap_complete = { version = "4.0" }
-fern = { version = "0.6" }
-log = { version = "0.4" }
-anyhow = { version = "1.0" }
+clap_complete = "4.0"
+fern = "0.6"
+log = "0.4"
+anyhow = "1.0"
 hostname = "^0.3"
 rand = "0.8"
 clean-path = "0.2"
+subprocess = "0.2"
 
 [build-dependencies]
 clap = { version = "4.0", features = [
     "derive",
     "env",
 ] }
-clap_complete = { version = "4.0" }
+clap_complete = "4.0"

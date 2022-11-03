@@ -56,6 +56,7 @@
                 "rust-src"
                 "clippy"
                 "rustfmt"
+                "rust-analyzer"
               ])
             ];
 
@@ -104,7 +105,7 @@
           mkShellNoCC {
             name = "extra";
             packages = [
-              rust-analyzer
+              # rust-analyzer
             ];
           };
       };
