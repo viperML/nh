@@ -25,11 +25,11 @@ fn setup_logging() -> Result<(), SetLoggerError> {
     };
 
     fern::Dispatch::new()
-        .format(|out, message, _record| {
+        .format(|out, message, record| {
             out.finish(format_args!(
-                ">> {}",
+                "{} >> {}",
                 // record.target(),
-                // record.level(),
+                record.level(),
                 message
             ))
         })

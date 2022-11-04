@@ -1,4 +1,8 @@
+use std::env::current_exe;
+use std::path::PathBuf;
+
 use clean_path::Clean;
+use hostname::get;
 use log::{debug, info, warn};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -8,7 +12,7 @@ use crate::interface::{self, RebuildType};
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 
 #[derive(Debug)]
-enum RunError {
+pub enum RunError {
     PopenError,
     ExitError,
 }
@@ -19,10 +23,13 @@ impl From<subprocess::PopenError> for RunError {
     }
 }
 
-fn run_command(cmd: &str, dry: bool) -> Result<(), RunError> {
+fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunError> {
     // let output = std::process::Command::new()
     // info!("{arg0}");
-    info!("{cmd}");
+    debug!("{cmd}");
+
+    info.map(|i| info!("{}", i));
+
     if !dry {
         let mut argv = cmd.split(" ");
         let arg0 = argv.nth(0).expect("Bad command");
@@ -30,18 +37,16 @@ fn run_command(cmd: &str, dry: bool) -> Result<(), RunError> {
             .args(&argv.collect::<Vec<_>>())
             .capture()?;
 
-        if ! output.success() {
-            return Err(RunError::ExitError)
+        if !output.success() {
+            return Err(RunError::ExitError);
         }
-
-        debug!("{:?}", output);
     };
 
     Ok(())
 }
 
 impl interface::RebuildArgs {
-    pub fn rebuild(&self, rebuild_kind: RebuildType) {
+    pub fn rebuild(&self, rebuild_type: interface::RebuildType) -> Result<(), RunError> {
         let hostname = hostname::get().expect("Failed to get hostname!");
 
         let flake_clean = self.flake.clean();
@@ -69,21 +74,52 @@ impl interface::RebuildArgs {
         ]
         .join(" ");
 
-        run_command(&cmd_build, self.dry);
+        run_command(&cmd_build, self.dry, Some("Building"))?;
 
-        match rebuild_kind {
+        let current_specialisation = get_specialisation();
+
+        let target_specialisation = if self.specialisation.is_none() {
+            &current_specialisation
+        } else {
+            &self.specialisation
+        };
+
+        match rebuild_type {
             RebuildType::Test | RebuildType::Switch => {
-                let prefix: String = match self.specialisation {
+                let specialisation_prefix = match target_specialisation {
                     None => "/".to_string(),
                     Some(s) => format!("/specialisation/{}", s),
                 };
-                let file: &str = &format!("{}/bin/switch-to-configuration", out_link);
-                let cmd_activate: String = vec![file, "test"].join(" ");
-                run_command(&cmd_activate, self.dry);
+
+                let filename: &str = &format!(
+                    "{}{}/bin/switch-to-configuration",
+                    out_link, specialisation_prefix
+                );
+                let file = PathBuf::from(filename).clean();
+
+                let cmd_activate: String = vec![file.to_str().unwrap(), "test"].join(" ");
+                run_command(&cmd_activate, self.dry, Some("Activating"))?;
             }
+
             RebuildType::Boot => {}
         }
 
-        todo!("rebuild not implemented!");
+        match rebuild_type {
+            RebuildType::Boot | RebuildType::Switch => {
+                let filename: &str = &format!("{}/bin/switch-to-configuration", out_link);
+                let file = PathBuf::from(filename).clean();
+
+                let cmd_activate: String = vec![file.to_str().unwrap(), "boot"].join(" ");
+                run_command(&cmd_activate, self.dry, Some("Adding to bootloader"))?;
+            }
+
+            RebuildType::Test => {}
+        }
+
+        Ok(())
     }
+}
+
+fn get_specialisation() -> Option<String> {
+    std::fs::read_to_string("/etc/specialisation").ok()
 }
