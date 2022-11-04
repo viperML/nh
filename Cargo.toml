@@ -2,6 +2,7 @@
 name = "nh"
 version = "3.0.0"
 edition = "2021"
+license = "EUPL-1.2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
