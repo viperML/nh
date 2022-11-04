@@ -11,7 +11,7 @@ fn build_completions(outdir: &std::ffi::OsString) -> std::io::Result<()> {
         shells::Bash,
         &mut cmd, // We need to specify what generator to use
         "nh",     // We need to specify the bin name manually
-        &outdir,  // We need to specify where to write to
+        outdir,  // We need to specify where to write to
     )?;
     println!("cargo:warning=Built Bash completions to {bash_output:?}");
 
@@ -19,7 +19,7 @@ fn build_completions(outdir: &std::ffi::OsString) -> std::io::Result<()> {
         shells::Zsh,
         &mut cmd, // We need to specify what generator to use
         "nh",     // We need to specify the bin name manually
-        &outdir,  // We need to specify where to write to
+        outdir,  // We need to specify where to write to
     )?;
     println!("cargo:warning=Built Bash completions to {zsh_output:?}");
 
@@ -27,7 +27,7 @@ fn build_completions(outdir: &std::ffi::OsString) -> std::io::Result<()> {
         shells::Fish,
         &mut cmd, // We need to specify what generator to use
         "nh",     // We need to specify the bin name manually
-        &outdir,  // We need to specify where to write to
+        outdir,  // We need to specify where to write to
     )?;
     println!("cargo:warning=Built Bash completions to {fish_output:?}");
     Ok(())

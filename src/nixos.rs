@@ -1,9 +1,9 @@
-use std::env::current_exe;
+
 use std::path::PathBuf;
 
 use clean_path::Clean;
-use hostname::get;
-use log::{debug, info, warn};
+
+use log::{debug, info};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
@@ -31,8 +31,8 @@ fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunError>
     info.map(|i| info!("{}", i));
 
     if !dry {
-        let mut argv = cmd.split(" ");
-        let arg0 = argv.nth(0).expect("Bad command");
+        let mut argv = cmd.split(' ');
+        let arg0 = argv.next().expect("Bad command");
         let output = subprocess::Exec::cmd(arg0)
             .args(&argv.collect::<Vec<_>>())
             .capture()?;
