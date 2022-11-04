@@ -16,13 +16,16 @@ clap = { version = "4.0", features = [
     "env",
 ] }
 clap_complete = "4.0"
-fern = "0.6"
+fern = { version = "0.6", features = [
+    "colored",
+] }
 log = "0.4"
 anyhow = "1.0"
 hostname = "^0.3"
 rand = "0.8"
 clean-path = "0.2"
 subprocess = "0.2"
+dialoguer = { version = "0.10.2", default-features = false }
 
 [build-dependencies]
 clap = { version = "4.0", features = [

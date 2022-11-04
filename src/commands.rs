@@ -1,15 +1,17 @@
+use log::{debug, error};
 
-
-use log::{debug, warn};
-
-use crate::interface::{self, NHCommand::Boot, NHCommand::Switch, NHCommand::Test};
+use crate::{
+    interface::{self, NHCommand::Boot, NHCommand::Switch, NHCommand::Test},
+    nixos::RunError,
+};
 
 impl interface::NHCommand {
     pub fn run(&self) {
         match self {
             Switch(a) | Test(a) | Boot(a) => match a.rebuild(self.rebuild_type().unwrap()) {
                 Ok(_) => debug!("OK"),
-                Err(why) => warn!("Error while running! {:?}", why),
+                Err(RunError::NoConfirm) => (),
+                Err(why) => error!("Error while running! {:?}", why),
             },
             variant => todo!("nh command not implemented {variant:?}"),
         }

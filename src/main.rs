@@ -1,10 +1,11 @@
+pub mod commands;
 pub mod interface;
 pub mod nixos;
-pub mod commands;
 
+use fern::colors::Color;
 use log::{debug, SetLoggerError};
 
-use crate::interface::{NHParser};
+use crate::interface::NHParser;
 
 fn main() -> anyhow::Result<()> {
     setup_logging()?;
@@ -19,23 +20,36 @@ fn main() -> anyhow::Result<()> {
 
 fn setup_logging() -> Result<(), SetLoggerError> {
     let loglevel = if cfg!(debug_assertions) {
-        log::LevelFilter::Debug
+        log::LevelFilter::Trace
     } else {
         log::LevelFilter::Info
     };
 
+    let color_text = fern::colors::ColoredLevelConfig::new()
+        .debug(Color::BrightBlack)
+        .warn(Color::White)
+        .error(Color::White);
+
+    let color_symbol = fern::colors::ColoredLevelConfig::new()
+        .info(Color::Green)
+        .debug(Color::BrightBlack);
+
     fern::Dispatch::new()
-        .format(|out, message, record| {
+        .format(move |out, message, record| {
             out.finish(format_args!(
-                "{} >> {}",
-                // record.target(),
-                record.level(),
-                message
-            ))
+                "{color_symbol}>>>\x1B[0m {color_line}{message}\x1B[0m",
+                color_symbol = format_args!(
+                    "\x1B[{}m",
+                    color_symbol.get_color(&record.level()).to_fg_str()
+                ),
+                color_line = format_args!(
+                    "\x1B[{}m",
+                    color_text.get_color(&record.level()).to_fg_str()
+                ),
+                message = message,
+            ));
         })
         .level(loglevel)
-        // - and per-module overrides
-        // .level_for("hyper", log::LevelFilter::Info)
         .chain(std::io::stdout())
         .apply()
 }

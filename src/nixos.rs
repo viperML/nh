@@ -1,4 +1,3 @@
-
 use std::path::PathBuf;
 
 use clean_path::Clean;
@@ -15,6 +14,8 @@ const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 pub enum RunError {
     PopenError,
     ExitError,
+    IoError,
+    NoConfirm,
 }
 
 impl From<subprocess::PopenError> for RunError {
@@ -23,12 +24,16 @@ impl From<subprocess::PopenError> for RunError {
     }
 }
 
-fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunError> {
-    // let output = std::process::Command::new()
-    // info!("{arg0}");
-    debug!("{cmd}");
+impl From<std::io::Error> for RunError {
+    fn from(_: std::io::Error) -> Self {
+        RunError::IoError
+    }
+}
 
+fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunError> {
     info.map(|i| info!("{}", i));
+
+    debug!("{cmd}");
 
     if !dry {
         let mut argv = cmd.split(' ');
@@ -83,6 +88,37 @@ impl interface::RebuildArgs {
         } else {
             &self.specialisation
         };
+
+        let target_profile = match target_specialisation {
+            None => PathBuf::from(out_link).clean(),
+            Some(s) => {
+                let filename = &format!("{}/{}", out_link, s);
+                PathBuf::from(filename).clean()
+            }
+        };
+
+        run_command(
+            &vec![
+                "nvd",
+                "diff",
+                SYSTEM_PROFILE,
+                target_profile.to_str().unwrap(),
+            ]
+            .join(" "),
+            self.dry,
+            Some("Comparing changes"),
+        )?;
+
+        if self.ask {
+            let confirmation = dialoguer::Confirm::new()
+                .with_prompt("Apply the config?")
+                .default(false)
+                .interact()?;
+
+            if !confirmation {
+                return Err(RunError::NoConfirm);
+            }
+        }
 
         match rebuild_type {
             RebuildType::Test | RebuildType::Switch => {
