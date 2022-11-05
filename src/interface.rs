@@ -1,6 +1,8 @@
 // Dont't use crate::
 // We are getting called by build.rs
 
+use std::ffi::OsString;
+
 
 
 
@@ -29,13 +31,33 @@ pub struct RebuildArgs {
     pub ask: bool,
 
     #[arg(long, short)]
-    /// Specialisation name
+    /// Name of the specialisation
     pub specialisation: Option<String>,
 
-    #[arg(env = "FLAKE")]
-    /// Path to flake
-    pub flake: std::path::PathBuf
+    #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
+    /// Flake reference that outputs a nixos system. Optionally add a #hostname
+    pub flakeref: FlakeRef,
+
+    #[arg(long, short = 'H')]
+    /// Output to choose from the flakeref. Hostname is used by default
+    pub hostname: Option<OsString>
 }
+
+#[derive(Debug, Clone)]
+pub struct FlakeRef(String);
+
+impl From<&str> for FlakeRef {
+    fn from(s: &str) -> Self {
+        FlakeRef(s.to_string())
+    }
+}
+
+impl std::fmt::Display for FlakeRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 
 #[derive(Debug)]
 pub enum RebuildType {
@@ -43,6 +65,7 @@ pub enum RebuildType {
     Boot,
     Test,
 }
+
 
 #[derive(clap::Args, Debug)]
 /// Search a package

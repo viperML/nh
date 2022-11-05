@@ -69,14 +69,17 @@ fn make_path_exists(elems: Vec<&str>) -> Option<String> {
 
 impl interface::RebuildArgs {
     pub fn rebuild(&self, rebuild_type: interface::RebuildType) -> Result<(), RunError> {
-        let hostname = hostname::get().expect("Failed to get hostname!");
 
-        let flake_clean = self.flake.clean();
+        let hostname = match &self.hostname {
+            Some(h) => h.clone(),
+            None => hostname::get().expect("msg")
+        };
 
         let suffix_bytes = thread_rng()
             .sample_iter(&Alphanumeric)
             .take(10)
             .collect::<Vec<_>>();
+
         let suffix = String::from_utf8_lossy(&suffix_bytes);
 
         // let out_link = make_path(vec!["", &suffix]).unwrap();
@@ -90,9 +93,8 @@ impl interface::RebuildArgs {
             "--profile",
             SYSTEM_PROFILE,
             &format!(
-                "{}#nixosConfigurations.{}.config.system.build.toplevel",
-                &flake_clean.to_string_lossy(),
-                &hostname.to_string_lossy()
+                "{}#nixosConfigurations.{:?}.config.system.build.toplevel",
+                &self.flakeref, hostname
             ),
         ]
         .join(" ");
@@ -107,7 +109,7 @@ impl interface::RebuildArgs {
             &self.specialisation
         };
 
-        trace!("{target_specialisation:?}");
+        trace!("target_spec: {target_specialisation:?}");
 
         let target_profile = if !self.dry {
             match target_specialisation {
