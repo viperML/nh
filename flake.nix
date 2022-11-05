@@ -46,6 +46,16 @@
             installShellCompletion --zsh $releaseDir/build/nh-*/out/_nh
           '';
         };
+        wrapNh = drv:
+          pkgs.symlinkJoin {
+            inherit (drv) name pname version;
+            paths = [drv];
+            nativeBuildInputs = [pkgs.makeBinaryWrapper];
+            postBuild = ''
+              wrapProgram $out/bin/nh \
+                --prefix PATH : ${with pkgs; lib.makeBinPath [nvd]}
+            '';
+          };
       in {
         packages = {
           toolchain-dev = with inputs.fenix.packages.${system};
@@ -82,7 +92,7 @@
               }
               // extraArgs);
 
-          nh =
+          nh = wrapNh (
             (pkgs.makeRustPlatform {
               cargo = config.packages.toolchain;
               rustc = config.packages.toolchain;
@@ -96,7 +106,8 @@
                   "--features=complete"
                 ];
               }
-              // extraArgs);
+              // extraArgs)
+          );
 
           default = config.packages.nh;
         };
@@ -105,7 +116,7 @@
           mkShellNoCC {
             name = "extra";
             packages = [
-              # rust-analyzer
+              nvd
             ];
           };
       };

@@ -2,7 +2,7 @@ use std::path::{PathBuf};
 
 use clean_path::Clean;
 
-use log::{debug, info};
+use log::{debug, info, trace};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
@@ -53,6 +53,7 @@ fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunError>
 
 fn make_path_exists(elems: Vec<&str>) -> Option<String> {
     let p = PathBuf::from(elems.join("")).clean();
+    trace!("checking {p:?}");
 
     match p.try_exists() {
         Err(_) => None,
@@ -106,11 +107,13 @@ impl interface::RebuildArgs {
             &self.specialisation
         };
 
+        trace!("{target_specialisation:?}");
+
         let target_profile = if !self.dry {
             match target_specialisation {
                 None => Ok(out_link.clone()),
                 Some(spec) => {
-                    let result = make_path_exists(vec![&out_link, spec]);
+                    let result = make_path_exists(vec![&out_link, "/specialisation/", spec]);
                     result.ok_or(RunError::SpecialisationError(spec.clone()))
                 }
             }?
