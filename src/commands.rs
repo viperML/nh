@@ -17,7 +17,9 @@ impl interface::NHCommand {
                 },
                 Err(why) => error!("Error while running! {:?}", why),
             },
-            variant => todo!("nh command not implemented {variant:?}"),
+            interface::NHCommand::Clean(a) => a.clean(),
+            interface::NHCommand::Search(a) => a.search(),
+            // variant => todo!("nh command not implemented {variant:?}"),
         }
     }
 

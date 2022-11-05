@@ -45,7 +45,7 @@ pub enum RebuildType {
 }
 
 #[derive(clap::Args, Debug)]
-/// Search for a package
+/// Search a package
 pub struct SearchArgs {
     #[arg(long, short)]
     max_results: usize,

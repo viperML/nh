@@ -1,6 +1,8 @@
 pub mod commands;
 pub mod interface;
 pub mod nixos;
+pub mod clean;
+pub mod search;
 
 use fern::colors::Color;
 use log::{trace, SetLoggerError};
