@@ -1,4 +1,4 @@
-use log::{debug, error, trace};
+use log::{error, trace};
 
 use crate::{
     interface::{self, NHCommand::Boot, NHCommand::Switch, NHCommand::Test},

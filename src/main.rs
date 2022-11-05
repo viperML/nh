@@ -3,7 +3,7 @@ pub mod interface;
 pub mod nixos;
 
 use fern::colors::Color;
-use log::{debug, trace, SetLoggerError};
+use log::{trace, SetLoggerError};
 
 use crate::interface::NHParser;
 

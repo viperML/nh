@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 
 use clean_path::Clean;
 
@@ -58,7 +58,7 @@ fn make_path_exists(elems: Vec<&str>) -> Option<String> {
         Err(_) => None,
         Ok(x) => {
             if x {
-                p.to_str().map(|s| String::from(s))
+                p.to_str().map(String::from)
             } else {
                 None
             }
@@ -79,7 +79,7 @@ impl interface::RebuildArgs {
         let suffix = String::from_utf8_lossy(&suffix_bytes);
 
         // let out_link = make_path(vec!["", &suffix]).unwrap();
-        let out_link = String::from(format!("/tmp/nh/result-{}", &suffix));
+        let out_link = format!("/tmp/nh/result-{}", &suffix);
 
         let cmd_build = vec![
             "nix",
