@@ -1,5 +1,6 @@
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
+use clap::builder::Str;
 use clean_path::Clean;
 
 use log::{debug, info, trace};
@@ -9,6 +10,7 @@ use rand::{thread_rng, Rng};
 use crate::interface::{self, RebuildType};
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
+const CURRENT_PROFILE: &str = "/run/current-system";
 
 #[derive(Debug)]
 pub enum RunError {
@@ -39,14 +41,12 @@ fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunError>
     if !dry {
         let mut argv = cmd.split(' ');
         let arg0 = argv.next().expect("Bad command");
-        let output = subprocess::Exec::cmd(arg0)
+        let mut child = subprocess::Exec::cmd(arg0)
             .args(&argv.collect::<Vec<_>>())
-            .capture()?;
+            .popen()?;
 
-        if !output.success() {
-            return Err(RunError::ExitError);
-        }
-    };
+        child.wait()?;
+    }
 
     Ok(())
 }
@@ -122,7 +122,7 @@ impl interface::RebuildArgs {
         };
 
         run_command(
-            &vec!["nvd", "diff", SYSTEM_PROFILE, &target_profile].join(" "),
+            &vec!["nvd", "diff", CURRENT_PROFILE, &target_profile].join(" "),
             self.dry,
             Some("Comparing changes"),
         )?;
