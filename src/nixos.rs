@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clean_path::Clean;
 
@@ -16,6 +16,7 @@ pub enum RunError {
     ExitError,
     IoError,
     NoConfirm,
+    SpecialisationError(String),
 }
 
 impl From<subprocess::PopenError> for RunError {
@@ -50,6 +51,21 @@ fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunError>
     Ok(())
 }
 
+fn make_path_exists(elems: Vec<&str>) -> Option<String> {
+    let p = PathBuf::from(elems.join("")).clean();
+
+    match p.try_exists() {
+        Err(_) => None,
+        Ok(x) => {
+            if x {
+                p.to_str().map(|s| String::from(s))
+            } else {
+                None
+            }
+        }
+    }
+}
+
 impl interface::RebuildArgs {
     pub fn rebuild(&self, rebuild_type: interface::RebuildType) -> Result<(), RunError> {
         let hostname = hostname::get().expect("Failed to get hostname!");
@@ -62,13 +78,14 @@ impl interface::RebuildArgs {
             .collect::<Vec<_>>();
         let suffix = String::from_utf8_lossy(&suffix_bytes);
 
-        let out_link: &str = &format!("/tmp/nh/result-{}", suffix);
+        // let out_link = make_path(vec!["", &suffix]).unwrap();
+        let out_link = String::from(format!("/tmp/nh/result-{}", &suffix));
 
         let cmd_build = vec![
             "nix",
             "build",
             "--out-link",
-            out_link,
+            &out_link,
             "--profile",
             SYSTEM_PROFILE,
             &format!(
@@ -89,22 +106,20 @@ impl interface::RebuildArgs {
             &self.specialisation
         };
 
-        let target_profile = match target_specialisation {
-            None => PathBuf::from(out_link).clean(),
-            Some(s) => {
-                let filename = &format!("{}/{}", out_link, s);
-                PathBuf::from(filename).clean()
-            }
+        let target_profile = if !self.dry {
+            match target_specialisation {
+                None => Ok(out_link.clone()),
+                Some(spec) => {
+                    let result = make_path_exists(vec![&out_link, spec]);
+                    result.ok_or(RunError::SpecialisationError(spec.clone()))
+                }
+            }?
+        } else {
+            out_link.clone()
         };
 
         run_command(
-            &vec![
-                "nvd",
-                "diff",
-                SYSTEM_PROFILE,
-                target_profile.to_str().unwrap(),
-            ]
-            .join(" "),
+            &vec!["nvd", "diff", SYSTEM_PROFILE, &target_profile].join(" "),
             self.dry,
             Some("Comparing changes"),
         )?;

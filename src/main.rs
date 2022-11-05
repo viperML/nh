@@ -3,34 +3,38 @@ pub mod interface;
 pub mod nixos;
 
 use fern::colors::Color;
-use log::{debug, SetLoggerError};
+use log::{debug, trace, SetLoggerError};
 
 use crate::interface::NHParser;
 
 fn main() -> anyhow::Result<()> {
-    setup_logging()?;
-    debug!("Logging setup!");
-
     let args = <NHParser as clap::Parser>::parse();
+
+    setup_logging(args.verbose)?;
+    trace!("Logging setup!");
 
     args.command.run();
 
     Ok(())
 }
 
-fn setup_logging() -> Result<(), SetLoggerError> {
+fn setup_logging(verbose: bool) -> Result<(), SetLoggerError> {
     let loglevel = if cfg!(debug_assertions) {
         log::LevelFilter::Trace
+    } else if verbose {
+        log::LevelFilter::Debug
     } else {
         log::LevelFilter::Info
     };
 
     let color_text = fern::colors::ColoredLevelConfig::new()
+        .trace(Color::BrightBlack)
         .debug(Color::BrightBlack)
         .warn(Color::White)
         .error(Color::White);
 
     let color_symbol = fern::colors::ColoredLevelConfig::new()
+        .trace(Color::BrightBlack)
         .info(Color::Green)
         .debug(Color::BrightBlack);
 

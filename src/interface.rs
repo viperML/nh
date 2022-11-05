@@ -9,6 +9,10 @@
 #[command(propagate_version = true)]
 /// Yet another nix helper
 pub struct NHParser {
+    #[arg(short)]
+    // Show debug logs
+    pub verbose: bool,
+
     #[command(subcommand)]
     pub command: NHCommand,
 }
