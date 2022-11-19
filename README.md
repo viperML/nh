@@ -32,12 +32,14 @@ To-do list of features:
 
 ### Configure FLAKE env variable
 
-`nh` uses the `FLAKE` environment variable as a default, so you don't have to pass the path to your flake for every command.
+`nh` uses the `FLAKE` env variable as a default for `os {switch,boot,test}`, so you don't have to pass the path to your flake with every command, just call the command without arguments.
 
 For NixOS, configuring it could be as simple as:
 
 ```nix
-environment.sessionVariables.FLAKE = "/home/ayats/Documents/dotfiles";
+{...}: {
+    environment.sessionVariables.FLAKE = "/home/ayats/Documents/dotfiles";
+}
 ```
 
 ### Configure specialisations
