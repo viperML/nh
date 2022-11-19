@@ -7,11 +7,10 @@ use log::{debug, info, trace};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
-use crate::commands::NHRunnable;
+use crate::commands::{NHRunnable, run_command};
 use crate::interface::OsRebuildType::{self, Boot, Info, Switch, Test};
 use crate::interface::{self, OsRebuildArgs};
 
-// use crate::interface::{self, RebuildType};
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";
@@ -45,33 +44,7 @@ impl From<std::io::Error> for RunError {
     }
 }
 
-fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunError> {
-    if let Some(msg) = info {
-        info!("{msg}");
-    }
 
-    debug!("{cmd}");
-
-    if !dry {
-        let mut argv = cmd.split(' ');
-        let arg0 = argv.next().expect("Bad command");
-        let mut child = subprocess::Exec::cmd(arg0)
-            .args(&argv.collect::<Vec<_>>())
-            .popen()?;
-
-        let exit = child.wait()?;
-        if !exit.success() {
-            let msg: String = match exit {
-                subprocess::ExitStatus::Exited(code) => code.to_string(),
-                subprocess::ExitStatus::Signaled(code) => code.to_string(),
-                _ => format!("Unknown error: {:?}", exit),
-            };
-            return Err(RunError::ExitError(msg));
-        };
-    }
-
-    Ok(())
-}
 
 fn make_path_exists(elems: Vec<&str>) -> Option<String> {
     let p = PathBuf::from(elems.join("")).clean();

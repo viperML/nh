@@ -59,7 +59,7 @@ pub enum OsRebuildType {
 
 #[derive(Debug, Args)]
 pub struct OsRebuildArgs {
-    #[arg(long, short)]
+    #[arg(long, short = 'n')]
     /// Only print actions to perform
     pub dry: bool,
 
@@ -91,7 +91,11 @@ pub struct SearchArgs {
 
 #[derive(Args, Debug)]
 /// Delete paths from the store
-pub struct CleanArgs {}
+pub struct CleanArgs {
+    #[arg(long, short = 'n')]
+    /// Only print actions to perform
+    pub dry: bool,
+}
 
 #[derive(Debug, Args)]
 /// Home-manager related commands
