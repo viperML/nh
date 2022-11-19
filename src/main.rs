@@ -8,6 +8,7 @@ use fern::colors::Color;
 use log::{trace, SetLoggerError};
 
 use crate::interface::NHParser;
+use crate::commands::NHRunnable;
 
 fn main() -> anyhow::Result<()> {
     let args = <NHParser as clap::Parser>::parse();
@@ -15,9 +16,7 @@ fn main() -> anyhow::Result<()> {
     setup_logging(args.verbose)?;
     trace!("Logging setup!");
 
-    args.command.run();
-
-    Ok(())
+    args.command.run()
 }
 
 fn setup_logging(verbose: bool) -> Result<(), SetLoggerError> {
