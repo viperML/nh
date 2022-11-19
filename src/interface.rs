@@ -2,25 +2,64 @@
 // We are getting called by build.rs
 
 use std::ffi::OsString;
+use clap::{Parser, Args, Subcommand};
 
 
+#[derive(Debug, Clone)]
+pub struct FlakeRef(String);
+impl From<&str> for FlakeRef {
+    fn from(s: &str) -> Self {
+        FlakeRef(s.to_string())
+    }
+}
+impl std::fmt::Display for FlakeRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 
-#[derive(clap::Parser, Debug)]
+#[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
 /// Yet another nix helper
 pub struct NHParser {
-    #[arg(short)]
-    // Show debug logs
+    #[arg(short, long, global = true)]
+    /// Show debug logs
     pub verbose: bool,
 
     #[command(subcommand)]
     pub command: NHCommand,
 }
 
-#[derive(clap::Args, Debug)]
-/// Reimplementation of nixos-rebuild
+#[derive(Subcommand, Debug)]
+pub enum NHCommand {
+    Search(SearchArgs),
+    Clean(CleanArgs),
+    Os(OsArgs),
+}
+
+
+#[derive(Args, Debug)]
+/// NixOS related commands
+pub struct OsArgs {
+    #[command(subcommand)]
+    pub action: RebuildType
+}
+
+#[derive(Debug, Subcommand)]
+pub enum RebuildType {
+    /// Build, activate and set-for-boot
+    Switch(RebuildArgs),
+    /// Build and set-for-boot
+    Boot(RebuildArgs),
+    /// Build and activate
+    Test(RebuildArgs),
+    /// Show an overview of the system's info
+    Info,
+}
+
+#[derive(Debug, Args)]
 pub struct RebuildArgs {
     #[arg(long, short)]
     /// Only print actions to perform
@@ -30,61 +69,29 @@ pub struct RebuildArgs {
     /// Confirm before performing the activation
     pub ask: bool,
 
-    #[arg(long, short)]
-    /// Name of the specialisation
-    pub specialisation: Option<String>,
-
     #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
     /// Flake reference that outputs a nixos system. Optionally add a #hostname
     pub flakeref: FlakeRef,
 
-    #[arg(long, short = 'H')]
+    #[arg(long, short = 'H', global=true)]
     /// Output to choose from the flakeref. Hostname is used by default
-    pub hostname: Option<OsString>
-}
+    pub hostname: Option<OsString>,
 
-#[derive(Debug, Clone)]
-pub struct FlakeRef(String);
-
-impl From<&str> for FlakeRef {
-    fn from(s: &str) -> Self {
-        FlakeRef(s.to_string())
-    }
-}
-
-impl std::fmt::Display for FlakeRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
+    #[arg(long, short)]
+    /// Name of the specialisation
+    pub specialisation: Option<String>,
 }
 
 
-#[derive(Debug)]
-pub enum RebuildType {
-    Switch,
-    Boot,
-    Test,
-}
-
-
-#[derive(clap::Args, Debug)]
+#[derive(Args, Debug)]
 /// Search a package
 pub struct SearchArgs {
     #[arg(long, short)]
     max_results: usize,
-    #[arg(long, short)]
-    flake: String
+    // #[arg(long, short)]
+    // flake: String
 }
 
-#[derive(clap::Args, Debug)]
-/// Clean-up garbage
+#[derive(Args, Debug)]
+/// Delete paths from the store
 pub struct CleanArgs {}
-
-#[derive(clap::Subcommand, Debug)]
-pub enum NHCommand {
-    Switch(RebuildArgs),
-    Boot(RebuildArgs),
-    Test(RebuildArgs),
-    Search(SearchArgs),
-    Clean(CleanArgs),
-}

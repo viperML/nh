@@ -7,7 +7,7 @@ use log::{debug, info, trace};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
-use crate::interface::{self, RebuildType};
+// use crate::interface::{self, RebuildType};
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";
@@ -66,6 +66,7 @@ fn make_path_exists(elems: Vec<&str>) -> Option<String> {
         }
     }
 }
+/*
 
 impl interface::RebuildArgs {
     pub fn rebuild(&self, rebuild_type: interface::RebuildType) -> Result<(), RunError> {
@@ -179,3 +180,5 @@ impl interface::RebuildArgs {
 fn get_specialisation() -> Option<String> {
     std::fs::read_to_string("/etc/specialisation").ok()
 }
+
+*/
