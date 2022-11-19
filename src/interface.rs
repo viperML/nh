@@ -1,9 +1,8 @@
 // Dont't use crate::
 // We are getting called by build.rs
 
+use clap::{Args, Parser, Subcommand};
 use std::ffi::OsString;
-use clap::{Parser, Args, Subcommand};
-
 
 #[derive(Debug, Clone)]
 pub struct FlakeRef(String);
@@ -17,7 +16,6 @@ impl std::fmt::Display for FlakeRef {
         write!(f, "{}", self.0)
     }
 }
-
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -34,33 +32,33 @@ pub struct NHParser {
 
 #[derive(Subcommand, Debug)]
 pub enum NHCommand {
+    Os(OsArgs),
+    Home(HomeArgs),
     Search(SearchArgs),
     Clean(CleanArgs),
-    Os(OsArgs),
 }
-
 
 #[derive(Args, Debug)]
 /// NixOS related commands
 pub struct OsArgs {
     #[command(subcommand)]
-    pub action: RebuildType
+    pub action: OsRebuildType,
 }
 
 #[derive(Debug, Subcommand)]
-pub enum RebuildType {
+pub enum OsRebuildType {
     /// Build, activate and set-for-boot
-    Switch(RebuildArgs),
+    Switch(OsRebuildArgs),
     /// Build and set-for-boot
-    Boot(RebuildArgs),
+    Boot(OsRebuildArgs),
     /// Build and activate
-    Test(RebuildArgs),
+    Test(OsRebuildArgs),
     /// Show an overview of the system's info
     Info,
 }
 
 #[derive(Debug, Args)]
-pub struct RebuildArgs {
+pub struct OsRebuildArgs {
     #[arg(long, short)]
     /// Only print actions to perform
     pub dry: bool,
@@ -73,7 +71,7 @@ pub struct RebuildArgs {
     /// Flake reference that outputs a nixos system. Optionally add a #hostname
     pub flakeref: FlakeRef,
 
-    #[arg(long, short = 'H', global=true)]
+    #[arg(long, short = 'H', global = true)]
     /// Output to choose from the flakeref. Hostname is used by default
     pub hostname: Option<OsString>,
 
@@ -81,7 +79,6 @@ pub struct RebuildArgs {
     /// Name of the specialisation
     pub specialisation: Option<String>,
 }
-
 
 #[derive(Args, Debug)]
 /// Search a package
@@ -95,3 +92,21 @@ pub struct SearchArgs {
 #[derive(Args, Debug)]
 /// Delete paths from the store
 pub struct CleanArgs {}
+
+#[derive(Debug, Args)]
+/// Home-manager related commands
+pub struct HomeArgs {
+    #[command(subcommand)]
+    subcommand: HomeSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum HomeSubcommand {
+    /// Build and activate
+    Switch(HomeRebuildArgs),
+    /// Show an overview of the installation
+    Info,
+}
+
+#[derive(Debug, Args)]
+pub struct HomeRebuildArgs {}
