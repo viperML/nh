@@ -58,11 +58,20 @@ To do so, you need to give NH some information of the spec that is currently run
 ```
 
 <details>
-<summary> Why are specs broken with `nixos-rebuild` ? </summary>
+<summary>Why are specialisations broken with nixos-rebuild?</summary>
 
-To understand why `nixos-rebuild` doesn't work, we must know that it is just a shell wrapper around a more fundamental script from NixOS: `<toplevel package>/bin/switch-to-configuration` [^1].
+To understand why `nixos-rebuild` doesn't work[^1], we must know that it is just a shell wrapper around a more fundamental script from NixOS: `<toplevel package>/bin/switch-to-configuration`[^2].
 
-[^1]: The toplevel package is what you can build with `nix build /flake#nixosConfiguration.HOSTNAME.config.system.build.toplevel`, and what sits on `/run/current-system`, `/run/booted-system` and `/nix/var/nix/profiles/system`.
+This scripts has 2 possible commands: `boot` and `test`. What `nixos-rebuild` and `nh` do is basically building the toplevel pkg, and running `switch-to-configuration`. For `switch`, we run `test+boot` one after the other.
+
+So, with specialisation, this changes. Specs create "another toplevel" under `<toplevel>/specialisation/<spec toplevel>`, with its own `/bin/switch-to-configuration`. Which one should we run?
+
+- For `test`: `<toplevel>/specialisation/<spec>/bin/switch-to-configuration test`
+- For `boot`: `<toplevel>/bin/switch-to-configuration boot`
+
+We must run the namespaced one for `test`, and the root one for `boot`. Which is what `nixos-rebuild` doesn't do properly.
+
+
 
 > at the time of this writing
 
@@ -73,3 +82,7 @@ To understand why `nixos-rebuild` doesn't work, we must know that it is just a s
 If you use [direnv](https://direnv.net/), just allow the `.envrc`.
 
 Otherwise, `nix develop .#nh-dev`
+
+[^1]: At the time of this writing.
+
+[^2]: The toplevel package is what you can build with `nix build /flake#nixosConfiguration.HOSTNAME.config.system.build.toplevel`, and what sits on `/run/current-system`, `/run/booted-system` and `/nix/var/nix/profiles/system`.
