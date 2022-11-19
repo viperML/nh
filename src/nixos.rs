@@ -1,7 +1,6 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-
 use clean_path::Clean;
 
 use log::{debug, info, trace};
@@ -78,15 +77,10 @@ fn make_path_exists(elems: Vec<&str>) -> Option<String> {
     let p = PathBuf::from(elems.join("")).clean();
     trace!("checking {p:?}");
 
-    match p.try_exists() {
-        Err(_) => None,
-        Ok(x) => {
-            if x {
-                p.to_str().map(String::from)
-            } else {
-                None
-            }
-        }
+    if p.exists() {
+        p.to_str().map(String::from)
+    } else {
+        None
     }
 }
 
