@@ -33,3 +33,6 @@ clap = { version = "4.0", features = [
     "env",
 ] }
 clap_complete = "4.0"
+
+[profile.release]
+lto = "fat"

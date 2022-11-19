@@ -29,13 +29,13 @@ fn setup_logging(verbose: bool) -> Result<(), SetLoggerError> {
     };
 
     let color_text = fern::colors::ColoredLevelConfig::new()
-        .trace(Color::BrightBlack)
+        .trace(Color::BrightBlue)
         .debug(Color::BrightBlack)
         .warn(Color::White)
         .error(Color::White);
 
     let color_symbol = fern::colors::ColoredLevelConfig::new()
-        .trace(Color::BrightBlack)
+        .trace(Color::BrightBlue)
         .info(Color::Green)
         .debug(Color::BrightBlack);
 

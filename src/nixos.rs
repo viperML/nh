@@ -1,11 +1,16 @@
+use std::ffi::OsString;
 use std::path::PathBuf;
 
-use clap::builder::Str;
+
 use clean_path::Clean;
 
 use log::{debug, info, trace};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
+
+use crate::commands::NHRunnable;
+use crate::interface::OsRebuildType::{self, Boot, Info, Switch, Test};
+use crate::interface::{self, OsRebuildArgs};
 
 // use crate::interface::{self, RebuildType};
 
@@ -15,11 +20,19 @@ const CURRENT_PROFILE: &str = "/run/current-system";
 #[derive(Debug)]
 pub enum RunError {
     PopenError,
-    ExitError,
+    ExitError(String),
     IoError,
     NoConfirm,
     SpecialisationError(String),
 }
+
+impl std::fmt::Display for RunError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for RunError {}
 
 impl From<subprocess::PopenError> for RunError {
     fn from(_: subprocess::PopenError) -> Self {
@@ -34,7 +47,9 @@ impl From<std::io::Error> for RunError {
 }
 
 fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunError> {
-    info.map(|i| info!("{}", i));
+    if let Some(msg) = info {
+        info!("{msg}");
+    }
 
     debug!("{cmd}");
 
@@ -45,7 +60,15 @@ fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunError>
             .args(&argv.collect::<Vec<_>>())
             .popen()?;
 
-        child.wait()?;
+        let exit = child.wait()?;
+        if !exit.success() {
+            let msg: String = match exit {
+                subprocess::ExitStatus::Exited(code) => code.to_string(),
+                subprocess::ExitStatus::Signaled(code) => code.to_string(),
+                _ => format!("Unknown error: {:?}", exit),
+            };
+            return Err(RunError::ExitError(msg));
+        };
     }
 
     Ok(())
@@ -66,14 +89,31 @@ fn make_path_exists(elems: Vec<&str>) -> Option<String> {
         }
     }
 }
-/*
 
-impl interface::RebuildArgs {
-    pub fn rebuild(&self, rebuild_type: interface::RebuildType) -> Result<(), RunError> {
+impl NHRunnable for interface::OsArgs {
+    fn run(&self) -> anyhow::Result<()> {
+        trace!("{:?}", self);
 
-        let hostname = match &self.hostname {
-            Some(h) => h.clone(),
-            None => hostname::get().expect("msg")
+        match &self.action {
+            Switch(args) | Boot(args) | Test(args) => {
+                args.rebuild(&self.action)?;
+            }
+            Info => {
+                todo!()
+            }
+        }
+        Ok(())
+    }
+}
+
+impl OsRebuildArgs {
+    pub fn rebuild(&self, rebuild_type: &OsRebuildType) -> Result<(), RunError> {
+        let hostname: Box<OsString> = match &self.hostname {
+            Some(h) => Box::new(h.into()),
+            None => {
+                let h = hostname::get().expect("FIXME");
+                Box::new(h)
+            }
         };
 
         let suffix_bytes = thread_rng()
@@ -83,7 +123,6 @@ impl interface::RebuildArgs {
 
         let suffix = String::from_utf8_lossy(&suffix_bytes);
 
-        // let out_link = make_path(vec!["", &suffix]).unwrap();
         let out_link = format!("/tmp/nh/result-{}", &suffix);
 
         let cmd_build = vec![
@@ -100,7 +139,7 @@ impl interface::RebuildArgs {
         ]
         .join(" ");
 
-        run_command(&cmd_build, self.dry, Some("Building"))?;
+        run_command(&cmd_build, self.dry, Some("Building configuration"))?;
 
         let current_specialisation = get_specialisation();
 
@@ -117,7 +156,7 @@ impl interface::RebuildArgs {
                 None => Ok(out_link.clone()),
                 Some(spec) => {
                     let result = make_path_exists(vec![&out_link, "/specialisation/", spec]);
-                    result.ok_or(RunError::SpecialisationError(spec.clone()))
+                    result.ok_or_else(|| RunError::SpecialisationError(spec.clone()))
                 }
             }?
         } else {
@@ -141,36 +180,28 @@ impl interface::RebuildArgs {
             }
         }
 
-        match rebuild_type {
-            RebuildType::Test | RebuildType::Switch => {
-                let specialisation_prefix = match target_specialisation {
-                    None => "/".to_string(),
-                    Some(s) => format!("/specialisation/{}", s),
-                };
+        if let Test(_) | Switch(_) = rebuild_type {
+            let specialisation_prefix = match target_specialisation {
+                None => "/".to_string(),
+                Some(s) => format!("/specialisation/{}", s),
+            };
 
-                let filename: &str = &format!(
-                    "{}{}/bin/switch-to-configuration",
-                    out_link, specialisation_prefix
-                );
-                let file = PathBuf::from(filename).clean();
+            let filename: &str = &format!(
+                "{}{}/bin/switch-to-configuration",
+                out_link, specialisation_prefix
+            );
+            let file = PathBuf::from(filename).clean();
 
-                let cmd_activate: String = vec![file.to_str().unwrap(), "test"].join(" ");
-                run_command(&cmd_activate, self.dry, Some("Activating"))?;
-            }
-
-            RebuildType::Boot => {}
+            let cmd_activate: String = vec![file.to_str().unwrap(), "test"].join(" ");
+            run_command(&cmd_activate, self.dry, Some("Activating"))?;
         }
 
-        match rebuild_type {
-            RebuildType::Boot | RebuildType::Switch => {
-                let filename: &str = &format!("{}/bin/switch-to-configuration", out_link);
-                let file = PathBuf::from(filename).clean();
+        if let Boot(_) | Switch(_) = rebuild_type {
+            let filename: &str = &format!("{}/bin/switch-to-configuration", out_link);
+            let file = PathBuf::from(filename).clean();
 
-                let cmd_activate: String = vec![file.to_str().unwrap(), "boot"].join(" ");
-                run_command(&cmd_activate, self.dry, Some("Adding to bootloader"))?;
-            }
-
-            RebuildType::Test => {}
+            let cmd_activate: String = vec![file.to_str().unwrap(), "boot"].join(" ");
+            run_command(&cmd_activate, self.dry, Some("Adding to bootloader"))?;
         }
 
         Ok(())
@@ -180,5 +211,3 @@ impl interface::RebuildArgs {
 fn get_specialisation() -> Option<String> {
     std::fs::read_to_string("/etc/specialisation").ok()
 }
-
-*/
