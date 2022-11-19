@@ -19,6 +19,12 @@
       root = ./.;
       exclude = [
         (inputs.nix-filter.lib.matchExt "nix")
+        "flake.lock"
+        ".envrc"
+        ".gitignore"
+        (inputs.nix-filter.lib.matchExt "md")
+        (inputs.nix-filter.lib.matchExt "json")
+        (inputs.nix-filter.lib.matchExt "yaml")
       ];
     };
 
@@ -37,7 +43,11 @@
         config,
         ...
       }: let
-        extraArgs = {
+        commonArgs = {
+          inherit src;
+          pname = cargo-toml.package.name;
+          inherit (cargo-toml.package) version;
+          cargoLock.lockFile = src + "/Cargo.lock";
           nativeBuildInputs = [
             pkgs.installShellFiles
           ];
@@ -46,6 +56,7 @@
             installShellCompletion --zsh $releaseDir/build/nh-*/out/_nh
           '';
         };
+
         wrapNh = drv:
           pkgs.symlinkJoin {
             inherit (drv) name pname version;
@@ -58,9 +69,14 @@
           };
       in {
         packages = {
-          toolchain-dev = with inputs.fenix.packages.${system};
+          _src = pkgs.symlinkJoin {
+            name = "src";
+            paths = [src];
+          };
+
+          _toolchain_dev = with inputs.fenix.packages.${system};
             combine [
-              (complete.withComponents [
+              (stable.withComponents [
                 "rustc"
                 "cargo"
                 "rust-src"
@@ -70,43 +86,28 @@
               ])
             ];
 
-          toolchain = with inputs.fenix.packages.${system};
-            combine [
-              (complete.withComponents [
-                "rustc"
-                "cargo"
-              ])
-            ];
-
           nh-dev =
             (pkgs.makeRustPlatform {
-              cargo = config.packages.toolchain-dev;
-              rustc = config.packages.toolchain-dev;
+              cargo = config.packages._toolchain_dev;
+              rustc = config.packages._toolchain_dev;
             })
-            .buildRustPackage ({
-                inherit src;
-                pname = cargo-toml.package.name;
-                inherit (cargo-toml.package) version;
-                cargoLock.lockFile = src + "/Cargo.lock";
-                RUST_SRC_PATH = "${config.packages.toolchain-dev}/lib/rustlib/src/rust/library";
+            .buildRustPackage (
+              commonArgs
+              // {
+                RUST_SRC_PATH = "${config.packages._toolchain_dev}/lib/rustlib/src/rust/library";
               }
-              // extraArgs);
+            );
 
           nh = wrapNh (
-            (pkgs.makeRustPlatform {
-              cargo = config.packages.toolchain;
-              rustc = config.packages.toolchain;
-            })
-            .buildRustPackage ({
-                inherit src;
-                pname = cargo-toml.package.name;
-                inherit (cargo-toml.package) version;
-                cargoLock.lockFile = src + "/Cargo.lock";
+            # use nixpkgs' rustPlatform without fenix for easy distribution
+            pkgs.rustPlatform.buildRustPackage (
+              commonArgs
+              // {
                 cargoBuildFlags = [
                   "--features=complete"
                 ];
               }
-              // extraArgs)
+            )
           );
 
           default = config.packages.nh;
