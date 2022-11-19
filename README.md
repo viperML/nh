@@ -19,7 +19,7 @@ It also includes `nvd` to show a pretty diff of the transaction, adds confirmati
 
 To-do list of features:
 
-- [x] Reimplement `nixos-rebuild {switch,boot,text}`
+- [x] Reimplement `nixos-rebuild {switch,boot,test}`
 - [ ] Reimplement `nix-collect-garbage`
 - [ ] Reimplement `home-manager switch`
 - [ ] Reimplement `nix search`
