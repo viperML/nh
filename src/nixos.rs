@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use clean_path::Clean;
 
-use log::{debug, info, trace};
+use log::{trace};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 

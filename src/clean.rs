@@ -1,9 +1,9 @@
-use std::any;
-use std::ffi::{CString, OsString};
-use std::fs::{self, DirEntry, File};
+
+use std::ffi::{CString};
+use std::fs::{self};
 use std::path::{Path, PathBuf};
 
-use log::{info, trace};
+use log::{info};
 
 use crate::commands::run_command;
 use crate::{commands::NHRunnable, interface::CleanArgs};
@@ -17,7 +17,7 @@ impl NHRunnable for CleanArgs {
         let profiles_path = Path::new(PROFILES_DIR);
 
         // Clean profiles
-        clean_profile(&profiles_path, self.dry)?;
+        clean_profile(profiles_path, self.dry)?;
 
         // Clean GC roots
 
@@ -86,17 +86,17 @@ impl From<PathBuf> for Generation {
     fn from(path: PathBuf) -> Self {
         let base_path: PathBuf = path
             .parent()
-            .expect(&format!("Path {path:?} didn't have a parent!"))
+            .unwrap_or_else(|| panic!("Path {path:?} didn't have a parent!"))
             .into();
 
         // Something like (profile-name-with-dashes)-(number)-link
         let fname = path
             .file_name()
-            .expect(&format!("Coudln't get filename for {path:?}"))
+            .unwrap_or_else(|| panic!("Coudln't get filename for {path:?}"))
             .to_str()
             .unwrap();
 
-        let mut fname_components: Vec<_> = fname.split("-").collect();
+        let mut fname_components: Vec<_> = fname.split('-').collect();
 
         // Remove link
         assert_eq!(fname_components.pop().unwrap(), "link");
