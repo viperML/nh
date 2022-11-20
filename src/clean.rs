@@ -1,25 +1,22 @@
-
-use std::ffi::{CString};
+use std::ffi::CString;
 use std::fs::{self};
 use std::path::{Path, PathBuf};
 
-use log::{info};
+use log::{info, trace};
 
 use crate::commands::run_command;
 use crate::{commands::NHRunnable, interface::CleanArgs};
 
 // Reference: https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc
 
-static PROFILES_DIR: &str = "/nix/var/nix/profiles";
-
 impl NHRunnable for CleanArgs {
     fn run(&self) -> anyhow::Result<()> {
-        let profiles_path = Path::new(PROFILES_DIR);
-
         // Clean profiles
-        clean_profile(profiles_path, self.dry)?;
+        clean_profile(&Path::new("/nix/var/nix/profiles"), self.dry)?;
 
         // Clean GC roots
+        clean_gcroots(&Path::new("/nix/var/nix/gcroots/auto"), self.dry)?;
+        clean_gcroots(&Path::new("/nix/var/nix/gcroots/per-user"), self.dry)?;
 
         // Clean store
         run_command("nix-store --gc", self.dry, Some("Cleaning store"))?;
@@ -28,8 +25,9 @@ impl NHRunnable for CleanArgs {
 }
 
 fn clean_profile(path: &Path, dry: bool) -> anyhow::Result<()> {
-    for _dir_entry in fs::read_dir(path)? {
-        let subpath = _dir_entry?.path();
+    for dir_entry in fs::read_dir(path)? {
+        let subpath = dir_entry?.path();
+        trace!("| subpath: {subpath:?}");
 
         if !readable(&subpath)? {
             return Ok(());
@@ -40,8 +38,12 @@ fn clean_profile(path: &Path, dry: bool) -> anyhow::Result<()> {
         if name.contains("-link") && subpath.is_symlink() {
             // Is a generation
             let generation: Generation = subpath.into();
+            trace!("{generation:?}");
 
-            if !generation.is_live() {
+            let is_live = generation.is_live();
+            trace!("live: {is_live}");
+
+            if !is_live {
                 remove_generation(&generation.path, dry)?;
             }
         } else if !subpath.is_symlink() && subpath.is_dir() {
@@ -74,9 +76,8 @@ fn readable(path: &Path) -> Result<bool, anyhow::Error> {
 
 #[derive(Debug)]
 struct Generation {
-    profile_name: String,
-    number: u64,
-    //
+    // profile_name: String,
+    // number: u64,
     path: PathBuf,
     profile_path: PathBuf,
     base_path: PathBuf,
@@ -102,15 +103,15 @@ impl From<PathBuf> for Generation {
         assert_eq!(fname_components.pop().unwrap(), "link");
 
         // Get number
-        let number = fname_components.pop().unwrap().parse().unwrap();
+        let _number = fname_components.pop();
 
         // The rest is the profile name
         let profile_name = fname_components.join("-");
         let profile_path = base_path.join(&profile_name);
 
         Generation {
-            profile_name,
-            number,
+            // profile_name,
+            // number,
             path,
             profile_path,
             base_path,
@@ -125,4 +126,31 @@ impl Generation {
 
         pointing == self.path
     }
+}
+
+fn clean_gcroots(path: &Path, dry: bool) -> anyhow::Result<()> {
+    for dir_entry in fs::read_dir(path)? {
+        let subpath = dir_entry?.path();
+        // trace!("| subpath: {subpath:?}");
+
+        if !subpath.is_symlink() && subpath.is_dir() {
+            // Walk inside
+            clean_gcroots(&subpath, dry)?;
+        } else if subpath.is_symlink() {
+            let pointed = fs::read_link(&subpath)?;
+            if pointed.exists() {
+                info!("Removing GC root origin: {pointed:?}");
+                if !dry {
+                    fs::remove_file(&pointed)?;
+                }
+            }
+
+            info!("Removing GC root: {subpath:?}");
+            if !dry {
+                fs::remove_file(&subpath)?;
+            }
+        }
+    }
+
+    Ok(())
 }

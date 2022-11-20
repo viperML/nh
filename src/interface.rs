@@ -90,7 +90,14 @@ pub struct SearchArgs {
 }
 
 #[derive(Args, Debug)]
+#[clap(verbatim_doc_comment)]
 /// Delete paths from the store
+///
+/// This command does 3 separate things:
+/// - Removes ALL unused generations
+/// - Removed ALL GC roots
+/// - Calls nix-store --gc
+///
 pub struct CleanArgs {
     #[arg(long, short = 'n')]
     /// Only print actions to perform
