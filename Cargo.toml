@@ -26,6 +26,7 @@ rand = "0.8"
 clean-path = "0.2"
 subprocess = "0.2"
 dialoguer = { version = "0.10.2", default-features = false }
+libc = "0.2.137"
 
 [build-dependencies]
 clap = { version = "4.0", features = [
