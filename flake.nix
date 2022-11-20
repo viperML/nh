@@ -17,14 +17,11 @@
   }: let
     src = inputs.nix-filter.lib {
       root = ./.;
-      exclude = [
-        (inputs.nix-filter.lib.matchExt "nix")
-        "flake.lock"
-        ".envrc"
-        ".gitignore"
-        (inputs.nix-filter.lib.matchExt "md")
-        (inputs.nix-filter.lib.matchExt "json")
-        (inputs.nix-filter.lib.matchExt "yaml")
+      include = [
+        (inputs.nix-filter.lib.inDirectory "src")
+        "Cargo.toml"
+        "Cargo.lock"
+        "build.rs"
       ];
     };
 
@@ -34,7 +31,6 @@
       systems = [
         "aarch64-linux"
         "x86_64-linux"
-        "x86_64-darwin"
       ];
 
       perSystem = {
@@ -42,81 +38,48 @@
         pkgs,
         config,
         ...
-      }: let
-        commonArgs = {
-          inherit src;
-          pname = cargo-toml.package.name;
-          inherit (cargo-toml.package) version;
-          cargoLock.lockFile = src + "/Cargo.lock";
-          nativeBuildInputs = [
-            pkgs.installShellFiles
-          ];
-          preFixup = ''
-            installShellCompletion $releaseDir/build/nh-*/out/nh.{bash,fish}
-            installShellCompletion --zsh $releaseDir/build/nh-*/out/_nh
-          '';
-        };
+      }: {
+        packages = {
+          _toolchain_dev = with inputs.fenix.packages.${system}; (stable.withComponents [
+            "rustc"
+            "cargo"
+            "rust-src"
+            "clippy"
+            "rustfmt"
+            "rust-analyzer"
+          ]);
 
-        wrapNh = drv:
-          pkgs.symlinkJoin {
-            inherit (drv) name pname version;
-            paths = [drv];
-            nativeBuildInputs = [pkgs.makeBinaryWrapper];
-            postBuild = ''
+          nh = pkgs.rustPlatform.buildRustPackage {
+            inherit src;
+            pname = cargo-toml.package.name;
+            inherit (cargo-toml.package) version;
+            cargoLock.lockFile = src + "/Cargo.lock";
+            nativeBuildInputs = [
+              pkgs.installShellFiles
+              pkgs.makeBinaryWrapper
+            ];
+            cargoBuildFlags = [
+              "--features=complete"
+            ];
+            preFixup = ''
+              installShellCompletion $releaseDir/build/nh-*/out/nh.{bash,fish}
+              installShellCompletion --zsh $releaseDir/build/nh-*/out/_nh
+            '';
+            postFixup = ''
               wrapProgram $out/bin/nh \
                 --prefix PATH : ${with pkgs; lib.makeBinPath [nvd]}
             '';
           };
-      in {
-        packages = {
-          _src = pkgs.symlinkJoin {
-            name = "src";
-            paths = [src];
-          };
-
-          _toolchain_dev = with inputs.fenix.packages.${system};
-            combine [
-              (stable.withComponents [
-                "rustc"
-                "cargo"
-                "rust-src"
-                "clippy"
-                "rustfmt"
-                "rust-analyzer"
-              ])
-            ];
-
-          nh-dev =
-            (pkgs.makeRustPlatform {
-              cargo = config.packages._toolchain_dev;
-              rustc = config.packages._toolchain_dev;
-            })
-            .buildRustPackage (
-              commonArgs
-              // {
-                RUST_SRC_PATH = "${config.packages._toolchain_dev}/lib/rustlib/src/rust/library";
-              }
-            );
-
-          nh = wrapNh (
-            # use nixpkgs' rustPlatform without fenix for easy distribution
-            pkgs.rustPlatform.buildRustPackage (
-              commonArgs
-              // {
-                cargoBuildFlags = [
-                  "--features=complete"
-                ];
-              }
-            )
-          );
 
           default = config.packages.nh;
         };
 
-        devShells.extra = with pkgs;
-          mkShellNoCC {
+        devShells.default = with pkgs;
+          mkShell { # Shell with CC
             name = "extra";
+            RUST_SRC_PATH = "${config.packages._toolchain_dev}/lib/rustlib/src/rust/library";
             packages = [
+              config.packages._toolchain_dev
               nvd
             ];
           };
