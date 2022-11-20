@@ -20,7 +20,7 @@ It also includes `nvd` to show a pretty diff of the transaction, adds confirmati
 To-do list of features:
 
 - [x] Reimplement `nixos-rebuild {switch,boot,test}`
-- [ ] Reimplement `nix-collect-garbage`
+- [x] Reimplement `nix-collect-garbage`
 - [ ] Reimplement `home-manager switch`
 - [ ] Reimplement `nix search`
 
@@ -73,9 +73,6 @@ So, with specialisation, this changes. Specs create "another toplevel" under `<t
 
 We must run the namespaced one for `test`, and the root one for `boot`. Which is what `nixos-rebuild` doesn't do properly.
 
-
-
-> at the time of this writing
 
 </details>
 
