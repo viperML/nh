@@ -78,9 +78,7 @@ We must run the namespaced one for `test`, and the root one for `boot`. Which is
 
 ## Hacking
 
-If you use [direnv](https://direnv.net/), just allow the `.envrc`.
-
-Otherwise, `nix develop .#nh-dev`
+`nix develop`
 
 [^1]: At the time of this writing.
 

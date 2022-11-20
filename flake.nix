@@ -76,7 +76,7 @@
 
         devShells.default = with pkgs;
           mkShell { # Shell with CC
-            name = "extra";
+            name = "nh-dev";
             RUST_SRC_PATH = "${config.packages._toolchain_dev}/lib/rustlib/src/rust/library";
             packages = [
               config.packages._toolchain_dev
