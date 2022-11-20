@@ -14,9 +14,9 @@ impl NHRunnable for CleanArgs {
         // Clean profiles
         clean_profile(&Path::new("/nix/var/nix/profiles"), self.dry)?;
 
-        // Clean GC roots
-        clean_gcroots(&Path::new("/nix/var/nix/gcroots/auto"), self.dry)?;
-        clean_gcroots(&Path::new("/nix/var/nix/gcroots/per-user"), self.dry)?;
+        // Clean GC roots FIXME
+        // clean_gcroots(&Path::new("/nix/var/nix/gcroots/auto"), self.dry)?;
+        // clean_gcroots(&Path::new("/nix/var/nix/gcroots/per-user"), self.dry)?;
 
         // Clean store
         run_command("nix-store --gc", self.dry, Some("Cleaning store"))?;
@@ -131,17 +131,24 @@ impl Generation {
 fn clean_gcroots(path: &Path, dry: bool) -> anyhow::Result<()> {
     for dir_entry in fs::read_dir(path)? {
         let subpath = dir_entry?.path();
-        // trace!("| subpath: {subpath:?}");
+        trace!("| subpath: {subpath:?}");
 
         if !subpath.is_symlink() && subpath.is_dir() {
             // Walk inside
             clean_gcroots(&subpath, dry)?;
         } else if subpath.is_symlink() {
-            let pointed = fs::read_link(&subpath)?;
-            if pointed.exists() {
-                info!("Removing GC root origin: {pointed:?}");
+            let pointing = fs::read_link(&subpath)?;
+            trace!("-> {pointing:?}");
+            let pointed_fname = pointing
+                .file_name()
+                .expect("FIXME")
+                .to_str()
+                .expect("FIXME");
+
+            if pointed_fname.contains(".direnv") | pointed_fname.contains("result") {
+                info!("Removing GC root origin: {pointing:?}");
                 if !dry {
-                    fs::remove_file(&pointed)?;
+                    fs::remove_file(&pointing)?;
                 }
             }
 
