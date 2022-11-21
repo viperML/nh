@@ -49,7 +49,7 @@
             "rust-analyzer"
           ]);
 
-          nh = pkgs.rustPlatform.buildRustPackage {
+          default = pkgs.rustPlatform.buildRustPackage {
             inherit src;
             pname = cargo-toml.package.name;
             inherit (cargo-toml.package) version;
@@ -70,8 +70,6 @@
                 --prefix PATH : ${with pkgs; lib.makeBinPath [nvd]}
             '';
           };
-
-          default = config.packages.nh;
         };
 
         devShells.default = with pkgs;
