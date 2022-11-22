@@ -1,8 +1,9 @@
-pub mod commands;
-pub mod interface;
-pub mod nixos;
-pub mod clean;
-pub mod search;
+mod commands;
+mod interface;
+mod nixos;
+mod clean;
+mod search;
+mod home;
 
 use fern::colors::Color;
 use log::{trace, SetLoggerError};

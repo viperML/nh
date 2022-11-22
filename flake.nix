@@ -56,7 +56,7 @@
             cargoLock.lockFile = src + "/Cargo.lock";
             nativeBuildInputs = [
               pkgs.installShellFiles
-              pkgs.makeBinaryWrapper
+              pkgs.makeWrapper
             ];
             cargoBuildFlags = [
               "--features=complete"

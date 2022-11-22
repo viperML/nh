@@ -108,11 +108,11 @@ pub struct CleanArgs {
 /// Home-manager related commands
 pub struct HomeArgs {
     #[command(subcommand)]
-    subcommand: HomeSubcommand,
+    pub subcommand: HomeSubcommand,
 }
 
 #[derive(Debug, Subcommand)]
-enum HomeSubcommand {
+pub enum HomeSubcommand {
     /// Build and activate
     Switch(HomeRebuildArgs),
     /// Show an overview of the installation
@@ -120,4 +120,20 @@ enum HomeSubcommand {
 }
 
 #[derive(Debug, Args)]
-pub struct HomeRebuildArgs {}
+pub struct HomeRebuildArgs {
+    #[arg(long, short = 'n')]
+    /// Only print actions to perform
+    pub dry: bool,
+
+    #[arg(long, short)]
+    /// Confirm before performing the activation
+    pub ask: bool,
+
+    #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
+    /// Flake reference that outputs a nixos system. Optionally add a #hostname
+    pub flakeref: FlakeRef,
+
+    #[arg(long, short)]
+    /// Name of the specialisation
+    pub specialisation: Option<String>,
+}
