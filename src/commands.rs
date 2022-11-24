@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
-use log::{debug, info};
+use log::{debug, info, trace};
 use rand::Rng;
+use subprocess::{PopenError, Redirection};
 
 use crate::{
     interface::{self, NHCommand},
@@ -51,6 +52,57 @@ pub fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunEr
     Ok(())
 }
 
+pub fn run_command_capture(
+    cmd: &Vec<&str>,
+    message: Option<&str>,
+) -> Result<String, subprocess::PopenError> {
+    if let Some(m) = message {
+        info!("{}", m);
+    }
+
+    debug!("{}", cmd.join(" "));
+
+    let (head, tail) = cmd.split_at(1);
+    let head = *head.first().unwrap();
+
+    let output = subprocess::Exec::cmd(head)
+        .args(tail)
+        .stdout(Redirection::Pipe)
+        .capture()
+        .map(|c| c.stdout_str().trim().to_owned());
+
+    return output;
+}
+
+pub fn run_command_2<S>(cmd: &Vec<&str>, message: Option<S>, dry: bool) -> Result<(), PopenError>
+where
+    S: AsRef<str> + std::fmt::Display,
+{
+    if let Some(m) = message {
+        info!("{}", m);
+    }
+
+    debug!("{}", cmd.join(" "));
+
+    if !dry {
+        let (head, tail) = cmd.split_at(1);
+        let head = *head.first().unwrap();
+
+        let exit = subprocess::Exec::cmd(head).args(tail).popen()?.wait()?;
+
+        if !exit.success() {
+            let msg = match exit {
+                subprocess::ExitStatus::Exited(code) => code.to_string(),
+                subprocess::ExitStatus::Signaled(code) => code.to_string(),
+                _ => format!("Unknown error: {:?}", exit),
+            };
+
+            return Err(PopenError::LogicError("FIXME"));
+        };
+    }
+
+    Ok(())
+}
 
 pub fn mk_temp<P>(prefix: P) -> String
 where
