@@ -54,7 +54,7 @@ impl HomeRebuildArgs {
             let previous_gen = format!("/nix/var/nix/profiles/per-user/{}/home-manager", &username);
             let cmd = vec!["nvd", "diff", &previous_gen, &out_link];
 
-            run_command_2(&cmd, Some("Comapring changes"), self.dry)?;
+            run_command_2(&cmd, Some("Comparing changes"), self.dry)?;
         }
 
         if self.ask {
