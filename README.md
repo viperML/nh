@@ -21,7 +21,7 @@ To-do list of features:
 
 - [x] Reimplement `nixos-rebuild {switch,boot,test}`
 - [x] Reimplement `nix-collect-garbage`
-- [ ] Reimplement `home-manager switch`
+- [x] Reimplement `home-manager switch`
 - [ ] Reimplement `nix search`
 
 ## Installation
