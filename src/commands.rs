@@ -1,13 +1,10 @@
 use std::fmt::Display;
 
-use log::{debug, info, trace};
+use log::{debug, info};
 use rand::Rng;
 use subprocess::{PopenError, Redirection};
 
-use crate::{
-    interface::{self, NHCommand},
-    nixos::RunError,
-};
+use crate::interface::{self, NHCommand};
 
 pub trait NHRunnable {
     fn run(&self) -> anyhow::Result<()>;
@@ -37,13 +34,11 @@ pub fn run_command_capture(
     let (head, tail) = cmd.split_at(1);
     let head = *head.first().unwrap();
 
-    let output = subprocess::Exec::cmd(head)
+    subprocess::Exec::cmd(head)
         .args(tail)
         .stdout(Redirection::Pipe)
         .capture()
-        .map(|c| c.stdout_str().trim().to_owned());
-
-    return output;
+        .map(|c| c.stdout_str().trim().to_owned())
 }
 
 pub fn run_command<S>(cmd: &Vec<&str>, message: Option<S>, dry: bool) -> Result<(), PopenError>
@@ -63,7 +58,7 @@ where
         let exit = subprocess::Exec::cmd(head).args(tail).popen()?.wait()?;
 
         if !exit.success() {
-            let msg = match exit {
+            let _msg = match exit {
                 subprocess::ExitStatus::Exited(code) => code.to_string(),
                 subprocess::ExitStatus::Signaled(code) => code.to_string(),
                 _ => format!("Unknown error: {:?}", exit),

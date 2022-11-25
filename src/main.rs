@@ -1,15 +1,15 @@
+mod clean;
 mod commands;
+mod home;
 mod interface;
 mod nixos;
-mod clean;
 mod search;
-mod home;
 
 use fern::colors::Color;
 use log::{trace, SetLoggerError};
 
-use crate::interface::NHParser;
 use crate::commands::NHRunnable;
+use crate::interface::NHParser;
 
 fn main() -> anyhow::Result<()> {
     let args = <NHParser as clap::Parser>::parse();

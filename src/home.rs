@@ -1,5 +1,4 @@
 use log::trace;
-use subprocess::Redirection;
 
 use crate::{
     commands::{mk_temp, run_command, run_command_capture, NHRunnable},

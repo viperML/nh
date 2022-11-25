@@ -12,7 +12,7 @@ use crate::{commands::NHRunnable, interface::CleanArgs};
 impl NHRunnable for CleanArgs {
     fn run(&self) -> anyhow::Result<()> {
         // Clean profiles
-        clean_profile(&Path::new("/nix/var/nix/profiles"), self.dry)?;
+        clean_profile(Path::new("/nix/var/nix/profiles"), self.dry)?;
 
         // Clean GC roots FIXME
         // clean_gcroots(&Path::new("/nix/var/nix/gcroots/auto"), self.dry)?;
