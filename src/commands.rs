@@ -24,34 +24,6 @@ impl NHRunnable for interface::NHCommand {
     }
 }
 
-pub fn run_command(cmd: &str, dry: bool, info: Option<&str>) -> Result<(), RunError> {
-    if let Some(msg) = info {
-        info!("{msg}");
-    }
-
-    debug!("{cmd}");
-
-    if !dry {
-        let mut argv = cmd.split(' ');
-        let arg0 = argv.next().expect("Bad command");
-        let mut child = subprocess::Exec::cmd(arg0)
-            .args(&argv.collect::<Vec<_>>())
-            .popen()?;
-
-        let exit = child.wait()?;
-        if !exit.success() {
-            let msg: String = match exit {
-                subprocess::ExitStatus::Exited(code) => code.to_string(),
-                subprocess::ExitStatus::Signaled(code) => code.to_string(),
-                _ => format!("Unknown error: {:?}", exit),
-            };
-            return Err(RunError::ExitError(msg));
-        };
-    }
-
-    Ok(())
-}
-
 pub fn run_command_capture(
     cmd: &Vec<&str>,
     message: Option<&str>,
@@ -74,7 +46,7 @@ pub fn run_command_capture(
     return output;
 }
 
-pub fn run_command_2<S>(cmd: &Vec<&str>, message: Option<S>, dry: bool) -> Result<(), PopenError>
+pub fn run_command<S>(cmd: &Vec<&str>, message: Option<S>, dry: bool) -> Result<(), PopenError>
 where
     S: AsRef<str> + std::fmt::Display,
 {

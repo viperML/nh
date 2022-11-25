@@ -19,7 +19,8 @@ impl NHRunnable for CleanArgs {
         // clean_gcroots(&Path::new("/nix/var/nix/gcroots/per-user"), self.dry)?;
 
         // Clean store
-        run_command("nix-store --gc", self.dry, Some("Cleaning store"))?;
+        run_command(&vec!["nix-store", "--gc"], Some("Cleaning store"), self.dry)?;
+
         Ok(())
     }
 }

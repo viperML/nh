@@ -2,7 +2,7 @@ use log::trace;
 use subprocess::Redirection;
 
 use crate::{
-    commands::{mk_temp, run_command, run_command_2, run_command_capture, NHRunnable},
+    commands::{mk_temp, run_command, run_command_capture, NHRunnable},
     interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand},
 };
 
@@ -47,14 +47,14 @@ impl HomeRebuildArgs {
             );
             let cmd = vec!["nix", "build", "--out-link", &out_link, &cmd_flakeref];
 
-            run_command_2(&cmd, Some("Building configuration"), self.dry)?;
+            run_command(&cmd, Some("Building configuration"), self.dry)?;
         }
 
         {
             let previous_gen = format!("/nix/var/nix/profiles/per-user/{}/home-manager", &username);
             let cmd = vec!["nvd", "diff", &previous_gen, &out_link];
 
-            run_command_2(&cmd, Some("Comparing changes"), self.dry)?;
+            run_command(&cmd, Some("Comparing changes"), self.dry)?;
         }
 
         if self.ask {
@@ -71,7 +71,7 @@ impl HomeRebuildArgs {
         {
             let activator = format!("{}/activate", out_link);
             let cmd: Vec<&str> = vec![&activator];
-            run_command_2(&cmd, Some("Activating"), self.dry)?;
+            run_command(&cmd, Some("Activating"), self.dry)?;
         }
 
         Ok(())

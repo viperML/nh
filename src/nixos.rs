@@ -3,14 +3,13 @@ use std::path::PathBuf;
 
 use clean_path::Clean;
 
-use log::{trace};
+use log::trace;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
-use crate::commands::{NHRunnable, run_command};
+use crate::commands::{run_command, NHRunnable};
 use crate::interface::OsRebuildType::{self, Boot, Info, Switch, Test};
 use crate::interface::{self, OsRebuildArgs};
-
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";
@@ -43,8 +42,6 @@ impl From<std::io::Error> for RunError {
         RunError::IoError
     }
 }
-
-
 
 fn make_path_exists(elems: Vec<&str>) -> Option<String> {
     let p = PathBuf::from(elems.join("")).clean();
@@ -92,25 +89,28 @@ impl OsRebuildArgs {
 
         let out_link = format!("/tmp/nh/result-{}", &suffix);
 
-        let cmd_build = vec![
-            "nix",
-            "build",
-            "--out-link",
-            &out_link,
-            "--profile",
-            SYSTEM_PROFILE,
-            &format!(
+        {
+            let flake_output = format!(
                 "{}#nixosConfigurations.{:?}.config.system.build.toplevel",
                 &self.flakeref, hostname
-            ),
-        ]
-        .join(" ");
+            );
 
-        run_command(&cmd_build, self.dry, Some("Building configuration"))?;
+            let cmd_build = vec![
+                "nix",
+                "build",
+                "--out-link",
+                &out_link,
+                "--profile",
+                SYSTEM_PROFILE,
+                &flake_output,
+            ];
+
+            run_command(&cmd_build, Some("Building configuration"), self.dry)?;
+        }
 
         let current_specialisation = get_specialisation();
 
-        let target_specialisation = if self.specialisation.is_none() {
+        let target_specialisation: &Option<String> = if self.specialisation.is_none() {
             &current_specialisation
         } else {
             &self.specialisation
@@ -131,9 +131,9 @@ impl OsRebuildArgs {
         };
 
         run_command(
-            &vec!["nvd", "diff", CURRENT_PROFILE, &target_profile].join(" "),
-            self.dry,
+            &vec!["nvd", "diff", CURRENT_PROFILE, &target_profile],
             Some("Comparing changes"),
+            self.dry,
         )?;
 
         if self.ask {
@@ -159,16 +159,16 @@ impl OsRebuildArgs {
             );
             let file = PathBuf::from(filename).clean();
 
-            let cmd_activate: String = vec![file.to_str().unwrap(), "test"].join(" ");
-            run_command(&cmd_activate, self.dry, Some("Activating"))?;
+            let cmd_activate = vec![file.to_str().unwrap(), "test"];
+            run_command(&cmd_activate, Some("Activating"), self.dry)?;
         }
 
         if let Boot(_) | Switch(_) = rebuild_type {
             let filename: &str = &format!("{}/bin/switch-to-configuration", out_link);
             let file = PathBuf::from(filename).clean();
 
-            let cmd_activate: String = vec![file.to_str().unwrap(), "boot"].join(" ");
-            run_command(&cmd_activate, self.dry, Some("Adding to bootloader"))?;
+            let cmd_activate = vec![file.to_str().unwrap(), "boot"];
+            run_command(&cmd_activate, Some("Adding to bootloader"), self.dry)?;
         }
 
         Ok(())
