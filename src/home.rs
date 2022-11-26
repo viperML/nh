@@ -1,23 +1,18 @@
 use log::trace;
+use thiserror::Error;
 
 use crate::{
     commands::{mk_temp, run_command, run_command_capture, NHRunnable},
     interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand},
 };
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 enum HomeRebuildError {
-    OutputName,
+    #[error("configuration \"{0}\" doesn't exist")]
+    ConfigName(String),
+    #[error("no confirmation")]
     NoConfirm,
 }
-
-impl std::fmt::Display for HomeRebuildError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl std::error::Error for HomeRebuildError {}
 
 impl NHRunnable for HomeArgs {
     fn run(&self) -> anyhow::Result<()> {
@@ -42,7 +37,7 @@ impl HomeRebuildArgs {
                 if configuration_exists(&self.flakeref, c)? {
                     c.to_owned()
                 } else {
-                    return Err(HomeRebuildError::OutputName.into())
+                    return Err(HomeRebuildError::ConfigName(c.to_owned()).into())
                 }
             }
             None => get_home_output(&self.flakeref, &username)?,

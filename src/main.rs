@@ -11,21 +11,27 @@ use log::{trace, warn, SetLoggerError};
 use crate::commands::NHRunnable;
 use crate::interface::NHParser;
 
-fn main() -> anyhow::Result<()> {
+fn main() {
+    match real_main() {
+        Ok(_) => {
+            std::process::exit(0);
+        }
+        Err(error) => {
+            for chain_elem in error.chain() {
+                warn!("{}", chain_elem);
+            }
+            std::process::exit(1);
+        }
+    }
+}
+
+fn real_main() -> anyhow::Result<()> {
     let args = <NHParser as clap::Parser>::parse();
 
     setup_logging(args.verbose)?;
     trace!("Logging setup!");
 
-    let result = args.command.run();
-
-    if let Err(e) = &result {
-        for c in e.chain() {
-            warn!("{}", c);
-        }
-    };
-
-    result
+    args.command.run()
 }
 
 fn setup_logging(verbose: bool) -> Result<(), SetLoggerError> {
