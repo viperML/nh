@@ -6,7 +6,7 @@ mod nixos;
 mod search;
 
 use fern::colors::Color;
-use log::{trace, SetLoggerError};
+use log::{trace, warn, SetLoggerError};
 
 use crate::commands::NHRunnable;
 use crate::interface::NHParser;
@@ -17,7 +17,15 @@ fn main() -> anyhow::Result<()> {
     setup_logging(args.verbose)?;
     trace!("Logging setup!");
 
-    args.command.run()
+    let result = args.command.run();
+
+    if let Err(e) = &result {
+        for c in e.chain() {
+            warn!("{}", c);
+        }
+    };
+
+    result
 }
 
 fn setup_logging(verbose: bool) -> Result<(), SetLoggerError> {
@@ -30,15 +38,17 @@ fn setup_logging(verbose: bool) -> Result<(), SetLoggerError> {
     };
 
     let color_text = fern::colors::ColoredLevelConfig::new()
-        .trace(Color::BrightBlue)
         .debug(Color::BrightBlack)
-        .warn(Color::White)
-        .error(Color::White);
+        .error(Color::White)
+        .trace(Color::BrightBlue)
+        .warn(Color::White);
 
     let color_symbol = fern::colors::ColoredLevelConfig::new()
-        .trace(Color::BrightBlue)
+        .debug(Color::BrightBlack)
+        .error(Color::Red)
         .info(Color::Green)
-        .debug(Color::BrightBlack);
+        .trace(Color::BrightBlue)
+        .warn(Color::Red);
 
     fern::Dispatch::new()
         .format(move |out, message, record| {

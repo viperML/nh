@@ -118,6 +118,10 @@ impl OsRebuildArgs {
 
         trace!("target_spec: {target_specialisation:?}");
 
+        if let Some(s) = &target_specialisation {
+
+        };
+
         let target_profile = if !self.dry {
             match target_specialisation {
                 None => Ok(out_link.clone()),

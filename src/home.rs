@@ -36,7 +36,18 @@ impl HomeRebuildArgs {
         let out_link = mk_temp("/tmp/nh/home-result-");
 
         let username = std::env::var("USER").expect("Couldn't get username");
-        let hm_config = get_home_output(&self.flakeref, &username)?;
+
+        let hm_config = match &self.configuration {
+            Some(c) => {
+                if configuration_exists(&self.flakeref, c)? {
+                    c.to_owned()
+                } else {
+                    return Err(HomeRebuildError::OutputName.into())
+                }
+            }
+            None => get_home_output(&self.flakeref, &username)?,
+        };
+
         trace!("{}", hm_config);
 
         {
@@ -93,14 +104,27 @@ fn get_home_output<S: AsRef<str> + std::fmt::Display>(
         .into_string()
         .unwrap();
 
-    let c1 = format!("{}#homeConfigurations", flakeref);
-    let c2 = format!(r#" x: x ? "{}@{}" "#, username, &hostname);
+    let full_flakef = format!("{}@{}", username, &hostname);
 
-    let cmd_check = vec!["nix", "eval", &c1, "--apply", &c2];
+    if configuration_exists(flakeref, &full_flakef)? {
+        Ok(full_flakef)
+    } else {
+        Ok(username.to_string())
+    }
+}
+
+fn configuration_exists(
+    flakeref: &FlakeRef,
+    configuration: &str,
+) -> Result<bool, subprocess::PopenError> {
+    let output = format!("{}#homeConfigurations", flakeref);
+    let filter = format!(r#" x: x ? "{}" "#, configuration);
+
+    let cmd_check = vec!["nix", "eval", &output, "--apply", &filter];
 
     run_command_capture(&cmd_check, None).map(|s| match s.trim() {
-        "true" => format!("{}@{}", username, &hostname),
-        "false" => s,
+        "true" => true,
+        "false" => false,
         _ => todo!(),
     })
 }

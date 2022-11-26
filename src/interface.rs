@@ -134,6 +134,6 @@ pub struct HomeRebuildArgs {
     pub flakeref: FlakeRef,
 
     #[arg(long, short)]
-    /// Name of the specialisation
-    pub specialisation: Option<String>,
+    /// Name of the flake configuration: homeConfiguration.<name>
+    pub configuration: Option<String>,
 }
