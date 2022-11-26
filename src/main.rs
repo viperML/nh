@@ -58,8 +58,12 @@ fn setup_logging(verbose: bool) -> Result<(), SetLoggerError> {
 
     fern::Dispatch::new()
         .format(move |out, message, record| {
+            let prefix = match record.level() {
+                log::Level::Info | log::Level::Warn | log::Level::Error => "\n",
+                _ => "",
+            };
             out.finish(format_args!(
-                "{color_symbol}>>>\x1B[0m {color_line}{message}\x1B[0m",
+                "{prefix}{color_symbol}>>>\x1B[0m {color_line}{message}\x1B[0m",
                 color_symbol = format_args!(
                     "\x1B[{}m",
                     color_symbol.get_color(&record.level()).to_fg_str()
