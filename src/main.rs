@@ -63,7 +63,7 @@ fn setup_logging(verbose: bool) -> Result<(), SetLoggerError> {
                 _ => "",
             };
             out.finish(format_args!(
-                "{prefix}{color_symbol}>>>\x1B[0m {color_line}{message}\x1B[0m",
+                "{prefix}{color_symbol}>\x1B[0m {color_line}{message}\x1B[0m",
                 color_symbol = format_args!(
                     "\x1B[{}m",
                     color_symbol.get_color(&record.level()).to_fg_str()
