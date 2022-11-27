@@ -16,6 +16,8 @@ use crate::interface::{self, OsRebuildArgs};
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";
 
+const SPEC_LOCATION: &str = "/etc/specialisation";
+
 // #[derive(Debug)]
 // pub enum RunError {
 //     PopenError,
@@ -116,8 +118,10 @@ impl OsRebuildArgs {
                 .context("Failed during configuration build")?;
         }
 
-        let current_specialisation = std::fs::read_to_string("/etc/specialisatio")
-            .context("Failed to get the current specialisation")?;
+        let current_specialisation = std::fs::read_to_string(SPEC_LOCATION).context(format!(
+            "Failed to read specialisation from {}",
+            SPEC_LOCATION
+        ))?;
 
         let target_specialisation: Option<String> = if self.specialisation.is_none() {
             Some(current_specialisation)
