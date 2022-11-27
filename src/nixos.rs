@@ -18,14 +18,7 @@ const CURRENT_PROFILE: &str = "/run/current-system";
 
 const SPEC_LOCATION: &str = "/etc/specialisation";
 
-// #[derive(Debug)]
-// pub enum RunError {
-//     PopenError,
-//     ExitError(String),
-//     IoError,
-//     NoConfirm,
-//     SpecialisationError(String),
-// }
+
 #[derive(Debug, Error)]
 pub enum OsRebuildError {
     #[error("No confirmation")]
@@ -33,26 +26,6 @@ pub enum OsRebuildError {
     #[error("Specialisation {0} does not exist")]
     SpecError(String),
 }
-
-// impl std::fmt::Display for RunError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "{:?}", self)
-//     }
-// }
-
-// impl std::error::Error for RunError {}
-
-// impl From<subprocess::PopenError> for RunError {
-//     fn from(_: subprocess::PopenError) -> Self {
-//         RunError::PopenError
-//     }
-// }
-
-// impl From<std::io::Error> for RunError {
-//     fn from(_: std::io::Error) -> Self {
-//         RunError::IoError
-//     }
-// }
 
 /// Constructs a path by joining the elements, and checks if it exists.
 fn make_path_exists(elems: Vec<&str>) -> Option<String> {
