@@ -8,9 +8,9 @@ use crate::{
 
 #[derive(Error, Debug)]
 enum HomeRebuildError {
-    #[error("configuration \"{0}\" doesn't exist")]
+    #[error("Configuration \"{0}\" doesn't exist")]
     ConfigName(String),
-    #[error("no confirmation")]
+    #[error("No confirmation")]
     NoConfirm,
 }
 

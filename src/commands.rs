@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use thiserror::Error;
 
 use log::{debug, info};
 use rand::Rng;
@@ -41,7 +42,13 @@ pub fn run_command_capture(
         .map(|c| c.stdout_str().trim().to_owned())
 }
 
-pub fn run_command<S>(cmd: &Vec<&str>, message: Option<S>, dry: bool) -> Result<(), PopenError>
+#[derive(Debug, Error)]
+pub enum RunError {
+    #[error("Command exited with status {0}: {1}")]
+    ExitError(String, String),
+}
+
+pub fn run_command<S>(cmd: &Vec<&str>, message: Option<S>, dry: bool) -> anyhow::Result<()>
 where
     S: AsRef<str> + std::fmt::Display,
 {
@@ -58,13 +65,14 @@ where
         let exit = subprocess::Exec::cmd(head).args(tail).popen()?.wait()?;
 
         if !exit.success() {
-            let _msg = match exit {
+            let code = match exit {
                 subprocess::ExitStatus::Exited(code) => code.to_string(),
                 subprocess::ExitStatus::Signaled(code) => code.to_string(),
                 _ => format!("Unknown error: {:?}", exit),
             };
 
-            return Err(PopenError::LogicError("FIXME"));
+            // return Err(PopenError::LogicError("FIXME"));
+            return Err(RunError::ExitError(code, cmd.join(" ")).into());
         };
     }
 

@@ -1,7 +1,9 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
+use anyhow::Context;
 use clean_path::Clean;
+use thiserror::Error;
 
 use log::trace;
 use rand::distributions::Alphanumeric;
@@ -14,35 +16,43 @@ use crate::interface::{self, OsRebuildArgs};
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";
 
-#[derive(Debug)]
-pub enum RunError {
-    PopenError,
-    ExitError(String),
-    IoError,
+// #[derive(Debug)]
+// pub enum RunError {
+//     PopenError,
+//     ExitError(String),
+//     IoError,
+//     NoConfirm,
+//     SpecialisationError(String),
+// }
+#[derive(Debug, Error)]
+pub enum OsRebuildError {
+    #[error("No confirmation")]
     NoConfirm,
-    SpecialisationError(String),
+    #[error("Specialisation {0} does not exist")]
+    SpecError(String),
 }
 
-impl std::fmt::Display for RunError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
+// impl std::fmt::Display for RunError {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{:?}", self)
+//     }
+// }
 
-impl std::error::Error for RunError {}
+// impl std::error::Error for RunError {}
 
-impl From<subprocess::PopenError> for RunError {
-    fn from(_: subprocess::PopenError) -> Self {
-        RunError::PopenError
-    }
-}
+// impl From<subprocess::PopenError> for RunError {
+//     fn from(_: subprocess::PopenError) -> Self {
+//         RunError::PopenError
+//     }
+// }
 
-impl From<std::io::Error> for RunError {
-    fn from(_: std::io::Error) -> Self {
-        RunError::IoError
-    }
-}
+// impl From<std::io::Error> for RunError {
+//     fn from(_: std::io::Error) -> Self {
+//         RunError::IoError
+//     }
+// }
 
+/// Constructs a path by joining the elements, and checks if it exists.
 fn make_path_exists(elems: Vec<&str>) -> Option<String> {
     let p = PathBuf::from(elems.join("")).clean();
     trace!("checking {p:?}");
@@ -71,21 +81,18 @@ impl NHRunnable for interface::OsArgs {
 }
 
 impl OsRebuildArgs {
-    pub fn rebuild(&self, rebuild_type: &OsRebuildType) -> Result<(), RunError> {
-        let hostname: Box<OsString> = match &self.hostname {
-            Some(h) => Box::new(h.into()),
-            None => {
-                let h = hostname::get().expect("FIXME");
-                Box::new(h)
-            }
-        };
+    pub fn rebuild(&self, rebuild_type: &OsRebuildType) -> anyhow::Result<()> {
+        let hostname = Box::new(match &self.hostname {
+            Some(h) => h.into(),
+            None => hostname::get().expect("FIXME"),
+        });
 
         let suffix_bytes = thread_rng()
             .sample_iter(&Alphanumeric)
             .take(10)
             .collect::<Vec<_>>();
 
-        let suffix = String::from_utf8_lossy(&suffix_bytes);
+        let suffix = String::from_utf8(suffix_bytes).expect("Failed to get folder suffix");
 
         let out_link = format!("/tmp/nh/result-{}", &suffix);
 
@@ -105,29 +112,29 @@ impl OsRebuildArgs {
                 &flake_output,
             ];
 
-            run_command(&cmd_build, Some("Building configuration"), self.dry)?;
+            run_command(&cmd_build, Some("Building configuration"), self.dry)
+                .context("Failed during configuration build")?;
         }
 
-        let current_specialisation = get_specialisation();
+        let current_specialisation = std::fs::read_to_string("/etc/specialisatio")
+            .context("Failed to get the current specialisation")?;
 
-        let target_specialisation: &Option<String> = if self.specialisation.is_none() {
-            &current_specialisation
+        let target_specialisation: Option<String> = if self.specialisation.is_none() {
+            Some(current_specialisation)
         } else {
-            &self.specialisation
+            self.specialisation.clone()
         };
 
         trace!("target_spec: {target_specialisation:?}");
 
-        if let Some(s) = &target_specialisation {
-
-        };
+        // if let Some(s) = &target_specialisation {};
 
         let target_profile = if !self.dry {
-            match target_specialisation {
+            match &target_specialisation {
                 None => Ok(out_link.clone()),
                 Some(spec) => {
                     let result = make_path_exists(vec![&out_link, "/specialisation/", spec]);
-                    result.ok_or_else(|| RunError::SpecialisationError(spec.clone()))
+                    result.ok_or_else(|| OsRebuildError::SpecError(spec.to_owned()))
                 }
             }?
         } else {
@@ -147,7 +154,7 @@ impl OsRebuildArgs {
                 .interact()?;
 
             if !confirmation {
-                return Err(RunError::NoConfirm);
+                return Err(OsRebuildError::NoConfirm.into());
             }
         }
 
@@ -177,8 +184,4 @@ impl OsRebuildArgs {
 
         Ok(())
     }
-}
-
-fn get_specialisation() -> Option<String> {
-    std::fs::read_to_string("/etc/specialisation").ok()
 }
