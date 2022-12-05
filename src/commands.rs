@@ -1,7 +1,8 @@
 use std::fmt::Display;
+use anyhow::{anyhow, bail};
 use thiserror::Error;
 
-use log::{debug, info};
+use log::{debug, info, trace};
 use rand::Rng;
 use subprocess::{PopenError, Redirection};
 
@@ -91,4 +92,16 @@ where
     let suffix = std::str::from_utf8(&suffix_bytes).unwrap();
 
     format!("{}{}", &prefix, &suffix)
+}
+
+pub fn check_root() -> Result<(), anyhow::Error> {
+    let euid = unsafe { libc::geteuid() };
+
+    trace!("euid: {}", euid);
+
+    if euid != 0 {
+        bail!("This command requires root provileges!")
+    } else {
+        Ok(())
+    }
 }

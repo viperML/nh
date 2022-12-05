@@ -2,6 +2,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 
 use anyhow::Context;
+use clap::command;
 use clean_path::Clean;
 use thiserror::Error;
 
@@ -17,7 +18,6 @@ const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";
 
 const SPEC_LOCATION: &str = "/etc/specialisation";
-
 
 #[derive(Debug, Error)]
 pub enum OsRebuildError {
@@ -58,16 +58,20 @@ impl NHRunnable for interface::OsArgs {
 impl OsRebuildArgs {
     pub fn rebuild(&self, rebuild_type: &OsRebuildType) -> anyhow::Result<()> {
         let hostname = Box::new(match &self.hostname {
-            Some(h) => h.into(),
-            None => hostname::get().expect("FIXME"),
-        });
+            Some(h) => Ok(h.into()),
+            None => hostname::get().context("Failed to get hostname"),
+        }?);
+
+        if !self.dry {
+            crate::commands::check_root()?;
+        };
 
         let suffix_bytes = thread_rng()
             .sample_iter(&Alphanumeric)
             .take(10)
             .collect::<Vec<_>>();
 
-        let suffix = String::from_utf8(suffix_bytes).expect("Failed to get folder suffix");
+        let suffix = String::from_utf8(suffix_bytes).context("Failed to get folder suffix")?;
 
         let out_link = format!("/tmp/nh/result-{}", &suffix);
 
@@ -91,20 +95,15 @@ impl OsRebuildArgs {
                 .context("Failed during configuration build")?;
         }
 
-        let current_specialisation = std::fs::read_to_string(SPEC_LOCATION).context(format!(
-            "Failed to read specialisation from {}",
-            SPEC_LOCATION
-        ))?;
+        let current_specialisation = std::fs::read_to_string(SPEC_LOCATION).ok();
 
         let target_specialisation: Option<String> = if self.specialisation.is_none() {
-            Some(current_specialisation)
+            current_specialisation
         } else {
             self.specialisation.clone()
         };
 
-        trace!("target_spec: {target_specialisation:?}");
-
-        // if let Some(s) = &target_specialisation {};
+        trace!("target_specialisation: {target_specialisation:?}");
 
         let target_profile = if !self.dry {
             match &target_specialisation {

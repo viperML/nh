@@ -11,6 +11,10 @@ use crate::{commands::NHRunnable, interface::CleanArgs};
 
 impl NHRunnable for CleanArgs {
     fn run(&self) -> anyhow::Result<()> {
+        if !self.dry {
+            crate::commands::check_root()?;
+        };
+
         // Clean profiles
         clean_profile(Path::new("/nix/var/nix/profiles"), self.dry)?;
 
