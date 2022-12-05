@@ -34,6 +34,7 @@ pub struct NHParser {
 pub enum NHCommand {
     Os(OsArgs),
     Home(HomeArgs),
+    #[cfg(debug_assertions)]
     Search(SearchArgs),
     Clean(CleanArgs),
 }
@@ -54,6 +55,7 @@ pub enum OsRebuildType {
     /// Build and activate
     Test(OsRebuildArgs),
     /// Show an overview of the system's info
+    #[cfg(debug_assertions)]
     Info,
 }
 
@@ -114,6 +116,7 @@ pub enum HomeSubcommand {
     /// Build and activate
     Switch(HomeRebuildArgs),
     /// Show an overview of the installation
+    #[cfg(debug_assertions)]
     Info,
 }
 

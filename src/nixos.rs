@@ -1,7 +1,7 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use clap::command;
 use clean_path::Clean;
 use thiserror::Error;
@@ -11,7 +11,7 @@ use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
 use crate::commands::{run_command, NHRunnable};
-use crate::interface::OsRebuildType::{self, Boot, Info, Switch, Test};
+use crate::interface::OsRebuildType::{self, Boot, Switch, Test};
 use crate::interface::{self, OsRebuildArgs};
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
@@ -44,14 +44,9 @@ impl NHRunnable for interface::OsArgs {
         trace!("{:?}", self);
 
         match &self.action {
-            Switch(args) | Boot(args) | Test(args) => {
-                args.rebuild(&self.action)?;
-            }
-            Info => {
-                todo!()
-            }
+            Switch(args) | Boot(args) | Test(args) => args.rebuild(&self.action),
+            s => bail!("Subcommand {:?} not yet implemented", s),
         }
-        Ok(())
     }
 }
 

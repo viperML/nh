@@ -1,3 +1,4 @@
+use anyhow::bail;
 use log::trace;
 use thiserror::Error;
 
@@ -18,11 +19,9 @@ impl NHRunnable for HomeArgs {
     fn run(&self) -> anyhow::Result<()> {
         // self.subcommand
         match &self.subcommand {
-            HomeSubcommand::Switch(args) => args.rebuild()?,
-            HomeSubcommand::Info => home_info()?,
+            HomeSubcommand::Switch(args) => args.rebuild(),
+            s => bail!("Subcommand {:?} not yet implemented", s),
         }
-
-        Ok(())
     }
 }
 
