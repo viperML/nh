@@ -10,19 +10,22 @@
   </a>
 </p>
 
+![screenshot](./.github/screenshot.png)
 
 ## What does it do?
 
-NH reimplements some basic NixOS commands, namely nixos-rebuild and nix-collect garbage. It supports building and properly activating a NixOS config that uses [specialisations](https://search.nixos.org/options?channel=unstable&show=specialisation).
+NH reimplements some basic NixOS commands. It supports building and properly activating a NixOS config that uses [specialisations](https://search.nixos.org/options?channel=unstable&show=specialisation).
 
 It also includes `nvd` to show a pretty diff of the transaction, adds confirmations prompts and lets you pre-configure the path to your NixOS config.
 
-To-do list of features:
+List of subcommands:
 
 - [x] Reimplement `nixos-rebuild {switch,boot,test}`
-- [x] Reimplement `nix-collect-garbage`
 - [x] Reimplement `home-manager switch`
+- [x] Reimplement `nix-collect-garbage`
+  - [ ] handle gcroots
 - [ ] Reimplement `nix search`
+- [ ] NixOS / HM system info
 
 ## Installation
 
