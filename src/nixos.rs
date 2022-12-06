@@ -1,8 +1,8 @@
-use std::ffi::OsString;
+
 use std::path::PathBuf;
 
 use anyhow::{bail, Context};
-use clap::command;
+
 use clean_path::Clean;
 use thiserror::Error;
 

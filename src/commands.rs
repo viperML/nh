@@ -1,10 +1,10 @@
 use std::fmt::Display;
-use anyhow::{anyhow, bail};
+use anyhow::{bail};
 use thiserror::Error;
 
 use log::{debug, info, trace};
 use rand::Rng;
-use subprocess::{PopenError, Redirection};
+use subprocess::{Redirection};
 
 use crate::interface::{self, NHCommand};
 
