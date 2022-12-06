@@ -2,10 +2,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    fenix = {
-      url = "github:nix-community/fenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     nix-filter.url = "github:numtide/nix-filter";
   };
 
@@ -24,8 +20,6 @@
         "build.rs"
       ];
     };
-
-    cargo-toml = builtins.fromTOML (builtins.readFile (src + "/Cargo.toml"));
   in
     flake-parts.lib.mkFlake {inherit self;} {
       systems = [
@@ -40,44 +34,20 @@
         ...
       }: {
         packages = {
-          _toolchain_dev = with inputs.fenix.packages.${system}; (stable.withComponents [
-            "rustc"
-            "cargo"
-            "rust-src"
-            "clippy"
-            "rustfmt"
-            "rust-analyzer"
-          ]);
-
-          default = pkgs.rustPlatform.buildRustPackage {
-            inherit src;
-            pname = cargo-toml.package.name;
-            inherit (cargo-toml.package) version;
-            cargoLock.lockFile = src + "/Cargo.lock";
-            nativeBuildInputs = [
-              pkgs.installShellFiles
-              pkgs.makeWrapper
-            ];
-            cargoBuildFlags = [
-              "--features=complete"
-            ];
-            preFixup = ''
-              installShellCompletion $releaseDir/build/nh-*/out/nh.{bash,fish}
-              installShellCompletion --zsh $releaseDir/build/nh-*/out/_nh
-            '';
-            postFixup = ''
-              wrapProgram $out/bin/nh \
-                --prefix PATH : ${with pkgs; lib.makeBinPath [nvd]}
-            '';
-          };
+          default = pkgs.callPackage ./default.nix {inherit src;};
         };
 
         devShells.default = with pkgs;
-          mkShell { # Shell with CC
+          mkShell {
+            # Shell with CC
             name = "nh-dev";
-            RUST_SRC_PATH = "${config.packages._toolchain_dev}/lib/rustlib/src/rust/library";
+            RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
             packages = [
-              config.packages._toolchain_dev
+              cargo
+              rustc
+              rustfmt
+              clippy
+              rust-analyzer
               nvd
             ];
           };
