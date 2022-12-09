@@ -1,5 +1,5 @@
 use anyhow::bail;
-use log::trace;
+use log::{trace, info};
 use thiserror::Error;
 
 use crate::{
@@ -62,8 +62,8 @@ impl HomeRebuildArgs {
         }
 
         if self.ask {
+            info!("Apply the config?");
             let confirmation = dialoguer::Confirm::new()
-                .with_prompt("Apply the config?")
                 .default(false)
                 .interact()?;
 

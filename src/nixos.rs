@@ -6,7 +6,7 @@ use anyhow::{bail, Context};
 use clean_path::Clean;
 use thiserror::Error;
 
-use log::trace;
+use log::{trace, info};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
@@ -119,8 +119,8 @@ impl OsRebuildArgs {
         )?;
 
         if self.ask {
+            info!("Apply the config?");
             let confirmation = dialoguer::Confirm::new()
-                .with_prompt("Apply the config?")
                 .default(false)
                 .interact()?;
 
