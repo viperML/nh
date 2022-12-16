@@ -5,7 +5,7 @@
 <p align="center">
   <img
     alt="build: passing"
-    src="https://img.shields.io/github/workflow/status/viperML/nh/build"
+    src="https://img.shields.io/github/actions/workflow/status/viperML/nh/build.yaml?branch=master&label=build"
   >
   </a>
 </p>
