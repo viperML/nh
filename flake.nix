@@ -5,12 +5,7 @@
     nix-filter.url = "github:numtide/nix-filter";
   };
 
-  outputs = inputs @ {
-    self,
-    nixpkgs,
-    flake-parts,
-    ...
-  }: let
+  outputs = inputs: let
     src = inputs.nix-filter.lib {
       root = ./.;
       include = [
@@ -21,7 +16,7 @@
       ];
     };
   in
-    flake-parts.lib.mkFlake {inherit self;} {
+    inputs.flake-parts.lib.mkFlake {inherit inputs;} {
       systems = [
         "aarch64-linux"
         "x86_64-linux"
