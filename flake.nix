@@ -7,7 +7,7 @@
 
   outputs = inputs: let
     src = inputs.nix-filter.lib {
-      root = ./.;
+      root = inputs.self.outPath;
       include = [
         (inputs.nix-filter.lib.inDirectory "src")
         "Cargo.toml"
@@ -42,7 +42,7 @@
               rustc
               rustfmt
               clippy
-              rust-analyzer
+              rust-analyzer-unwrapped
               nvd
             ];
           };
