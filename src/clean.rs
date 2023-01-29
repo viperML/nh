@@ -19,8 +19,8 @@ impl NHRunnable for CleanArgs {
         clean_profile(Path::new("/nix/var/nix/profiles"), self.dry)?;
 
         // Clean GC roots FIXME
-        // clean_gcroots(&Path::new("/nix/var/nix/gcroots/auto"), self.dry)?;
-        // clean_gcroots(&Path::new("/nix/var/nix/gcroots/per-user"), self.dry)?;
+        clean_gcroots(&Path::new("/nix/var/nix/gcroots/auto"), self.dry)?;
+        clean_gcroots(&Path::new("/nix/var/nix/gcroots/per-user"), self.dry)?;
 
         // Clean store
         run_command(&vec!["nix-store", "--gc"], Some("Cleaning store"), self.dry)?;
@@ -150,16 +150,11 @@ fn clean_gcroots(path: &Path, dry: bool) -> anyhow::Result<()> {
                 .to_str()
                 .expect("FIXME");
 
-            if pointed_fname.contains(".direnv") | pointed_fname.contains("result") {
+            if pointed_fname.contains("direnv") | pointed_fname.contains("result") {
                 info!("Removing GC root origin: {pointing:?}");
                 if !dry {
                     fs::remove_file(&pointing)?;
                 }
-            }
-
-            info!("Removing GC root: {subpath:?}");
-            if !dry {
-                fs::remove_file(&subpath)?;
             }
         }
     }
