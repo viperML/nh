@@ -16,8 +16,6 @@ jobs:
         install_url: https://nixos.org/nix/install
         extra_nix_config: |
           experimental-features = nix-command flakes
-          extra-substituters = https://viperml.cachix.org
-          extra-trusted-public-keys = viperml.cachix.org-1:qZhKBMTfmcLL+OG6fj/hzsMEedgKvZVFRRAhq7j8Vh8=
 
     - uses: actions/checkout@v3
       name: Checkout

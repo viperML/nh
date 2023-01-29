@@ -1,0 +1,40 @@
+name: "Update NH"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 */15 * *"
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install nix
+      uses: cachix/install-nix-action@master
+      with:
+        install_url: https://nixos.org/nix/install
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+
+    - uses: actions/checkout@v3
+      name: Checkout
+
+    - run: nix flake update
+
+    - run: nix run .#cargo -- update
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v4
+      with:
+        token: '${{ secrets.PAT }}'
+        title: 'build: bump deps'
+        commit-message: |
+          Bump all deps
+
+          Auto-generated in GH actions
+          Co-authored-by: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+        author: GitHub <noreply@github.com>
+        branch: update
+        branch-suffix: timestamp
+        delete-branch: true
