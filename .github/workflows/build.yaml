@@ -3,6 +3,8 @@ name: "Build NH"
 on:
   pull_request:
   push:
+    branches-ignore:
+      - 'update-*'
   workflow_dispatch:
 
 jobs:
