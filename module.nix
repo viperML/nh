@@ -46,6 +46,7 @@ self: {
         description = "NH cleaner";
         script = "exec ${config.nh.package}/bin/nh clean";
         startAt = config.nh.clean.dates;
+        path = [config.nix.package];
       };
 
       timers.nh-clean = {
