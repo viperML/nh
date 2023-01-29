@@ -20,9 +20,15 @@ jobs:
     - uses: actions/checkout@v3
       name: Checkout
 
+    - run: nix profile install --inputs-from . nixpkgs#cargo
+
     - run: nix flake update
 
-    - run: nix run --inputs-from . nixpkgs#cargo -- update
+    - run: cargo update
+
+    - run: |
+        cargo install cargo-bump
+        cargo bump
 
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v4
