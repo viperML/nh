@@ -22,7 +22,7 @@ jobs:
 
     - run: nix flake update
 
-    - run: nix run .#cargo -- update
+    - run: nix run --inputs-from . nixpkgs#cargo -- update
 
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v4
