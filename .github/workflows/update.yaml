@@ -24,11 +24,11 @@ jobs:
 
     - run: nix profile install --inputs-from . nixpkgs#cargo nixpkgs#rustc
 
-    - run: cargo update
-
     - run: |
         cargo install cargo-bump
         cargo bump
+
+    - run: cargo update
 
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v4
