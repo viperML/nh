@@ -2,7 +2,7 @@ use std::ffi::CString;
 use std::fs::{self};
 use std::path::{Path, PathBuf};
 
-use log::{info, trace};
+use log::{info, trace, warn};
 
 use crate::commands::run_command;
 use crate::{commands::NHRunnable, interface::CleanArgs};
@@ -151,9 +151,13 @@ fn clean_gcroots(path: &Path, dry: bool) -> anyhow::Result<()> {
                 .expect("FIXME");
 
             if pointed_fname.contains("direnv") | pointed_fname.contains("result") {
-                info!("Removing GC root origin: {pointing:?}");
-                if !dry {
-                    fs::remove_file(&pointing)?;
+                if pointing.try_exists()? {
+                    info!("Removing GC root origin: {pointing:?}");
+                    if !dry {
+                        fs::remove_file(&pointing)?;
+                    }
+                } else {
+                    warn!("GC root origin doesn't exist! {pointing:?}")
                 }
             }
         }

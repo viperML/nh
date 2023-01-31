@@ -23,7 +23,7 @@ List of subcommands:
 - [x] Reimplement `nixos-rebuild {switch,boot,test}`
 - [x] Reimplement `home-manager switch`
 - [x] Reimplement `nix-collect-garbage`
-  - [ ] handle gcroots
+  - NEW: Also removes any gc-root which has `result` or `direnv` in its name
 - [ ] Reimplement `nix search`
 - [ ] NixOS / HM system info
 
