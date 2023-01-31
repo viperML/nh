@@ -20,9 +20,9 @@ jobs:
     - uses: actions/checkout@v3
       name: Checkout
 
-    - run: nix profile install --inputs-from . nixpkgs#cargo nixpkgs#rustc
-
     - run: nix flake update
+
+    - run: nix profile install --inputs-from . nixpkgs#cargo nixpkgs#rustc
 
     - run: cargo update
 
