@@ -263,7 +263,7 @@ checksum = "ffbee8634e0d45d258acb448e7eaab3fce7a0a467395d4d9f228e3c1f01fb2e4"
 
 [[package]]
 name = "nh"
-version = "3.0.3"
+version = "3.0.4"
 dependencies = [
  "anyhow",
  "clap",
