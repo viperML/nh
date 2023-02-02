@@ -3,7 +3,8 @@ name: Cleanup
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 4 */15 * *"
+    - cron: "0 4 1 * *"
+    - cron: "0 4 15 * *"
 
 jobs:
   branches:

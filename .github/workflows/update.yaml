@@ -3,7 +3,8 @@ name: "Update NH"
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 3 */15 * *"
+    - cron: "0 4 1 * *"
+    - cron: "0 4 15 * *"
 
 jobs:
   main:
