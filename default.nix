@@ -21,8 +21,12 @@ in
       "--features=complete"
     ];
     preFixup = ''
-      installShellCompletion $releaseDir/build/nh-*/out/nh.{bash,fish}
-      installShellCompletion --zsh $releaseDir/build/nh-*/out/_nh
+      mkdir completions
+      $out/bin/nh completions --shell bash > completions/nh.bash
+      $out/bin/nh completions --shell zsh > completions/nh.zsh
+      $out/bin/nh completions --shell fish > completions/nh.fish
+
+      installShellCompletion completions/*
     '';
     postFixup = ''
       wrapProgram $out/bin/nh \

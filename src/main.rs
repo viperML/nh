@@ -4,6 +4,7 @@ mod home;
 mod interface;
 mod nixos;
 mod search;
+mod completion;
 
 use fern::colors::Color;
 use log::{error, trace, SetLoggerError};

@@ -18,6 +18,7 @@ impl NHRunnable for interface::NHCommand {
             NHCommand::Os(os_args) => os_args.run(),
             NHCommand::Clean(clean_args) => clean_args.run(),
             NHCommand::Home(home_args) => home_args.run(),
+            NHCommand::Completions(args) => args.run(),
             s => bail!("Subcommand {s:?} not yet implemented!"),
         }
     }

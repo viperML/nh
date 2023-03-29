@@ -37,6 +37,7 @@ pub enum NHCommand {
     #[cfg(debug_assertions)]
     Search(SearchArgs),
     Clean(CleanArgs),
+    Completions(CompletionArgs),
 }
 
 #[derive(Args, Debug)]
@@ -137,4 +138,12 @@ pub struct HomeRebuildArgs {
     #[arg(long, short)]
     /// Name of the flake configuration: homeConfiguration.<name>
     pub configuration: Option<String>,
+}
+
+#[derive(Debug, Parser)]
+/// Generate shell completion files into stdout
+pub struct CompletionArgs {
+    #[arg(long, short)]
+    /// Name of the shell
+    pub shell: clap_complete::Shell,
 }
