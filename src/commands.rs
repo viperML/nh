@@ -2,12 +2,11 @@ use anyhow::bail;
 
 use std::{
     ffi::{OsStr, OsString},
-    fmt::Display,
+    fmt::Display, process::ExitStatus,
 };
 use thiserror::Error;
 
 use log::{debug, info};
-use rand::Rng;
 use subprocess::{Exec, Redirection};
 
 use crate::interface::{self, NHCommand};
@@ -53,52 +52,6 @@ pub enum RunError {
     #[error("Command exited with status {0}: {1}")]
     ExitError(String, String),
 }
-
-pub fn run_command<S>(cmd: &Vec<&str>, message: Option<S>, dry: bool) -> anyhow::Result<()>
-where
-    S: AsRef<str> + std::fmt::Display,
-{
-    if let Some(m) = message {
-        info!("{}", m);
-    }
-
-    debug!("{}", cmd.join(" "));
-
-    if !dry {
-        let (head, tail) = cmd.split_at(1);
-        let head = *head.first().unwrap();
-
-        let exit = subprocess::Exec::cmd(head).args(tail).popen()?.wait()?;
-
-        if !exit.success() {
-            let code = match exit {
-                subprocess::ExitStatus::Exited(code) => code.to_string(),
-                subprocess::ExitStatus::Signaled(code) => code.to_string(),
-                _ => format!("Unknown error: {:?}", exit),
-            };
-
-            // return Err(PopenError::LogicError("FIXME"));
-            return Err(RunError::ExitError(code, cmd.join(" ")).into());
-        };
-    }
-
-    Ok(())
-}
-
-pub fn mk_temp<P>(prefix: P) -> String
-where
-    P: AsRef<str> + Display,
-{
-    let suffix_bytes: Vec<_> = rand::thread_rng()
-        .sample_iter(&rand::distributions::Alphanumeric)
-        .take(10)
-        .collect();
-
-    let suffix = std::str::from_utf8(&suffix_bytes).unwrap();
-
-    format!("{}{}", &prefix, &suffix)
-}
-
 
 #[derive(Debug, derive_builder::Builder, Default)]
 #[builder(derive(Debug), setter(into), default)]
@@ -158,6 +111,8 @@ pub struct BuildCommand {
     // Extra arguments passed to nix build
     #[builder(setter(custom))]
     extra_args: Vec<OsString>,
+    /// Use nom for the nix build
+    nom: bool,
 }
 
 impl BuildCommandBuilder {
@@ -174,34 +129,48 @@ impl BuildCommandBuilder {
 
 impl BuildCommand {
     pub fn run(&self) -> anyhow::Result<()> {
-        let args = [
-            "build",
-            &self.flakeref,
-            "--log-format",
-            "internal-json",
-            "--verbose",
-        ];
-
-        let cmd = {
-            Exec::cmd("nix")
-                .args(&args)
-                .args(&self.extra_args)
-                .stdout(Redirection::Pipe)
-                .stderr(Redirection::Merge)
-                | Exec::cmd("nom").args(&["--json"]).stdout(Redirection::None)
-        };
-
         if let Some(m) = &self.message {
             info!("{}", m);
         }
-        debug!("{:?}", cmd);
 
-        let cmd = cmd.popen()?;
+        let exit = if self.nom {
+            let cmd = {
+                Exec::cmd("nix")
+                    .args(&[
+                        "build",
+                        &self.flakeref,
+                        "--log-format",
+                        "internal-json",
+                        "--verbose",
+                    ])
+                    .args(&self.extra_args)
+                    .stdout(Redirection::Pipe)
+                    .stderr(Redirection::Merge)
+                    | Exec::cmd("nom").args(&["--json"])
+            }
+            .stdout(Redirection::None);
+            debug!("{:?}", cmd);
+            cmd.join()
+        } else {
+            let cmd = Exec::cmd("nix")
+                .args(&["build", &self.flakeref])
+                .args(&self.extra_args)
+                .stdout(Redirection::None)
+                .stderr(Redirection::Merge);
 
-        for mut proc in cmd {
-            proc.wait()?;
+            debug!("{:?}", cmd);
+            cmd.join()
+        }?;
+
+        match exit {
+            subprocess::ExitStatus::Exited(0) => (),
+            other => bail!(ExitError(other))
         }
 
         Ok(())
     }
 }
+
+#[derive(Debug, Error)]
+#[error("Command exited with status {0:?}")]
+pub struct ExitError(subprocess::ExitStatus);

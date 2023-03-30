@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 
 use log::{info, trace, warn};
 
-use crate::commands::run_command;
 use crate::{commands::NHRunnable, interface::CleanArgs};
 
 // Reference: https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc
@@ -24,7 +23,8 @@ impl NHRunnable for CleanArgs {
         clean_gcroots(Path::new("/nix/var/nix/gcroots/per-user"), self.dry)?;
 
         // Clean store
-        run_command(&vec!["nix-store", "--gc"], Some("Cleaning store"), self.dry)?;
+        // run_command(&vec!["nix-store", "--gc"], Some("Cleaning store"), self.dry)?;
+        todo!();
 
         Ok(())
     }

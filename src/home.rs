@@ -30,7 +30,7 @@ impl HomeRebuildArgs {
     fn rebuild(&self) -> anyhow::Result<()> {
         let out_dir = tempfile::Builder::new().prefix("nh-home-").tempdir()?;
         let out_link = out_dir.path().join("result");
-        let out_link = out_link.to_str().unwrap();
+        let out_link_str = out_link.to_str().unwrap();
         debug!("out_dir: {:?}", out_dir);
         debug!("out_link {:?}", out_link);
 
@@ -47,30 +47,29 @@ impl HomeRebuildArgs {
             None => get_home_output(&self.flakeref, &username)?,
         };
 
-        trace!("hm_config_name: {}", hm_config_name);
+        debug!("hm_config_name: {}", hm_config_name);
 
         let flakeref = format!(
             "{}#homeConfigurations.{}.config.home.activationPackage",
             &self.flakeref, hm_config_name
         );
 
-        let build_cmd = commands::BuildCommandBuilder::default()
+        commands::BuildCommandBuilder::default()
             .flakeref(&flakeref)
+            .extra_args(&["--out-link", out_link_str])
             .extra_args(&self.extra_args)
-            .extra_args(&["--out-link", out_link])
             .message("Building home configuration")
-            .build()?;
+            .nom(self.nom)
+            .build()?
+            .run()?;
 
-        build_cmd.run()?;
+        let prev_generation = format!("/nix/var/nix/profiles/per-user/{}/home-manager", &username);
 
-        let previous_gen = format!("/nix/var/nix/profiles/per-user/{}/home-manager", &username);
-
-        let diff_cmd = commands::CommandBuilder::default()
-            .args(&["nvd", "diff", &previous_gen, out_link])
-            .message("Comparing to existing configuration")
-            .build()?;
-
-        diff_cmd.run()?;
+        commands::CommandBuilder::default()
+            .args(&["nvd", "diff", &prev_generation, out_link_str])
+            .message("Comparing changes")
+            .build()?
+            .run()?;
 
         if self.dry {
             return Ok(());
@@ -85,14 +84,11 @@ impl HomeRebuildArgs {
             }
         }
 
-        let activator = format!("{}/activate", out_link);
-        let activation_cmd = commands::CommandBuilder::default()
-            .args(&[&activator])
-            .build()?;
-
-        debug!("{:?}", activation_cmd);
-
-        activation_cmd.run()?;
+        commands::CommandBuilder::default()
+            .args(&[&format!("{}/activate", out_link_str)])
+            .message("Activating configuration")
+            .build()?
+            .run()?;
 
         // Drop the out dir *only* when we are finished
         drop(out_dir);

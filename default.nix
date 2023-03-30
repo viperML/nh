@@ -5,6 +5,7 @@
   makeWrapper,
   lib,
   nvd,
+  use-nom ? true,
   nix-output-monitor,
 }: let
   cargo-toml = builtins.fromTOML (builtins.readFile (src + "/Cargo.toml"));
@@ -29,11 +30,21 @@ in
       installShellCompletion completions/*
     '';
 
-    postFixup = ''
-      wrapProgram $out/bin/nh \
-        --prefix PATH : ${lib.makeBinPath [
-        nvd
-        nix-output-monitor
-      ]}
-    '';
+    postFixup =
+      if use-nom
+      then ''
+        wrapProgram $out/bin/nh \
+          --prefix PATH : ${lib.makeBinPath [
+          nvd
+          nix-output-monitor
+        ]} \
+        --set-default NH_NOM 1
+      ''
+      else ''
+        wrapProgram $out/bin/nh \
+          --prefix PATH : ${lib.makeBinPath [
+          nvd
+        ]}
+
+      '';
   }

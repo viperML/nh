@@ -4,8 +4,7 @@
 use clap::{Args, Parser, Subcommand};
 use std::ffi::OsString;
 
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FlakeRef(String);
 impl From<&str> for FlakeRef {
     fn from(s: &str) -> Self {
@@ -17,8 +16,6 @@ impl std::fmt::Display for FlakeRef {
         write!(f, "{}", self.0)
     }
 }
-
-
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -141,6 +138,10 @@ pub struct HomeRebuildArgs {
     #[arg(long, short)]
     /// Name of the flake configuration: homeConfiguration.<name>
     pub configuration: Option<String>,
+
+    /// Use nix-output-monitor for the build process
+    #[arg(long, env = "NH_NOM")]
+    pub nom: bool,
 
     #[arg(last = true)]
     /// Extra arguments passed to nix build

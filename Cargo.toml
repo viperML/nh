@@ -18,7 +18,6 @@ fern = { version = "0.6", features = [
 log = "0.4"
 anyhow = "1.0"
 hostname = "^0.3"
-rand = "0.8"
 clean-path = "0.2"
 subprocess = "0.2"
 dialoguer = { version = "0.10.2", default-features = false }
