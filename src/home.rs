@@ -31,7 +31,6 @@ impl HomeRebuildArgs {
         let out_dir = tempfile::Builder::new().prefix("nh-home-").tempdir()?;
         let out_link = out_dir.path().join("result");
         let out_link = out_link.to_str().unwrap();
-
         debug!("out_dir: {:?}", out_dir);
         debug!("out_link {:?}", out_link);
 
@@ -57,28 +56,25 @@ impl HomeRebuildArgs {
 
         let build_cmd = commands::BuildCommandBuilder::default()
             .flakeref(&flakeref)
-            .extra_args(self.extra_args.clone())
-            .extra_args(vec!["--out-link".to_owned(), out_link.to_owned()])
+            .extra_args(&self.extra_args)
+            .extra_args(&["--out-link", &out_link])
+            .message("Building home configuration")
             .build()?;
-
-        debug!("{:?}", build_cmd);
 
         build_cmd.run()?;
 
         let previous_gen = format!("/nix/var/nix/profiles/per-user/{}/home-manager", &username);
 
         let diff_cmd = commands::CommandBuilder::default()
-            .args(vec![
-                "nvd".to_owned(),
-                "diff".to_owned(),
-                previous_gen,
-                out_link.to_owned(),
-            ])
+            .args(&["nvd", "diff", &previous_gen, out_link])
+            .message("Comparing to existing configuration")
             .build()?;
 
-        debug!("diff_cmd: {:?}", diff_cmd);
-
         diff_cmd.run()?;
+
+        if self.dry {
+            return Ok(());
+        }
 
         if self.ask {
             info!("Apply the config?");
@@ -91,7 +87,7 @@ impl HomeRebuildArgs {
 
         let activator = format!("{}/activate", out_link);
         let activation_cmd = commands::CommandBuilder::default()
-            .args(vec![activator])
+            .args(&[&activator])
             .build()?;
 
         debug!("{:?}", activation_cmd);

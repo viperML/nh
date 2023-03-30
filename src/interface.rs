@@ -130,7 +130,7 @@ pub enum HomeSubcommand {
 #[derive(Debug, Args)]
 pub struct HomeRebuildArgs {
     #[arg(long, short = 'n')]
-    /// Only print actions to perform
+    /// Build the activation package, but don't run it
     pub dry: bool,
 
     #[arg(long, short)]

@@ -11,9 +11,10 @@ use crate::{commands::NHRunnable, interface::CleanArgs};
 
 impl NHRunnable for CleanArgs {
     fn run(&self) -> anyhow::Result<()> {
-        if !self.dry {
-            crate::commands::check_root()?;
-        };
+        // FIXME
+        // if !self.dry {
+        //     crate::commands::check_root()?;
+        // };
 
         // Clean profiles
         clean_profile(Path::new("/nix/var/nix/profiles"), self.dry)?;
@@ -76,7 +77,8 @@ fn readable(path: &Path) -> Result<bool, anyhow::Error> {
     let fname = path.to_str().expect("FIXME");
     let cstr = CString::new(fname).expect("FIXME");
     let str_bytes = cstr.into_raw();
-    Ok(unsafe { libc::access(str_bytes, libc::R_OK) } == 0)
+    // Ok(unsafe { libc::access(str_bytes, libc::R_OK) } == 0)
+    todo!();
 }
 
 #[derive(Debug)]

@@ -1,4 +1,3 @@
-
 use std::path::PathBuf;
 
 use anyhow::{bail, Context};
@@ -6,13 +5,14 @@ use anyhow::{bail, Context};
 use clean_path::Clean;
 use thiserror::Error;
 
-use log::{trace, info};
+use log::{debug, info, trace};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
 use crate::commands::{run_command, NHRunnable};
 use crate::interface::OsRebuildType::{self, Boot, Switch, Test};
 use crate::interface::{self, OsRebuildArgs};
+use crate::*;
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";
@@ -25,18 +25,6 @@ pub enum OsRebuildError {
     NoConfirm,
     #[error("Specialisation {0} does not exist")]
     SpecError(String),
-}
-
-/// Constructs a path by joining the elements, and checks if it exists.
-fn make_path_exists(elems: Vec<&str>) -> Option<String> {
-    let p = PathBuf::from(elems.join("")).clean();
-    trace!("checking {p:?}");
-
-    if p.exists() {
-        p.to_str().map(String::from)
-    } else {
-        None
-    }
 }
 
 impl NHRunnable for interface::OsArgs {
@@ -52,106 +40,110 @@ impl NHRunnable for interface::OsArgs {
 
 impl OsRebuildArgs {
     pub fn rebuild(&self, rebuild_type: &OsRebuildType) -> anyhow::Result<()> {
-        let hostname = Box::new(match &self.hostname {
-            Some(h) => Ok(h.into()),
-            None => hostname::get().context("Failed to get hostname"),
-        }?);
+        if nix::unistd::Uid::effective().is_root() {
+            bail!("Don't run nh os as root. I will call sudo internally as needed");
+        }
 
-        if !self.dry {
-            crate::commands::check_root()?;
+        let hostname = match &self.hostname {
+            Some(h) => h.to_owned(),
+            None => hostname::get().context("Failed to get hostname")?,
         };
 
-        let suffix_bytes = thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(10)
-            .collect::<Vec<_>>();
+        let out_dir = tempfile::Builder::new().prefix("nh-home-").tempdir()?;
+        let out_link = out_dir.path().join("result");
+        let out_link_str = out_link.to_str().unwrap();
+        debug!("out_dir: {:?}", out_dir);
+        debug!("out_link {:?}", out_link);
 
-        let suffix = String::from_utf8(suffix_bytes).context("Failed to get folder suffix")?;
+        let flake_output = format!(
+            "{}#nixosConfigurations.{:?}.config.system.build.toplevel",
+            &self.flakeref, hostname
+        );
 
-        let out_link = format!("/tmp/nh/result-{}", &suffix);
-
-        {
-            let flake_output = format!(
-                "{}#nixosConfigurations.{:?}.config.system.build.toplevel",
-                &self.flakeref, hostname
-            );
-
-            let cmd_build = vec![
-                "nix",
-                "build",
-                "--out-link",
-                &out_link,
-                "--profile",
-                SYSTEM_PROFILE,
-                &flake_output,
-            ];
-
-            run_command(&cmd_build, Some("Building configuration"), self.dry)
-                .context("Failed during configuration build")?;
-        }
+        commands::BuildCommandBuilder::default()
+            .flakeref(flake_output)
+            .message("Building NixOS configuration")
+            .extra_args(&["--out-link", out_link_str])
+            .build()?
+            .run()?;
 
         let current_specialisation = std::fs::read_to_string(SPEC_LOCATION).ok();
 
-        let target_specialisation: Option<String> = if self.specialisation.is_none() {
-            current_specialisation
-        } else {
-            self.specialisation.clone()
+        let target_specialisation =
+            current_specialisation.or_else(|| self.specialisation.to_owned());
+
+        debug!("target_specialisation: {target_specialisation:?}");
+
+        let target_profile = match &target_specialisation {
+            None => out_link.to_owned(),
+            Some(spec) => out_link.join("specialisation").join(spec),
         };
 
-        trace!("target_specialisation: {target_specialisation:?}");
+        target_profile.try_exists().context("Doesn't exist")?;
 
-        let target_profile = if !self.dry {
-            match &target_specialisation {
-                None => Ok(out_link.clone()),
-                Some(spec) => {
-                    let result = make_path_exists(vec![&out_link, "/specialisation/", spec]);
-                    result.ok_or_else(|| OsRebuildError::SpecError(spec.to_owned()))
-                }
-            }?
-        } else {
-            out_link.clone()
-        };
+        commands::CommandBuilder::default()
+            .args(&[
+                "nvd",
+                "diff",
+                CURRENT_PROFILE,
+                target_profile.to_str().unwrap(),
+            ])
+            .message("Comparing changes")
+            .build()?
+            .run()?;
 
-        run_command(
-            &vec!["nvd", "diff", CURRENT_PROFILE, &target_profile],
-            Some("Comparing changes"),
-            self.dry,
-        )?;
+        if self.dry {
+            return Ok(());
+        }
 
         if self.ask {
             info!("Apply the config?");
-            let confirmation = dialoguer::Confirm::new()
-                .default(false)
-                .interact()?;
+            let confirmation = dialoguer::Confirm::new().default(false).interact()?;
 
             if !confirmation {
                 return Err(OsRebuildError::NoConfirm.into());
             }
         }
 
+        commands::CommandBuilder::default()
+            .args(&[
+                "sudo",
+                "nix-env",
+                "--profile",
+                SYSTEM_PROFILE,
+                "--set",
+                out_link_str,
+            ])
+            .build()?
+            .run()?;
+
         if let Test(_) | Switch(_) = rebuild_type {
-            let specialisation_prefix = match target_specialisation {
-                None => "/".to_string(),
-                Some(s) => format!("/specialisation/{}", s),
-            };
+            // !! Use the target profile aka spec-namespaced
+            let switch_to_configuration =
+                target_profile.join("bin").join("switch-to-configuration");
+            let switch_to_configuration = switch_to_configuration.to_str().unwrap();
 
-            let filename: &str = &format!(
-                "{}{}/bin/switch-to-configuration",
-                out_link, specialisation_prefix
-            );
-            let file = PathBuf::from(filename).clean();
-
-            let cmd_activate = vec![file.to_str().unwrap(), "test"];
-            run_command(&cmd_activate, Some("Activating"), self.dry)?;
+            commands::CommandBuilder::default()
+                .args(&["sudo", switch_to_configuration, "test"])
+                .message("Activating configuration")
+                .build()?
+                .run()?;
         }
 
         if let Boot(_) | Switch(_) = rebuild_type {
-            let filename: &str = &format!("{}/bin/switch-to-configuration", out_link);
-            let file = PathBuf::from(filename).clean();
+            // !! Use the base profile aka no spec-namespace
+            let switch_to_configuration = out_link.join("bin").join("switch-to-configuration");
+            let switch_to_configuration = switch_to_configuration.to_str().unwrap();
 
-            let cmd_activate = vec![file.to_str().unwrap(), "boot"];
-            run_command(&cmd_activate, Some("Adding to bootloader"), self.dry)?;
+            commands::CommandBuilder::default()
+                .args(&["sudo", switch_to_configuration, "test"])
+                .message("Adding configuration to bootloader")
+                .build()?
+                .run()?;
         }
+
+        // Drop the out dir *only* when we are finished
+        drop(out_dir);
 
         Ok(())
     }

@@ -1,6 +1,7 @@
 use anyhow::bail;
 use clap::builder;
 use std::{
+    ffi::{OsStr, OsString},
     fmt::Display,
     process::{self, Stdio},
 };
@@ -99,29 +100,30 @@ where
     format!("{}{}", &prefix, &suffix)
 }
 
-pub fn check_root() -> Result<(), anyhow::Error> {
-    let euid = unsafe { libc::geteuid() };
-
-    trace!("euid: {}", euid);
-
-    if euid != 0 {
-        bail!("This command requires root provileges!")
-    } else {
-        Ok(())
-    }
-}
 
 #[derive(Debug, derive_builder::Builder, Default)]
-#[builder(setter(into))]
+#[builder(derive(Debug), setter(into), default)]
 pub struct Command {
-    /// Arguments argv0..N
-    args: Vec<String>,
-    #[builder(default)]
     /// Whether to actually run the command or just log it
     dry: bool,
-    #[builder(default)]
     /// Human-readable message regarding what the command does
+    #[builder(setter(strip_option))]
     message: Option<String>,
+    /// Aruments 0..N
+    #[builder(setter(custom), default = "vec![]")]
+    args: Vec<OsString>,
+}
+
+impl CommandBuilder {
+    pub fn args(&mut self, input: &[impl AsRef<OsStr>]) -> &mut Self {
+        if let Some(args) = &mut self.args {
+            args.extend(input.iter().map(|elem| elem.as_ref().to_owned()));
+            self
+        } else {
+            self.args = Some(Vec::new());
+            self.args(input)
+        }
+    }
 }
 
 impl Command {
@@ -135,6 +137,11 @@ impl Command {
             .stderr(Redirection::None)
             .stdout(Redirection::None);
 
+        if let Some(m) = &self.message {
+            info!("{}", m);
+        }
+        debug!("{:?}", cmd);
+
         cmd.popen()?.wait()?;
 
         Ok(())
@@ -142,11 +149,28 @@ impl Command {
 }
 
 #[derive(Debug, Default, derive_builder::Builder)]
-#[builder(setter(into))]
+#[builder(setter(into), default)]
 pub struct BuildCommand {
+    /// Human-readable message regarding what the command does
+    #[builder(setter(strip_option))]
+    message: Option<String>,
+    // Flakeref to build
     flakeref: String,
-    #[builder(default)]
-    extra_args: Vec<String>,
+    // Extra arguments passed to nix build
+    #[builder(setter(custom))]
+    extra_args: Vec<OsString>,
+}
+
+impl BuildCommandBuilder {
+    pub fn extra_args(&mut self, input: &[impl AsRef<OsStr>]) -> &mut Self {
+        if let Some(args) = &mut self.extra_args {
+            args.extend(input.iter().map(|elem| elem.as_ref().to_owned()));
+            self
+        } else {
+            self.extra_args = Some(Vec::new());
+            self.extra_args(input)
+        }
+    }
 }
 
 impl BuildCommand {
@@ -166,8 +190,14 @@ impl BuildCommand {
                 .stdout(Redirection::Pipe)
                 .stderr(Redirection::Merge)
                 | Exec::cmd("nom").args(&["--json"]).stdout(Redirection::None)
+        };
+
+        if let Some(m) = &self.message {
+            info!("{}", m);
         }
-        .popen()?;
+        debug!("{:?}", cmd);
+
+        let cmd = cmd.popen()?;
 
         for mut proc in cmd {
             proc.wait()?;
