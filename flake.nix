@@ -18,6 +18,10 @@
     };
   in
     inputs.flake-parts.lib.mkFlake {inherit inputs;} {
+      imports = [
+        inputs.flake-parts.flakeModules.easyOverlay
+      ];
+
       systems = [
         "aarch64-linux"
         "x86_64-linux"
@@ -31,9 +35,9 @@
         config,
         ...
       }: {
-        packages = {
-          default = pkgs.callPackage ./default.nix {inherit src;};
-        };
+        packages.default = pkgs.callPackage ./default.nix {inherit src;};
+
+        overlayAttrs.nh = config.packages.default;
 
         devShells.default = with pkgs;
           mkShell {
