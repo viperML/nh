@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::*;
 use crate::{
-    commands::{run_command_capture, NHRunnable},
+    commands::NHRunnable,
     interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand},
 };
 
@@ -104,7 +104,7 @@ fn home_info() -> anyhow::Result<()> {
 fn get_home_output<S: AsRef<str> + std::fmt::Display>(
     flakeref: &FlakeRef,
     username: S,
-) -> Result<String, subprocess::PopenError> {
+) -> anyhow::Result<String> {
     // Replicate these heuristics
     // https://github.com/nix-community/home-manager/blob/433e8de330fd9c157b636f9ccea45e3eeaf69ad2/home-manager/home-manager#L110
 
@@ -113,27 +113,37 @@ fn get_home_output<S: AsRef<str> + std::fmt::Display>(
         .into_string()
         .unwrap();
 
-    let full_flakef = format!("{}@{}", username, &hostname);
+    let username_hostname = format!("{}@{}", username, &hostname);
 
-    if configuration_exists(flakeref, &full_flakef)? {
-        Ok(full_flakef)
-    } else {
+    if configuration_exists(flakeref, &username_hostname)? {
+        Ok(username_hostname)
+    } else if configuration_exists(flakeref, username.as_ref())? {
         Ok(username.to_string())
+    } else {
+        bail!(
+            "Couldn't detect a home configuration for {}",
+            username_hostname
+        );
     }
 }
 
-fn configuration_exists(
-    flakeref: &FlakeRef,
-    configuration: &str,
-) -> Result<bool, subprocess::PopenError> {
+fn configuration_exists(flakeref: &FlakeRef, configuration: &str) -> anyhow::Result<bool> {
     let output = format!("{}#homeConfigurations", flakeref);
     let filter = format!(r#" x: x ? "{}" "#, configuration);
 
-    let cmd_check = vec!["nix", "eval", &output, "--apply", &filter];
+    let result = commands::CommandBuilder::default()
+        .args(&["nix", "eval", &output, "--apply", &filter])
+        .capture(true)
+        .build()
+        .unwrap()
+        .run()?
+        .unwrap();
 
-    run_command_capture(&cmd_check, None).map(|s| match s.trim() {
-        "true" => true,
-        "false" => false,
-        _ => todo!(),
-    })
+    trace!("{:?}", result);
+
+    match result.as_str().trim() {
+        "true" => Ok(true),
+        "false" => Ok(false),
+        _ => bail!("Failed to parse nix-eval output: {}", result),
+    }
 }

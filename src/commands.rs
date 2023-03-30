@@ -2,12 +2,13 @@ use anyhow::bail;
 
 use std::{
     ffi::{OsStr, OsString},
-    fmt::Display, process::ExitStatus,
+    fmt::Display,
+    process::ExitStatus,
 };
 use thiserror::Error;
 
 use log::{debug, info};
-use subprocess::{Exec, Redirection};
+use subprocess::{Exec, PopenError, Redirection};
 
 use crate::interface::{self, NHCommand};
 
@@ -27,32 +28,6 @@ impl NHRunnable for interface::NHCommand {
     }
 }
 
-pub fn run_command_capture(
-    cmd: &Vec<&str>,
-    message: Option<&str>,
-) -> Result<String, subprocess::PopenError> {
-    if let Some(m) = message {
-        info!("{}", m);
-    }
-
-    debug!("{}", cmd.join(" "));
-
-    let (head, tail) = cmd.split_at(1);
-    let head = *head.first().unwrap();
-
-    subprocess::Exec::cmd(head)
-        .args(tail)
-        .stdout(Redirection::Pipe)
-        .capture()
-        .map(|c| c.stdout_str().trim().to_owned())
-}
-
-#[derive(Debug, Error)]
-pub enum RunError {
-    #[error("Command exited with status {0}: {1}")]
-    ExitError(String, String),
-}
-
 #[derive(Debug, derive_builder::Builder, Default)]
 #[builder(derive(Debug), setter(into), default)]
 pub struct Command {
@@ -61,7 +36,9 @@ pub struct Command {
     /// Human-readable message regarding what the command does
     #[builder(setter(strip_option))]
     message: Option<String>,
-    /// Aruments 0..N
+    /// Whether to capture the stdout or let it inherit the parent
+    capture: bool,
+    /// Arguments 0..N
     #[builder(setter(custom), default = "vec![]")]
     args: Vec<OsString>,
 }
@@ -79,24 +56,36 @@ impl CommandBuilder {
 }
 
 impl Command {
-    pub fn run(&self) -> anyhow::Result<()> {
+    pub fn run(&self) -> Result<Option<String>, PopenError> {
         let [head, tail @ ..] = &*self.args else {
-            bail!("Args was length 0");
+            panic!("Args was length 0");
         };
 
-        let cmd = Exec::cmd(head)
-            .args(tail)
-            .stderr(Redirection::None)
-            .stdout(Redirection::None);
+        let cmd = if self.capture {
+            Exec::cmd(head)
+                .args(tail)
+                .stderr(Redirection::None)
+                .stdout(Redirection::Pipe)
+        } else {
+            Exec::cmd(head)
+                .args(tail)
+                .stderr(Redirection::None)
+                .stdout(Redirection::None)
+        };
 
         if let Some(m) = &self.message {
             info!("{}", m);
         }
         debug!("{:?}", cmd);
 
-        cmd.popen()?.wait()?;
+        let result = if self.capture {
+            Some(cmd.capture()?.stdout_str())
+        } else {
+            cmd.join()?;
+            None
+        };
 
-        Ok(())
+        Ok(result)
     }
 }
 
@@ -164,7 +153,7 @@ impl BuildCommand {
 
         match exit {
             subprocess::ExitStatus::Exited(0) => (),
-            other => bail!(ExitError(other))
+            other => bail!(ExitError(other)),
         }
 
         Ok(())
