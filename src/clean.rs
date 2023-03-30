@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use log::{info, trace, warn};
 
+use crate::*;
 use crate::{commands::NHRunnable, interface::CleanArgs};
 
 // Reference: https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc
@@ -23,8 +24,12 @@ impl NHRunnable for CleanArgs {
         clean_gcroots(Path::new("/nix/var/nix/gcroots/per-user"), self.dry)?;
 
         // Clean store
-        // run_command(&vec!["nix-store", "--gc"], Some("Cleaning store"), self.dry)?;
-        todo!();
+        commands::CommandBuilder::default()
+            .args(&["nix-store", "--gc"])
+            .message("Calling nix-store --gc")
+            .dry(self.dry)
+            .build()?
+            .run()?;
 
         Ok(())
     }
@@ -73,12 +78,10 @@ where
     Ok(())
 }
 
-fn readable(path: &Path) -> Result<bool, anyhow::Error> {
-    let fname = path.to_str().expect("FIXME");
-    let cstr = CString::new(fname).expect("FIXME");
-    let _str_bytes = cstr.into_raw();
-    // Ok(unsafe { libc::access(str_bytes, libc::R_OK) } == 0)
-    todo!();
+fn readable<P: AsRef<Path>>(path: P) -> nix::Result<bool> {
+    let mode = nix::unistd::AccessFlags::F_OK;
+    nix::unistd::eaccess(path.as_ref(), mode)?;
+    Ok(true)
 }
 
 #[derive(Debug)]
