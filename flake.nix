@@ -40,6 +40,7 @@
             # Shell with CC
             name = "nh-dev";
             RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
+            NH_NOM = "1";
             packages = [
               cargo
               rustc

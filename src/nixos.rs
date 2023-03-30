@@ -59,6 +59,8 @@ impl OsRebuildArgs {
             .flakeref(flake_output)
             .message("Building NixOS configuration")
             .extra_args(&["--out-link", out_link_str])
+            .extra_args(&self.extra_args)
+            .nom(self.nom)
             .build()?
             .run()?;
 

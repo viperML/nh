@@ -1,16 +1,12 @@
 use anyhow::bail;
 
-use std::{
-    ffi::{OsStr, OsString},
-    fmt::Display,
-    process::ExitStatus,
-};
+use std::ffi::{OsStr, OsString};
 use thiserror::Error;
 
 use log::{debug, info};
 use subprocess::{Exec, PopenError, Redirection};
 
-use crate::interface::{self, NHCommand};
+use crate::*;
 
 pub trait NHRunnable {
     fn run(&self) -> anyhow::Result<()>;
@@ -19,10 +15,10 @@ pub trait NHRunnable {
 impl NHRunnable for interface::NHCommand {
     fn run(&self) -> anyhow::Result<()> {
         match self {
-            NHCommand::Os(os_args) => os_args.run(),
-            NHCommand::Clean(clean_args) => clean_args.run(),
-            NHCommand::Home(home_args) => home_args.run(),
-            NHCommand::Completions(args) => args.run(),
+            interface::NHCommand::Os(os_args) => os_args.run(),
+            interface::NHCommand::Clean(clean_args) => clean_args.run(),
+            interface::NHCommand::Home(home_args) => home_args.run(),
+            interface::NHCommand::Completions(args) => args.run(),
             s => bail!("Subcommand {s:?} not yet implemented!"),
         }
     }

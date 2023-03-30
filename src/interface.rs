@@ -81,6 +81,18 @@ pub struct OsRebuildArgs {
     #[arg(long, short)]
     /// Name of the specialisation
     pub specialisation: Option<String>,
+
+    /// Use nix-output-monitor for the build process
+    #[arg(
+        long,
+        env = "NH_NOM",
+        value_parser(clap::builder::FalseyValueParser::new())
+    )]
+    pub nom: bool,
+
+    #[arg(last = true)]
+    /// Extra arguments passed to nix build
+    pub extra_args: Vec<String>,
 }
 
 #[derive(Args, Debug)]
@@ -140,7 +152,11 @@ pub struct HomeRebuildArgs {
     pub configuration: Option<String>,
 
     /// Use nix-output-monitor for the build process
-    #[arg(long, env = "NH_NOM")]
+    #[arg(
+        long,
+        env = "NH_NOM",
+        value_parser(clap::builder::FalseyValueParser::new())
+    )]
     pub nom: bool,
 
     #[arg(last = true)]
