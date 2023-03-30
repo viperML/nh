@@ -1,6 +1,7 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
+    # Need let-else stable since: rust 1.65
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     nix-filter.url = "github:numtide/nix-filter";
   };
@@ -46,6 +47,7 @@
               clippy
               rust-analyzer-unwrapped
               nvd
+              nix-output-monitor
             ];
           };
       };

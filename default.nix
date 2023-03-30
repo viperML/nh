@@ -5,6 +5,7 @@
   makeWrapper,
   lib,
   nvd,
+  nix-output-monitor,
 }: let
   cargo-toml = builtins.fromTOML (builtins.readFile (src + "/Cargo.toml"));
 in
@@ -13,13 +14,12 @@ in
     pname = cargo-toml.package.name;
     inherit (cargo-toml.package) version;
     cargoLock.lockFile = src + "/Cargo.lock";
+
     nativeBuildInputs = [
       installShellFiles
       makeWrapper
     ];
-    cargoBuildFlags = [
-      "--features=complete"
-    ];
+
     preFixup = ''
       mkdir completions
       $out/bin/nh completions --shell bash > completions/nh.bash
@@ -28,8 +28,12 @@ in
 
       installShellCompletion completions/*
     '';
+
     postFixup = ''
       wrapProgram $out/bin/nh \
-        --prefix PATH : ${lib.makeBinPath [nvd]}
+        --prefix PATH : ${lib.makeBinPath [
+        nvd
+        nix-output-monitor
+      ]}
     '';
   }

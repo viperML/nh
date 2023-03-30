@@ -1,12 +1,16 @@
-use std::fmt::Display;
-use anyhow::{bail};
+use anyhow::bail;
+use clap::builder;
+use std::{
+    fmt::Display,
+    process::{self, Stdio},
+};
 use thiserror::Error;
 
 use log::{debug, info, trace};
 use rand::Rng;
-use subprocess::{Redirection};
+use subprocess::{Exec, Redirection};
 
-use crate::interface::{self, NHCommand};
+use crate::interface::{self, FlakeRef, NHCommand};
 
 pub trait NHRunnable {
     fn run(&self) -> anyhow::Result<()>;
@@ -103,6 +107,72 @@ pub fn check_root() -> Result<(), anyhow::Error> {
     if euid != 0 {
         bail!("This command requires root provileges!")
     } else {
+        Ok(())
+    }
+}
+
+#[derive(Debug, derive_builder::Builder, Default)]
+#[builder(setter(into))]
+pub struct Command {
+    /// Arguments argv0..N
+    args: Vec<String>,
+    #[builder(default)]
+    /// Whether to actually run the command or just log it
+    dry: bool,
+    #[builder(default)]
+    /// Human-readable message regarding what the command does
+    message: Option<String>,
+}
+
+impl Command {
+    pub fn run(&self) -> anyhow::Result<()> {
+        let [head, tail @ ..] = &*self.args else {
+            bail!("Args was length 0");
+        };
+
+        let cmd = Exec::cmd(head)
+            .args(tail)
+            .stderr(Redirection::None)
+            .stdout(Redirection::None);
+
+        cmd.popen()?.wait()?;
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default, derive_builder::Builder)]
+#[builder(setter(into))]
+pub struct BuildCommand {
+    flakeref: String,
+    #[builder(default)]
+    extra_args: Vec<String>,
+}
+
+impl BuildCommand {
+    pub fn run(&self) -> anyhow::Result<()> {
+        let args = [
+            "build",
+            &self.flakeref,
+            "--log-format",
+            "internal-json",
+            "--verbose",
+        ];
+
+        let cmd = {
+            Exec::cmd("nix")
+                .args(&args)
+                .args(&self.extra_args)
+                .stdout(Redirection::Pipe)
+                .stderr(Redirection::Merge)
+                | Exec::cmd("nom").args(&["--json"]).stdout(Redirection::None)
+        }
+        .popen()?;
+
+        for mut proc in cmd {
+            proc.wait()?;
+        }
+
         Ok(())
     }
 }

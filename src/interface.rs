@@ -17,6 +17,12 @@ impl std::fmt::Display for FlakeRef {
     }
 }
 
+impl Default for FlakeRef {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
@@ -138,6 +144,10 @@ pub struct HomeRebuildArgs {
     #[arg(long, short)]
     /// Name of the flake configuration: homeConfiguration.<name>
     pub configuration: Option<String>,
+
+    #[arg(last = true)]
+    /// Extra arguments passed to nix build
+    pub extra_args: Vec<String>,
 }
 
 #[derive(Debug, Parser)]

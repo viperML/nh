@@ -1,7 +1,8 @@
 use anyhow::bail;
-use log::{trace, info};
+use log::{debug, info, trace};
 use thiserror::Error;
 
+use crate::*;
 use crate::{
     commands::{mk_temp, run_command, run_command_capture, NHRunnable},
     interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand},
@@ -27,56 +28,78 @@ impl NHRunnable for HomeArgs {
 
 impl HomeRebuildArgs {
     fn rebuild(&self) -> anyhow::Result<()> {
-        let out_link = mk_temp("/tmp/nh/home-result-");
+        let out_dir = tempfile::Builder::new().prefix("nh-home-").tempdir()?;
+        let out_link = out_dir.path().join("result");
+        let out_link = out_link.to_str().unwrap();
+
+        debug!("out_dir: {:?}", out_dir);
+        debug!("out_link {:?}", out_link);
 
         let username = std::env::var("USER").expect("Couldn't get username");
 
-        let hm_config = match &self.configuration {
-            Some(c) => {
-                if configuration_exists(&self.flakeref, c)? {
-                    c.to_owned()
+        let hm_config_name = match &self.configuration {
+            Some(name) => {
+                if configuration_exists(&self.flakeref, name)? {
+                    name.to_owned()
                 } else {
-                    return Err(HomeRebuildError::ConfigName(c.to_owned()).into())
+                    return Err(HomeRebuildError::ConfigName(name.to_owned()).into());
                 }
             }
             None => get_home_output(&self.flakeref, &username)?,
         };
 
-        trace!("{}", hm_config);
+        trace!("hm_config_name: {}", hm_config_name);
 
-        {
-            let cmd_flakeref = format!(
-                "{}#homeConfigurations.{}.config.home.activationPackage",
-                &self.flakeref, hm_config
-            );
-            let cmd = vec!["nix", "build", "--out-link", &out_link, &cmd_flakeref];
+        let flakeref = format!(
+            "{}#homeConfigurations.{}.config.home.activationPackage",
+            &self.flakeref, hm_config_name
+        );
 
-            run_command(&cmd, Some("Building configuration"), self.dry)?;
-        }
+        let build_cmd = commands::BuildCommandBuilder::default()
+            .flakeref(&flakeref)
+            .extra_args(self.extra_args.clone())
+            .extra_args(vec!["--out-link".to_owned(), out_link.to_owned()])
+            .build()?;
 
-        {
-            let previous_gen = format!("/nix/var/nix/profiles/per-user/{}/home-manager", &username);
-            let cmd = vec!["nvd", "diff", &previous_gen, &out_link];
+        debug!("{:?}", build_cmd);
 
-            run_command(&cmd, Some("Comparing changes"), self.dry)?;
-        }
+        build_cmd.run()?;
+
+        let previous_gen = format!("/nix/var/nix/profiles/per-user/{}/home-manager", &username);
+
+        let diff_cmd = commands::CommandBuilder::default()
+            .args(vec![
+                "nvd".to_owned(),
+                "diff".to_owned(),
+                previous_gen,
+                out_link.to_owned(),
+            ])
+            .build()?;
+
+        debug!("diff_cmd: {:?}", diff_cmd);
+
+        diff_cmd.run()?;
 
         if self.ask {
             info!("Apply the config?");
-            let confirmation = dialoguer::Confirm::new()
-                .default(false)
-                .interact()?;
+            let confirmation = dialoguer::Confirm::new().default(false).interact()?;
 
             if !confirmation {
                 return Err(HomeRebuildError::NoConfirm.into());
             }
         }
 
-        {
-            let activator = format!("{}/activate", out_link);
-            let cmd: Vec<&str> = vec![&activator];
-            run_command(&cmd, Some("Activating"), self.dry)?;
-        }
+        let activator = format!("{}/activate", out_link);
+        let activation_cmd = commands::CommandBuilder::default()
+            .args(vec![activator])
+            .build()?;
+
+        debug!("{:?}", activation_cmd);
+
+        activation_cmd.run()?;
+
+        // Drop the out dir *only* when we are finished
+        drop(out_dir);
 
         Ok(())
     }
