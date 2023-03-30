@@ -9,9 +9,10 @@
   nix-output-monitor,
 }: let
   cargo-toml = builtins.fromTOML (builtins.readFile (src + "/Cargo.toml"));
+  propagatedBuildInputs = [nvd] ++ lib.optionals use-nom [nix-output-monitor];
 in
   rustPlatform.buildRustPackage {
-    inherit src;
+    inherit src propagatedBuildInputs;
     pname = cargo-toml.package.name;
     inherit (cargo-toml.package) version;
     cargoLock.lockFile = src + "/Cargo.lock";
@@ -30,21 +31,7 @@ in
       installShellCompletion completions/*
     '';
 
-    postFixup =
-      if use-nom
-      then ''
-        wrapProgram $out/bin/nh \
-          --prefix PATH : ${lib.makeBinPath [
-          nvd
-          nix-output-monitor
-        ]} \
-        --set-default NH_NOM 1
-      ''
-      else ''
-        wrapProgram $out/bin/nh \
-          --prefix PATH : ${lib.makeBinPath [
-          nvd
-        ]}
-
-      '';
+    postFixup = ''
+      wrapProgram $out/bin/nh --prefix PATH : ${lib.makeBinPath propagatedBuildInputs} ${lib.optionalString use-nom "--set-default NH_NOM 1"}
+    '';
   }
