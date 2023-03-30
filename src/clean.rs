@@ -20,8 +20,8 @@ impl NHRunnable for CleanArgs {
         clean_profile(Path::new("/nix/var/nix/profiles"), self.dry)?;
 
         // Clean GC roots FIXME
-        clean_gcroots(&Path::new("/nix/var/nix/gcroots/auto"), self.dry)?;
-        clean_gcroots(&Path::new("/nix/var/nix/gcroots/per-user"), self.dry)?;
+        clean_gcroots(Path::new("/nix/var/nix/gcroots/auto"), self.dry)?;
+        clean_gcroots(Path::new("/nix/var/nix/gcroots/per-user"), self.dry)?;
 
         // Clean store
         run_command(&vec!["nix-store", "--gc"], Some("Cleaning store"), self.dry)?;
@@ -76,7 +76,7 @@ where
 fn readable(path: &Path) -> Result<bool, anyhow::Error> {
     let fname = path.to_str().expect("FIXME");
     let cstr = CString::new(fname).expect("FIXME");
-    let str_bytes = cstr.into_raw();
+    let _str_bytes = cstr.into_raw();
     // Ok(unsafe { libc::access(str_bytes, libc::R_OK) } == 0)
     todo!();
 }
@@ -114,7 +114,7 @@ impl From<PathBuf> for Generation {
 
         // The rest is the profile name
         let profile_name = fname_components.join("-");
-        let profile_path = base_path.join(&profile_name);
+        let profile_path = base_path.join(profile_name);
 
         Generation {
             // profile_name,
@@ -129,7 +129,7 @@ impl From<PathBuf> for Generation {
 impl Generation {
     fn is_live(&self) -> bool {
         let relative_pointing = fs::read_link(&self.profile_path).unwrap();
-        let pointing = self.base_path.join(&relative_pointing);
+        let pointing = self.base_path.join(relative_pointing);
 
         pointing == self.path
     }

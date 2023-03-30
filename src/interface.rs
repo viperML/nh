@@ -5,6 +5,7 @@ use clap::{Args, Parser, Subcommand};
 use std::ffi::OsString;
 
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct FlakeRef(String);
 impl From<&str> for FlakeRef {
     fn from(s: &str) -> Self {
@@ -17,11 +18,7 @@ impl std::fmt::Display for FlakeRef {
     }
 }
 
-impl Default for FlakeRef {
-    fn default() -> Self {
-        Self(Default::default())
-    }
-}
+
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::*;
 use crate::{
-    commands::{mk_temp, run_command, run_command_capture, NHRunnable},
+    commands::{run_command_capture, NHRunnable},
     interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand},
 };
 
@@ -57,7 +57,7 @@ impl HomeRebuildArgs {
         let build_cmd = commands::BuildCommandBuilder::default()
             .flakeref(&flakeref)
             .extra_args(&self.extra_args)
-            .extra_args(&["--out-link", &out_link])
+            .extra_args(&["--out-link", out_link])
             .message("Building home configuration")
             .build()?;
 

@@ -1,17 +1,16 @@
 use anyhow::bail;
-use clap::builder;
+
 use std::{
     ffi::{OsStr, OsString},
     fmt::Display,
-    process::{self, Stdio},
 };
 use thiserror::Error;
 
-use log::{debug, info, trace};
+use log::{debug, info};
 use rand::Rng;
 use subprocess::{Exec, Redirection};
 
-use crate::interface::{self, FlakeRef, NHCommand};
+use crate::interface::{self, NHCommand};
 
 pub trait NHRunnable {
     fn run(&self) -> anyhow::Result<()>;
