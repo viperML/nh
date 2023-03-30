@@ -49,7 +49,7 @@ impl OsRebuildArgs {
             None => hostname::get().context("Failed to get hostname")?,
         };
 
-        let out_dir = tempfile::Builder::new().prefix("nh-home-").tempdir()?;
+        let out_dir = tempfile::Builder::new().prefix("nh-os-").tempdir()?;
         let out_link = out_dir.path().join("result");
         let out_link_str = out_link.to_str().unwrap();
         debug!("out_dir: {:?}", out_dir);
