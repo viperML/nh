@@ -133,7 +133,7 @@ impl OsRebuildArgs {
             let switch_to_configuration = switch_to_configuration.to_str().unwrap();
 
             commands::CommandBuilder::default()
-                .args(&["sudo", switch_to_configuration, "test"])
+                .args(&["sudo", switch_to_configuration, "boot"])
                 .message("Adding configuration to bootloader")
                 .build()?
                 .run()?;
