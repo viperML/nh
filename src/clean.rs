@@ -15,6 +15,8 @@ impl NHRunnable for CleanArgs {
         // if !self.dry {
         //     crate::commands::check_root()?;
         // };
+        warn!("Nix is changing how profiles are saved - moving into ~/.local/state/nix, which nh doesn't check for");
+        warn!("https://github.com/viperML/nh/issues/19");
 
         // Clean profiles
         clean_profile(Path::new("/nix/var/nix/profiles"), self.dry)?;
