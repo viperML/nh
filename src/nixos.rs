@@ -52,7 +52,7 @@ impl OsRebuildArgs {
 
         let flake_output = format!(
             "{}#nixosConfigurations.{:?}.config.system.build.toplevel",
-            &self.flakeref, hostname
+            &self.common.flakeref, hostname
         );
 
         commands::BuildCommandBuilder::default()
@@ -60,7 +60,7 @@ impl OsRebuildArgs {
             .message("Building NixOS configuration")
             .extra_args(&["--out-link", out_link_str])
             .extra_args(&self.extra_args)
-            .nom(self.nom)
+            .nom(self.common.nom)
             .build()?
             .run()?;
 
@@ -89,11 +89,11 @@ impl OsRebuildArgs {
             .build()?
             .run()?;
 
-        if self.dry {
+        if self.common.dry {
             return Ok(());
         }
 
-        if self.ask {
+        if self.common.ask {
             info!("Apply the config?");
             let confirmation = dialoguer::Confirm::new().default(false).interact()?;
 

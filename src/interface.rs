@@ -1,7 +1,5 @@
-// Dont't use crate::
-// We are getting called by build.rs
-
-use clap::{Args, Parser, Subcommand};
+use anstyle::{AnsiColor, Style};
+use clap::{builder::Styles, Args, Parser, Subcommand};
 use std::ffi::OsString;
 
 #[derive(Debug, Clone, Default)]
@@ -17,10 +15,23 @@ impl std::fmt::Display for FlakeRef {
     }
 }
 
+fn make_style() -> Styles {
+    Styles::plain().header(Style::new().bold()).literal(
+        Style::new()
+            .bold()
+            .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow))),
+    )
+}
+
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-#[command(propagate_version = true)]
-/// Yet another nix helper
+#[command(
+    version,
+    about,
+    long_about = None,
+    styles=make_style(),
+    propagate_version = true,
+)]
+/// nh is yet another nix helper
 pub struct NHParser {
     #[arg(short, long, global = true)]
     /// Show debug logs
@@ -31,6 +42,7 @@ pub struct NHParser {
 }
 
 #[derive(Subcommand, Debug)]
+#[command(disable_help_subcommand = true)]
 pub enum NHCommand {
     Os(OsArgs),
     Home(HomeArgs),
@@ -41,7 +53,10 @@ pub enum NHCommand {
 }
 
 #[derive(Args, Debug)]
-/// NixOS related commands
+#[clap(verbatim_doc_comment)]
+/// NixOS functionality
+///
+/// Reimplementations of nixos-rebuild
 pub struct OsArgs {
     #[command(subcommand)]
     pub action: OsRebuildType,
@@ -49,38 +64,48 @@ pub struct OsArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum OsRebuildType {
-    /// Build, activate and set-for-boot
+    /// Build and activate the new configuration, and make it the boot default
     Switch(OsRebuildArgs),
-    /// Build and set-for-boot
+    /// Build the new configuration and make it the boot default
     Boot(OsRebuildArgs),
-    /// Build and activate
+    /// Build and activate the new configuration
     Test(OsRebuildArgs),
     /// Show an overview of the system's info
-    #[cfg(debug_assertions)]
+    #[command(hide = true)]
     Info,
 }
 
 #[derive(Debug, Args)]
 pub struct OsRebuildArgs {
-    #[arg(long, short = 'n')]
-    /// Only print actions to perform
-    pub dry: bool,
+    #[command(flatten)]
+    pub common: CommonRebuildArgs,
 
-    #[arg(long, short)]
-    /// Confirm before performing the activation
-    pub ask: bool,
-
-    #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
-    /// Flake reference that outputs a nixos system. Optionally add a #hostname
-    pub flakeref: FlakeRef,
-
-    #[arg(long, short = 'H', global = true)]
     /// Output to choose from the flakeref. Hostname is used by default
+    #[arg(long, short = 'H', global = true)]
     pub hostname: Option<OsString>,
 
-    #[arg(long, short)]
     /// Name of the specialisation
+    #[arg(long, short)]
     pub specialisation: Option<String>,
+
+    /// Extra arguments passed to nix build
+    #[arg(last = true)]
+    pub extra_args: Vec<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct CommonRebuildArgs {
+    /// Only print actions, without performing them
+    #[arg(long, short = 'n')]
+    pub dry: bool,
+
+    /// Ask for confimation for activation
+    #[arg(long, short)]
+    pub ask: bool,
+
+    /// Flake reference to build
+    #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
+    pub flakeref: FlakeRef,
 
     /// Use nix-output-monitor for the build process
     #[arg(
@@ -89,10 +114,6 @@ pub struct OsRebuildArgs {
         value_parser(clap::builder::FalseyValueParser::new())
     )]
     pub nom: bool,
-
-    #[arg(last = true)]
-    /// Extra arguments passed to nix build
-    pub extra_args: Vec<String>,
 }
 
 #[derive(Args, Debug)]
@@ -100,8 +121,6 @@ pub struct OsRebuildArgs {
 pub struct SearchArgs {
     #[arg(long, short)]
     max_results: usize,
-    // #[arg(long, short)]
-    // flake: String
 }
 
 #[derive(Args, Debug)]
@@ -112,13 +131,13 @@ pub struct SearchArgs {
 /// - Calls nix-store --gc
 ///
 pub struct CleanArgs {
-    #[arg(long, short = 'n')]
     /// Only print actions to perform
+    #[arg(long, short = 'n')]
     pub dry: bool,
 }
 
 #[derive(Debug, Args)]
-/// Home-manager related commands
+/// Home-manager functionality
 pub struct HomeArgs {
     #[command(subcommand)]
     pub subcommand: HomeSubcommand,
@@ -126,48 +145,36 @@ pub struct HomeArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum HomeSubcommand {
-    /// Build and activate
+    #[clap(verbatim_doc_comment)]
+    /// Build and activate a home-manager configuration
+    ///
+    /// Will check the current $USER and $(hostname) to determine which output to build, unless -c is passed
     Switch(HomeRebuildArgs),
+
     /// Show an overview of the installation
-    #[cfg(debug_assertions)]
+    #[command(hide(true))]
     Info,
 }
 
 #[derive(Debug, Args)]
+#[clap(verbatim_doc_comment)]
 pub struct HomeRebuildArgs {
-    #[arg(long, short = 'n')]
-    /// Build the activation package, but don't run it
-    pub dry: bool,
+    #[command(flatten)]
+    pub common: CommonRebuildArgs,
 
+    /// Name of the flake homeConfigurations attribute, like username@hostname
     #[arg(long, short)]
-    /// Confirm before performing the activation
-    pub ask: bool,
-
-    #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
-    /// Flake reference that outputs a nixos system. Optionally add a #hostname
-    pub flakeref: FlakeRef,
-
-    #[arg(long, short)]
-    /// Name of the flake configuration: homeConfiguration.<name>
     pub configuration: Option<String>,
 
-    /// Use nix-output-monitor for the build process
-    #[arg(
-        long,
-        env = "NH_NOM",
-        value_parser(clap::builder::FalseyValueParser::new())
-    )]
-    pub nom: bool,
-
-    #[arg(last = true)]
     /// Extra arguments passed to nix build
+    #[arg(last = true)]
     pub extra_args: Vec<String>,
 }
 
 #[derive(Debug, Parser)]
 /// Generate shell completion files into stdout
 pub struct CompletionArgs {
-    #[arg(long, short)]
     /// Name of the shell
+    #[arg(long, short)]
     pub shell: clap_complete::Shell,
 }

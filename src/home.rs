@@ -38,20 +38,20 @@ impl HomeRebuildArgs {
 
         let hm_config_name = match &self.configuration {
             Some(name) => {
-                if configuration_exists(&self.flakeref, name)? {
+                if configuration_exists(&self.common.flakeref, name)? {
                     name.to_owned()
                 } else {
                     return Err(HomeRebuildError::ConfigName(name.to_owned()).into());
                 }
             }
-            None => get_home_output(&self.flakeref, &username)?,
+            None => get_home_output(&self.common.flakeref, &username)?,
         };
 
         debug!("hm_config_name: {}", hm_config_name);
 
         let flakeref = format!(
             "{}#homeConfigurations.{}.config.home.activationPackage",
-            &self.flakeref, hm_config_name
+            &self.common.flakeref, hm_config_name
         );
 
         commands::BuildCommandBuilder::default()
@@ -59,7 +59,7 @@ impl HomeRebuildArgs {
             .extra_args(&["--out-link", out_link_str])
             .extra_args(&self.extra_args)
             .message("Building home configuration")
-            .nom(self.nom)
+            .nom(self.common.nom)
             .build()?
             .run()?;
 
@@ -71,11 +71,11 @@ impl HomeRebuildArgs {
             .build()?
             .run()?;
 
-        if self.dry {
+        if self.common.dry {
             return Ok(());
         }
 
-        if self.ask {
+        if self.common.ask {
             info!("Apply the config?");
             let confirmation = dialoguer::Confirm::new().default(false).interact()?;
 
