@@ -12,7 +12,7 @@ clap = { version = "4.0", features = [
     "env",
     "unstable-styles",
     "color",
-    "cargo"
+    "cargo",
 ] }
 clap_complete = "4.0"
 fern = { version = "0.6", features = [
@@ -31,7 +31,9 @@ nix = { version = "0.26.2", default-features = false, features = [
     "fs",
 ] }
 anstyle = "1.0.0"
-color-eyre = { version = "0.6.2" }
+color-eyre = { version = "0.6.2", default-features = false, features = [
+    "track-caller",
+] }
 ambassador = "0.3.5"
 
 [build-dependencies]
