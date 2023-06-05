@@ -78,6 +78,19 @@ By default nh uses nix-output-monitor (nom) to show the build log. This can be d
 - Exporting the environment variable `NH_NOM=0`
 - Overriding the package: `nh.override { use-nom = false; }`
 
+### Binary cache
+
+`nh` is built and pushed for every commit to my personal cachix cache.
+
+```nix
+{
+  nix.settings = {
+    extra-substituters = ["https://viperml.cachix.org"];
+    extra-trusted-public-keys = ["viperml.cachix.org-1:qZhKBMTfmcLL+OG6fj/hzsMEedgKvZVFRRAhq7j8Vh8="];
+  };
+}
+```
+
 <details>
 <summary>Why are specialisations broken with nixos-rebuild?</summary>
 

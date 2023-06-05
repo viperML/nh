@@ -12,14 +12,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Install nix
-      uses: cachix/install-nix-action@master
-      with:
-        install_url: https://nixos.org/nix/install
-        extra_nix_config: |
-          experimental-features = nix-command flakes
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
 
-    - uses: actions/checkout@v3
-      name: Checkout
+      - name: Set up cachix
+        uses: cachix/cachix-action@master
+        with:
+          name: viperml
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
-    - run: nix build -L
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - run: nix build -L
