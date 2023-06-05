@@ -1,5 +1,7 @@
+use ambassador::{delegatable_trait, Delegate};
 use anstyle::{AnsiColor, Style};
 use clap::{builder::Styles, Args, Parser, Subcommand};
+use color_eyre::Result;
 use std::ffi::OsString;
 
 #[derive(Debug, Clone, Default)]
@@ -41,12 +43,18 @@ pub struct NHParser {
     pub command: NHCommand,
 }
 
-#[derive(Subcommand, Debug)]
+#[delegatable_trait]
+pub trait NHRunnable {
+    fn run(&self) -> Result<()>;
+}
+
+#[derive(Subcommand, Debug, Delegate)]
+#[delegate(NHRunnable)]
 #[command(disable_help_subcommand = true)]
 pub enum NHCommand {
     Os(OsArgs),
     Home(HomeArgs),
-    #[cfg(debug_assertions)]
+    #[command(hide = true)]
     Search(SearchArgs),
     Clean(CleanArgs),
     Completions(CompletionArgs),

@@ -1,3 +1,4 @@
+use ambassador::delegatable_trait;
 use color_eyre::{
     eyre::{bail, Context},
     Result,
@@ -10,22 +11,6 @@ use log::{debug, info};
 use subprocess::{Exec, ExitStatus, PopenError, Redirection};
 
 use crate::*;
-
-pub trait NHRunnable {
-    fn run(&self) -> Result<()>;
-}
-
-impl NHRunnable for interface::NHCommand {
-    fn run(&self) -> Result<()> {
-        match self {
-            interface::NHCommand::Os(os_args) => os_args.run(),
-            interface::NHCommand::Clean(clean_args) => clean_args.run(),
-            interface::NHCommand::Home(home_args) => home_args.run(),
-            interface::NHCommand::Completions(args) => args.run(),
-            s => bail!("Subcommand {s:?} not yet implemented!"),
-        }
-    }
-}
 
 #[derive(Debug, derive_builder::Builder, Default)]
 #[builder(derive(Debug), setter(into), default)]

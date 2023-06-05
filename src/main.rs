@@ -10,8 +10,8 @@ use color_eyre::Result;
 use fern::colors::Color;
 use log::{error, trace, SetLoggerError};
 
-use crate::commands::NHRunnable;
 use crate::interface::NHParser;
+use crate::interface::NHRunnable;
 
 fn main() -> Result<()> {
     color_eyre::config::HookBuilder::default()

@@ -1,11 +1,11 @@
 use color_eyre::eyre::bail;
-use color_eyre::{Result};
+use color_eyre::Result;
 use log::{debug, info, trace};
 use thiserror::Error;
 
 use crate::*;
 use crate::{
-    commands::NHRunnable,
+    interface::NHRunnable,
     interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand},
 };
 

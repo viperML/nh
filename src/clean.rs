@@ -6,7 +6,7 @@ use color_eyre::Result;
 use log::{info, trace, warn};
 
 use crate::*;
-use crate::{commands::NHRunnable, interface::CleanArgs};
+use crate::{interface::CleanArgs, interface::NHRunnable};
 
 // Reference: https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc
 
