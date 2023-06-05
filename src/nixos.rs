@@ -1,4 +1,5 @@
-use anyhow::{bail, Context};
+use color_eyre::eyre::{bail, Context};
+use color_eyre::Result;
 
 use thiserror::Error;
 
@@ -23,7 +24,7 @@ pub enum OsRebuildError {
 }
 
 impl NHRunnable for interface::OsArgs {
-    fn run(&self) -> anyhow::Result<()> {
+    fn run(&self) -> Result<()> {
         trace!("{:?}", self);
 
         match &self.action {
@@ -34,7 +35,7 @@ impl NHRunnable for interface::OsArgs {
 }
 
 impl OsRebuildArgs {
-    pub fn rebuild(&self, rebuild_type: &OsRebuildType) -> anyhow::Result<()> {
+    pub fn rebuild(&self, rebuild_type: &OsRebuildType) -> Result<()> {
         if nix::unistd::Uid::effective().is_root() {
             bail!("Don't run nh os as root. I will call sudo internally as needed");
         }
@@ -62,7 +63,7 @@ impl OsRebuildArgs {
             .extra_args(&self.extra_args)
             .nom(self.common.nom)
             .build()?
-            .run()?;
+            .exec()?;
 
         let current_specialisation = std::fs::read_to_string(SPEC_LOCATION).ok();
 
@@ -87,7 +88,7 @@ impl OsRebuildArgs {
             ])
             .message("Comparing changes")
             .build()?
-            .run()?;
+            .exec()?;
 
         if self.common.dry {
             return Ok(());
@@ -112,7 +113,7 @@ impl OsRebuildArgs {
                 out_link_str,
             ])
             .build()?
-            .run()?;
+            .exec()?;
 
         if let Test(_) | Switch(_) = rebuild_type {
             // !! Use the target profile aka spec-namespaced
@@ -124,7 +125,7 @@ impl OsRebuildArgs {
                 .args(&["sudo", switch_to_configuration, "test"])
                 .message("Activating configuration")
                 .build()?
-                .run()?;
+                .exec()?;
         }
 
         if let Boot(_) | Switch(_) = rebuild_type {
@@ -136,7 +137,7 @@ impl OsRebuildArgs {
                 .args(&["sudo", switch_to_configuration, "boot"])
                 .message("Adding configuration to bootloader")
                 .build()?
-                .run()?;
+                .exec()?;
         }
 
         // Drop the out dir *only* when we are finished

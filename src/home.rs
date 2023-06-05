@@ -1,4 +1,5 @@
-use anyhow::bail;
+use color_eyre::eyre::bail;
+use color_eyre::{Result};
 use log::{debug, info, trace};
 use thiserror::Error;
 
@@ -17,7 +18,7 @@ enum HomeRebuildError {
 }
 
 impl NHRunnable for HomeArgs {
-    fn run(&self) -> anyhow::Result<()> {
+    fn run(&self) -> Result<()> {
         // self.subcommand
         match &self.subcommand {
             HomeSubcommand::Switch(args) => args.rebuild(),
@@ -27,7 +28,7 @@ impl NHRunnable for HomeArgs {
 }
 
 impl HomeRebuildArgs {
-    fn rebuild(&self) -> anyhow::Result<()> {
+    fn rebuild(&self) -> Result<()> {
         let out_dir = tempfile::Builder::new().prefix("nh-home-").tempdir()?;
         let out_link = out_dir.path().join("result");
         let out_link_str = out_link.to_str().unwrap();
@@ -61,7 +62,7 @@ impl HomeRebuildArgs {
             .message("Building home configuration")
             .nom(self.common.nom)
             .build()?
-            .run()?;
+            .exec()?;
 
         let prev_generation = format!("/nix/var/nix/profiles/per-user/{}/home-manager", &username);
 
@@ -69,7 +70,7 @@ impl HomeRebuildArgs {
             .args(&["nvd", "diff", &prev_generation, out_link_str])
             .message("Comparing changes")
             .build()?
-            .run()?;
+            .exec()?;
 
         if self.common.dry {
             return Ok(());
@@ -88,7 +89,7 @@ impl HomeRebuildArgs {
             .args(&[&format!("{}/activate", out_link_str)])
             .message("Activating configuration")
             .build()?
-            .run()?;
+            .exec()?;
 
         // Drop the out dir *only* when we are finished
         drop(out_dir);
@@ -97,14 +98,14 @@ impl HomeRebuildArgs {
     }
 }
 
-fn home_info() -> anyhow::Result<()> {
+fn home_info() -> Result<()> {
     Ok(())
 }
 
 fn get_home_output<S: AsRef<str> + std::fmt::Display>(
     flakeref: &FlakeRef,
     username: S,
-) -> anyhow::Result<String> {
+) -> Result<String> {
     // Replicate these heuristics
     // https://github.com/nix-community/home-manager/blob/433e8de330fd9c157b636f9ccea45e3eeaf69ad2/home-manager/home-manager#L110
 
@@ -127,7 +128,7 @@ fn get_home_output<S: AsRef<str> + std::fmt::Display>(
     }
 }
 
-fn configuration_exists(flakeref: &FlakeRef, configuration: &str) -> anyhow::Result<bool> {
+fn configuration_exists(flakeref: &FlakeRef, configuration: &str) -> Result<bool> {
     let output = format!("{}#homeConfigurations", flakeref);
     let filter = format!(r#" x: x ? "{}" "#, configuration);
 
@@ -136,7 +137,7 @@ fn configuration_exists(flakeref: &FlakeRef, configuration: &str) -> anyhow::Res
         .capture(true)
         .build()
         .unwrap()
-        .run()?
+        .exec()?
         .unwrap();
 
     trace!("{:?}", result);

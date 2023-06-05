@@ -1,19 +1,22 @@
-use anyhow::bail;
+use color_eyre::{
+    eyre::{bail, Context},
+    Result,
+};
 
 use std::ffi::{OsStr, OsString};
 use thiserror::Error;
 
 use log::{debug, info};
-use subprocess::{Exec, PopenError, Redirection};
+use subprocess::{Exec, ExitStatus, PopenError, Redirection};
 
 use crate::*;
 
 pub trait NHRunnable {
-    fn run(&self) -> anyhow::Result<()>;
+    fn run(&self) -> Result<()>;
 }
 
 impl NHRunnable for interface::NHCommand {
-    fn run(&self) -> anyhow::Result<()> {
+    fn run(&self) -> Result<()> {
         match self {
             interface::NHCommand::Os(os_args) => os_args.run(),
             interface::NHCommand::Clean(clean_args) => clean_args.run(),
@@ -52,7 +55,7 @@ impl CommandBuilder {
 }
 
 impl Command {
-    pub fn run(&self) -> Result<Option<String>, PopenError> {
+    fn exec_inner(&self) -> Result<Option<String>, PopenError> {
         let [head, tail @ ..] = &*self.args else {
             panic!("Args was length 0");
         };
@@ -82,6 +85,16 @@ impl Command {
         };
 
         Ok(result)
+    }
+
+    pub fn exec(self) -> Result<Option<String>> {
+        let result = self.exec_inner();
+
+        if let Some(m) = self.message {
+            Ok(result.context(m)?)
+        } else {
+            Ok(result?)
+        }
     }
 }
 
@@ -113,7 +126,7 @@ impl BuildCommandBuilder {
 }
 
 impl BuildCommand {
-    pub fn run(&self) -> anyhow::Result<()> {
+    fn exec_inner(&self) -> Result<()> {
         if let Some(m) = &self.message {
             info!("{}", m);
         }
@@ -145,17 +158,33 @@ impl BuildCommand {
 
             debug!("{:?}", cmd);
             cmd.join()
-        }?;
+        };
+
+        let exit: ExitStatus = if let Some(ref m) = self.message {
+            exit.context(m.clone())?
+        } else {
+            exit?
+        };
 
         match exit {
-            subprocess::ExitStatus::Exited(0) => (),
+            ExitStatus::Exited(0) => (),
             other => bail!(ExitError(other)),
         }
 
         Ok(())
     }
+
+    pub fn exec(self) -> Result<()> {
+        let result = self.exec_inner();
+
+        if let Some(m) = self.message {
+            Ok(result.context(m)?)
+        } else {
+            Ok(result?)
+        }
+    }
 }
 
 #[derive(Debug, Error)]
 #[error("Command exited with status {0:?}")]
-pub struct ExitError(subprocess::ExitStatus);
+pub struct ExitError(ExitStatus);

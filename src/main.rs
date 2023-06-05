@@ -1,36 +1,29 @@
 mod clean;
 mod commands;
+mod completion;
 mod home;
 mod interface;
 mod nixos;
 mod search;
-mod completion;
 
+use color_eyre::Result;
 use fern::colors::Color;
 use log::{error, trace, SetLoggerError};
 
 use crate::commands::NHRunnable;
 use crate::interface::NHParser;
 
-fn main() {
-    match real_main() {
-        Ok(_) => {
-            std::process::exit(0);
-        }
-        Err(error) => {
-            for chain_elem in error.chain() {
-                error!("{}", chain_elem);
-            }
-            std::process::exit(1);
-        }
-    }
-}
+fn main() -> Result<()> {
+    color_eyre::config::HookBuilder::default()
+        .display_location_section(false)
+        .panic_section("consider reporting the bug at https://github.com/viperML/nh")
+        .display_env_section(false)
+        .install()?;
 
-fn real_main() -> anyhow::Result<()> {
     let args = <NHParser as clap::Parser>::parse();
 
     setup_logging(args.verbose)?;
-    trace!("Logging setup!");
+    // trace!("Logging setup!");
 
     args.command.run()
 }

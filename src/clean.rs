@@ -2,6 +2,7 @@ use std::ffi::CString;
 use std::fs::{self};
 use std::path::{Path, PathBuf};
 
+use color_eyre::Result;
 use log::{info, trace, warn};
 
 use crate::*;
@@ -10,7 +11,7 @@ use crate::{commands::NHRunnable, interface::CleanArgs};
 // Reference: https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc
 
 impl NHRunnable for CleanArgs {
-    fn run(&self) -> anyhow::Result<()> {
+    fn run(&self) -> Result<()> {
         // FIXME
         // if !self.dry {
         //     crate::commands::check_root()?;
@@ -31,13 +32,13 @@ impl NHRunnable for CleanArgs {
             .message("Calling nix-store --gc")
             .dry(self.dry)
             .build()?
-            .run()?;
+            .exec()?;
 
         Ok(())
     }
 }
 
-fn clean_profile(path: &Path, dry: bool) -> anyhow::Result<()> {
+fn clean_profile(path: &Path, dry: bool) -> Result<()> {
     for dir_entry in fs::read_dir(path)? {
         let subpath = dir_entry?.path();
         trace!("| subpath: {subpath:?}");
@@ -68,7 +69,7 @@ fn clean_profile(path: &Path, dry: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn remove_generation<P>(path: P, dry: bool) -> anyhow::Result<()>
+fn remove_generation<P>(path: P, dry: bool) -> Result<()>
 where
     P: AsRef<Path> + std::fmt::Debug,
 {
@@ -140,7 +141,7 @@ impl Generation {
     }
 }
 
-fn clean_gcroots(path: &Path, dry: bool) -> anyhow::Result<()> {
+fn clean_gcroots(path: &Path, dry: bool) -> Result<()> {
     for dir_entry in fs::read_dir(path)? {
         let subpath = dir_entry?.path();
         trace!("| subpath: {subpath:?}");
