@@ -17,8 +17,6 @@ const SPEC_LOCATION: &str = "/etc/specialisation";
 
 #[derive(Debug, Error)]
 pub enum OsRebuildError {
-    #[error("No confirmation")]
-    NoConfirm,
     #[error("Specialisation {0} does not exist")]
     SpecError(String),
 }
@@ -99,7 +97,7 @@ impl OsRebuildArgs {
             let confirmation = dialoguer::Confirm::new().default(false).interact()?;
 
             if !confirmation {
-                return Err(OsRebuildError::NoConfirm.into());
+                return Ok(())
             }
         }
 

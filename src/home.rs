@@ -13,8 +13,6 @@ use crate::{
 enum HomeRebuildError {
     #[error("Configuration \"{0}\" doesn't exist")]
     ConfigName(String),
-    #[error("No confirmation")]
-    NoConfirm,
 }
 
 impl NHRunnable for HomeArgs {
@@ -81,7 +79,7 @@ impl HomeRebuildArgs {
             let confirmation = dialoguer::Confirm::new().default(false).interact()?;
 
             if !confirmation {
-                return Err(HomeRebuildError::NoConfirm.into());
+                return Ok(())
             }
         }
 
