@@ -1,8 +1,9 @@
 use crate::*;
 use interface::SearchArgs;
 
+#[async_trait::async_trait]
 impl NHRunnable for SearchArgs {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         todo!()
     }
 }

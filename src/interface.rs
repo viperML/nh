@@ -43,9 +43,10 @@ pub struct NHParser {
     pub command: NHCommand,
 }
 
+#[async_trait::async_trait]
 #[delegatable_trait]
 pub trait NHRunnable {
-    fn run(&self) -> Result<()>;
+    async fn run(&self) -> Result<()>;
 }
 
 #[derive(Subcommand, Debug, Delegate)]

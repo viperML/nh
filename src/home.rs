@@ -15,8 +15,9 @@ enum HomeRebuildError {
     ConfigName(String),
 }
 
+#[async_trait::async_trait]
 impl NHRunnable for HomeArgs {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         // self.subcommand
         match &self.subcommand {
             HomeSubcommand::Switch(args) => args.rebuild(),

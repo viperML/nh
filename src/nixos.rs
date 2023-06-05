@@ -21,8 +21,9 @@ pub enum OsRebuildError {
     SpecError(String),
 }
 
+#[async_trait::async_trait]
 impl NHRunnable for interface::OsArgs {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         trace!("{:?}", self);
 
         match &self.action {

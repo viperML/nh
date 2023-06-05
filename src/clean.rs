@@ -9,8 +9,9 @@ use crate::{interface::CleanArgs, interface::NHRunnable};
 
 // Reference: https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc
 
+#[async_trait::async_trait]
 impl NHRunnable for CleanArgs {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         // FIXME
         // if !self.dry {
         //     crate::commands::check_root()?;

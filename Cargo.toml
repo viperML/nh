@@ -35,6 +35,12 @@ color-eyre = { version = "0.6.2", default-features = false, features = [
     "track-caller",
 ] }
 ambassador = "0.3.5"
+tokio = { version = "1.28.2", features = [
+    "rt-multi-thread",
+    "fs",
+    "macros",
+] }
+async-trait = "0.1.68"
 
 [build-dependencies]
 clap = { version = "4.0", features = [

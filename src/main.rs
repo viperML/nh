@@ -13,7 +13,8 @@ use log::{error, trace, SetLoggerError};
 use crate::interface::NHParser;
 use crate::interface::NHRunnable;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     color_eyre::config::HookBuilder::default()
         .display_location_section(false)
         .panic_section("consider reporting the bug at https://github.com/viperML/nh")
@@ -23,9 +24,8 @@ fn main() -> Result<()> {
     let args = <NHParser as clap::Parser>::parse();
 
     setup_logging(args.verbose)?;
-    // trace!("Logging setup!");
 
-    args.command.run()
+    args.command.run().await
 }
 
 fn setup_logging(verbose: bool) -> Result<(), SetLoggerError> {
