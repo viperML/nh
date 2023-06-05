@@ -1,5 +1,5 @@
 use ambassador::{delegatable_trait, Delegate};
-use anstyle::{AnsiColor, Style};
+use anstyle::Style;
 use clap::{builder::Styles, Args, Parser, Subcommand};
 use color_eyre::Result;
 use std::ffi::OsString;

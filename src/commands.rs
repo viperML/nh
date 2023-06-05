@@ -1,4 +1,3 @@
-use ambassador::delegatable_trait;
 use color_eyre::{
     eyre::{bail, Context},
     Result,
