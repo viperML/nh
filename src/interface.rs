@@ -1,6 +1,7 @@
 use ambassador::{delegatable_trait, Delegate};
 use anstyle::Style;
 use clap::{builder::Styles, Args, Parser, Subcommand};
+use clean_path::Clean;
 use color_eyre::Result;
 use std::ffi::OsString;
 
@@ -57,7 +58,7 @@ pub enum NHCommand {
     Home(HomeArgs),
     #[command(hide = true)]
     Search(SearchArgs),
-    Clean(CleanArgs),
+    Clean(CleanProxy),
     Completions(CompletionArgs),
 }
 
@@ -132,13 +133,29 @@ pub struct SearchArgs {
     max_results: usize,
 }
 
-#[derive(Args, Debug)]
+// Needed a struct to have multiple sub-subcommands
+#[derive(Debug, Clone, Args, Delegate)]
+#[delegate(NHRunnable)]
+pub struct CleanProxy {
+    #[clap(subcommand)]
+    command: CleanMode
+}
+
+#[derive(Debug, Clone, Subcommand)]
+/// Enhanced nix cleanup
+pub enum CleanMode {
+    /// Only clean the user's profiles and gcroots
+    User(CleanArgs),
+    /// Clean all profiles and gcroots
+    All(CleanArgs),
+    /// Print information about the store of the system
+    #[clap(hide=true)]
+    Info,
+}
+
+#[derive(Args, Clone, Debug)]
 #[clap(verbatim_doc_comment)]
-/// Delete paths from the store
-///
-/// - Removes ALL inactive generations
-/// - Calls nix-store --gc
-///
+/// Enhanced nix cleanup
 pub struct CleanArgs {
     /// Only print actions to perform
     #[arg(long, short = 'n')]
