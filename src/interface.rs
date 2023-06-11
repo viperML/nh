@@ -3,7 +3,7 @@ use anstyle::Style;
 use clap::{builder::Styles, Args, Parser, Subcommand};
 use clean_path::Clean;
 use color_eyre::Result;
-use std::ffi::OsString;
+use std::{ffi::OsString, num::ParseIntError, time::Duration};
 
 #[derive(Debug, Clone, Default)]
 pub struct FlakeRef(String);
@@ -32,7 +32,7 @@ fn make_style() -> Styles {
     about,
     long_about = None,
     styles=make_style(),
-    propagate_version = true,
+    propagate_version = false,
 )]
 /// nh is yet another nix helper
 pub struct NHParser {
@@ -44,10 +44,9 @@ pub struct NHParser {
     pub command: NHCommand,
 }
 
-#[async_trait::async_trait]
 #[delegatable_trait]
 pub trait NHRunnable {
-    async fn run(&self) -> Result<()>;
+    fn run(&self) -> Result<()>;
 }
 
 #[derive(Subcommand, Debug, Delegate)]
@@ -138,28 +137,42 @@ pub struct SearchArgs {
 #[delegate(NHRunnable)]
 pub struct CleanProxy {
     #[clap(subcommand)]
-    command: CleanMode
+    command: CleanMode,
 }
 
 #[derive(Debug, Clone, Subcommand)]
 /// Enhanced nix cleanup
 pub enum CleanMode {
-    /// Only clean the user's profiles and gcroots
-    User(CleanArgs),
-    /// Clean all profiles and gcroots
+    /// Elevate to root to clean all profiles and gcroots
     All(CleanArgs),
+    /// Clean your user's profiles and gcroots
+    User(CleanArgs),
     /// Print information about the store of the system
-    #[clap(hide=true)]
+    #[clap(hide = true)]
     Info,
 }
 
 #[derive(Args, Clone, Debug)]
 #[clap(verbatim_doc_comment)]
 /// Enhanced nix cleanup
+///
+/// For --keep-since, see the documentation of humantime for possible formats: https://docs.rs/humantime/latest/humantime/fn.parse_duration.html
 pub struct CleanArgs {
     /// Only print actions to perform
     #[arg(long, short = 'n')]
     pub dry: bool,
+
+    #[arg(long, short, default_value = "1")]
+    /// At least keep this number of generations
+    pub keep: u32,
+
+    #[arg(
+        long,
+        short = 'K',
+        default_value="0s",
+    )]
+    /// At least keep gcroots and generations in this time range since now.
+    pub keep_since: humantime::Duration,
 }
 
 #[derive(Debug, Args)]
