@@ -104,7 +104,7 @@ where
             });
 
             if delete {
-                eprintln!(" 🗑  {}", entry.to_str().unwrap());
+                eprintln!(" 🗑  {} -> {}", entry.to_str().unwrap(), pointing_to.to_str().unwrap());
                 gc_roots_to_remove.push(entry);
             };
         }
