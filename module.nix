@@ -7,7 +7,7 @@ self: {
     enable = mkOption {
       type = types.bool;
       default = true;
-      description = "Enables NH and any checks needed";
+      description = "Adds nh to your package list";
     };
 
     package = mkOption {
@@ -26,7 +26,14 @@ self: {
       dates = mkOption {
         type = types.str;
         default = "weekly";
-        description = "How often cleaning is performed. Passed to systemd.time";
+        description = "How often cleaning is triggered. Passed to systemd.time";
+      };
+
+      extraArgs = mkOption {
+        type = types.str;
+        default = "";
+        example = "--keep 5 --keep-since 3d";
+        description = "Flags passed to nh clean all";
       };
     };
   };
@@ -44,7 +51,7 @@ self: {
     systemd = lib.mkIf config.nh.clean.enable {
       services.nh-clean = {
         description = "NH cleaner";
-        script = "exec ${config.nh.package}/bin/nh clean";
+        script = "exec ${config.nh.package}/bin/nh clean all ${config.nh.clean.extraArgs}";
         startAt = config.nh.clean.dates;
         path = [config.nix.package];
       };

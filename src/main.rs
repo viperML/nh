@@ -14,11 +14,16 @@ use crate::interface::NHParser;
 use crate::interface::NHRunnable;
 
 fn main() -> Result<()> {
+    if cfg!(debug_assertions) {
+        std::env::set_var("RUST_BACKTRACE", "full");
+    }
+
     color_eyre::config::HookBuilder::default()
         .display_location_section(false)
         .panic_section("consider reporting the bug at https://github.com/viperML/nh")
         .display_env_section(false)
         .install()?;
+
 
     let args = <NHParser as clap::Parser>::parse();
 

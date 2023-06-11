@@ -1,20 +1,15 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ffi::OsStr;
-use std::fs::{self};
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::SystemTime;
 
-use color_eyre::eyre::{ensure, ContextCompat};
-use color_eyre::owo_colors::OwoColorize;
+use color_eyre::eyre::{bail, ensure, ContextCompat};
 use color_eyre::Result;
-use derive_builder::Builder;
-use log::{info, trace, warn};
+use log::{info, trace};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::interface::NHRunnable;
-use crate::interface::{CleanArgs, CleanMode, CleanProxy};
+use crate::interface::{CleanArgs, CleanMode};
 
 // Reference: https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc
 
@@ -22,21 +17,52 @@ impl NHRunnable for CleanMode {
     fn run(&self) -> Result<()> {
         match self {
             CleanMode::Info => todo!(),
-            CleanMode::User(args) => clean_profiles(args),
-            CleanMode::All(args) => clean_profiles(args),
+            CleanMode::All(args) => {
+                let uid = nix::unistd::Uid::effective();
+                if !uid.is_root() {
+                    bail!("nh clean all: must be run as root!");
+                }
+
+                let mut profiles = Vec::new();
+
+                profiles.push(PathBuf::from("/nix/var/nix/profiles"));
+
+                for entry in std::fs::read_dir("/home")? {
+                    let homedir = entry?.path();
+                    profiles.push(homedir.join(".local/state/nix/profiles"));
+                }
+
+                for entry in std::fs::read_dir("/nix/var/nix/profiles/per-user")? {
+                    let path = entry?.path();
+                    profiles.push(path);
+                }
+
+                clean_profiles(args, &profiles)
+            }
+            CleanMode::User(args) => {
+                let uid =nix::unistd::Uid::effective();
+                if uid.is_root() {
+                    bail!("nh clean user: don't run me as root!");
+                }
+                let user = nix::unistd::User::from_uid(uid)?.unwrap();
+                let home = PathBuf::from(std::env::var("HOME")?);
+                clean_profiles(
+                    args,
+                    &[
+                        &PathBuf::from("/nix/var/nix/profiles/per-user").join(user.name),
+                        &home.join(".local/state/nix/profiles"),
+                    ],
+                )
+            }
         }
     }
 }
 
-fn clean_profiles(args: &CleanArgs) -> Result<()> {
-    let base_dirs = [
-        "/home/ayats/.local/state/nix/profiles",
-        "/nix/var/nix/profiles",
-    ]
-    .into_iter()
-    .map(PathBuf::from)
-    .collect::<Vec<_>>();
-
+fn clean_profiles<P>(args: &CleanArgs, base_dirs: &[P]) -> Result<()>
+where
+    P: AsRef<Path> + std::fmt::Debug,
+{
+    trace!("{:?}", base_dirs);
     let mut profiles: HashMap<PathBuf, Vec<Generation>> = HashMap::new();
 
     for base_dir in base_dirs {
@@ -134,7 +160,7 @@ fn clean_profiles(args: &CleanArgs) -> Result<()> {
                 std::fs::remove_file(gen.path)?;
             }
         }
-    };
+    }
 
     Ok(())
 }
