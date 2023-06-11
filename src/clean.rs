@@ -76,7 +76,7 @@ fn clean_profiles(args: &CleanArgs) -> Result<()> {
     trace!("{:?}", profiles);
     info!("Calculating transaction");
 
-    for (base_profile, mut generations) in profiles {
+    for (base_profile, generations) in &mut profiles {
         let last_id = generations.last().unwrap().id;
 
         let base_profile_link = base_profile.read_link()?;
@@ -115,9 +115,29 @@ fn clean_profiles(args: &CleanArgs) -> Result<()> {
         trace!("{:?}", generations);
     }
 
+    if args.dry {
+        return Ok(());
+    }
+
+    if args.ask {
+        info!("Confirm the cleanup plan?");
+        let confirmation = dialoguer::Confirm::new().default(false).interact()?;
+        if !confirmation {
+            return Ok(());
+        }
+    }
+
+    for (_, generations) in profiles {
+        for gen in generations {
+            if gen.marked_for_deletion {
+                info!("Removing {:?}", gen.path);
+                std::fs::remove_file(gen.path)?;
+            }
+        }
+    };
+
     Ok(())
 }
-
 
 #[derive(Debug, Clone)]
 struct Generation {

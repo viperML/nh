@@ -108,7 +108,7 @@ pub struct CommonRebuildArgs {
     #[arg(long, short = 'n')]
     pub dry: bool,
 
-    /// Ask for confimation for activation
+    /// Ask for confirmation
     #[arg(long, short)]
     pub ask: bool,
 
@@ -158,10 +158,6 @@ pub enum CleanMode {
 ///
 /// For --keep-since, see the documentation of humantime for possible formats: https://docs.rs/humantime/latest/humantime/fn.parse_duration.html
 pub struct CleanArgs {
-    /// Only print actions to perform
-    #[arg(long, short = 'n')]
-    pub dry: bool,
-
     #[arg(long, short, default_value = "1")]
     /// At least keep this number of generations
     pub keep: u32,
@@ -173,6 +169,15 @@ pub struct CleanArgs {
     )]
     /// At least keep gcroots and generations in this time range since now.
     pub keep_since: humantime::Duration,
+
+    /// Only print actions, without performing them
+    #[arg(long, short = 'n')]
+    pub dry: bool,
+
+    /// Ask for confimation
+    #[arg(long, short)]
+    pub ask: bool,
+
 }
 
 #[derive(Debug, Args)]
