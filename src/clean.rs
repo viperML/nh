@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::time::SystemTime;
 
 use color_eyre::eyre::{bail, ensure, ContextCompat};
 use color_eyre::Result;
-use log::{info, trace};
+use log::{info, trace, warn};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -24,44 +24,92 @@ impl NHRunnable for CleanMode {
                 }
 
                 let mut profiles = Vec::new();
+                let mut gcroots = Vec::new();
 
+                gcroots.push(PathBuf::from("/nix/var/nix/gcroots/auto"));
                 profiles.push(PathBuf::from("/nix/var/nix/profiles"));
 
                 for entry in std::fs::read_dir("/home")? {
                     let homedir = entry?.path();
                     profiles.push(homedir.join(".local/state/nix/profiles"));
                 }
-
                 for entry in std::fs::read_dir("/nix/var/nix/profiles/per-user")? {
                     let path = entry?.path();
                     profiles.push(path);
                 }
+                for entry in std::fs::read_dir("/nix/var/nix/gcroots/per-user")? {
+                    let path = entry?.path();
+                    gcroots.push(path);
+                }
 
-                clean_profiles(args, &profiles)
+                clean(args, &profiles, &gcroots)
             }
             CleanMode::User(args) => {
-                let uid =nix::unistd::Uid::effective();
+                let uid = nix::unistd::Uid::effective();
                 if uid.is_root() {
                     bail!("nh clean user: don't run me as root!");
                 }
                 let user = nix::unistd::User::from_uid(uid)?.unwrap();
                 let home = PathBuf::from(std::env::var("HOME")?);
-                clean_profiles(
+                clean(
                     args,
                     &[
-                        &PathBuf::from("/nix/var/nix/profiles/per-user").join(user.name),
-                        &home.join(".local/state/nix/profiles"),
+                        PathBuf::from("/nix/var/nix/profiles/per-user").join(&user.name),
+                        home.join(".local/state/nix/profiles"),
                     ],
+                    &[PathBuf::from("/nix/var/nix/gcroots/per-user").join(&user.name)],
                 )
             }
         }
     }
 }
 
-fn clean_profiles<P>(args: &CleanArgs, base_dirs: &[P]) -> Result<()>
+fn clean<P>(args: &CleanArgs, base_dirs: &[P], gcroots_dirs: &[P]) -> Result<()>
 where
     P: AsRef<Path> + std::fmt::Debug,
 {
+    info!("Calculating transaction");
+    trace!("{:?}", gcroots_dirs);
+
+    let mut gc_roots_to_remove = Vec::new();
+    for dir in gcroots_dirs {
+        for entry in std::fs::read_dir(dir)? {
+            let entry = entry?.path();
+            trace!("Checking entry {:?}", entry);
+
+            let pointing_to = match std::fs::read_link(&entry) {
+                Ok(p) => p,
+                Err(err) => match err.kind() {
+                    std::io::ErrorKind::NotFound => continue,
+                    other => bail!(other),
+                },
+            };
+
+            let last_modified = std::fs::symlink_metadata(&entry)?.modified()?;
+            if SystemTime::now().duration_since(last_modified)? <= args.keep_since.into() {
+                continue;
+            }
+
+            let delete = pointing_to.components().any(|comp| {
+                if let Component::Normal(s) = comp {
+                    let s = s.to_str().expect("Couldn't convert OsStr to UTF-8 str");
+                    if s == ".direnv" {
+                        return true;
+                    }
+                    if s.contains("result") {
+                        return true;
+                    }
+                };
+                return false;
+            });
+
+            if delete {
+                eprintln!(" 🗑  {}", entry.to_str().unwrap());
+                gc_roots_to_remove.push(entry);
+            };
+        }
+    }
+
     trace!("{:?}", base_dirs);
     let mut profiles: HashMap<PathBuf, Vec<Generation>> = HashMap::new();
 
@@ -100,7 +148,6 @@ where
     }
 
     trace!("{:?}", profiles);
-    info!("Calculating transaction");
 
     for (base_profile, generations) in &mut profiles {
         let last_id = generations.last().unwrap().id;
@@ -153,11 +200,20 @@ where
         }
     }
 
+    for root in gc_roots_to_remove {
+        info!("Removing {:?}", root);
+        if let Err(e) = std::fs::remove_file(root) {
+            warn!("Failed to remove: {:?}", e);
+        }
+    }
+
     for (_, generations) in profiles {
         for gen in generations {
             if gen.marked_for_deletion {
                 info!("Removing {:?}", gen.path);
-                std::fs::remove_file(gen.path)?;
+                if let Err(e) = std::fs::remove_file(gen.path) {
+                    warn!("Failed to remove: {:?}", e);
+                }
             }
         }
     }

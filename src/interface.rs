@@ -1,9 +1,8 @@
 use ambassador::{delegatable_trait, Delegate};
 use anstyle::Style;
 use clap::{builder::Styles, Args, Parser, Subcommand};
-use clean_path::Clean;
 use color_eyre::Result;
-use std::{ffi::OsString, num::ParseIntError, time::Duration};
+use std::ffi::OsString;
 
 #[derive(Debug, Clone, Default)]
 pub struct FlakeRef(String);
@@ -162,11 +161,7 @@ pub struct CleanArgs {
     /// At least keep this number of generations
     pub keep: u32,
 
-    #[arg(
-        long,
-        short = 'K',
-        default_value="0s",
-    )]
+    #[arg(long, short = 'K', default_value = "0s")]
     /// At least keep gcroots and generations in this time range since now.
     pub keep_since: humantime::Duration,
 
@@ -177,7 +172,6 @@ pub struct CleanArgs {
     /// Ask for confimation
     #[arg(long, short)]
     pub ask: bool,
-
 }
 
 #[derive(Debug, Args)]
