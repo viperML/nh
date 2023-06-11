@@ -35,7 +35,13 @@
         config,
         ...
       }: {
-        packages.default = pkgs.callPackage ./default.nix {inherit src;};
+        packages = {
+          default = pkgs.callPackage ./default.nix {inherit src;};
+          debug = pkgs.callPackage ./default.nix {
+            inherit src;
+            buildType = "debug";
+          };
+        };
 
         overlayAttrs.nh = config.packages.default;
 
