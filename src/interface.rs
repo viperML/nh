@@ -172,6 +172,14 @@ pub struct CleanArgs {
     /// Ask for confimation
     #[arg(long, short)]
     pub ask: bool,
+
+    /// Don't run nix store --gc
+    #[arg(long)]
+    pub nogc: bool,
+
+    /// Don't clean gcroots
+    #[arg(long)]
+    pub nogcroots: bool,
 }
 
 #[derive(Debug, Args)]

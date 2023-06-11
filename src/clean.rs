@@ -8,6 +8,7 @@ use log::{info, trace, warn};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use crate::commands;
 use crate::interface::NHRunnable;
 use crate::interface::{CleanArgs, CleanMode};
 
@@ -72,41 +73,47 @@ where
     trace!("{:?}", gcroots_dirs);
 
     let mut gc_roots_to_remove = Vec::new();
-    for dir in gcroots_dirs {
-        for entry in std::fs::read_dir(dir)? {
-            let entry = entry?.path();
-            trace!("Checking entry {:?}", entry);
+    if !args.nogcroots {
+        for dir in gcroots_dirs {
+            for entry in std::fs::read_dir(dir)? {
+                let entry = entry?.path();
+                trace!("Checking entry {:?}", entry);
 
-            let pointing_to = match std::fs::read_link(&entry) {
-                Ok(p) => p,
-                Err(err) => match err.kind() {
-                    std::io::ErrorKind::NotFound => continue,
-                    other => bail!(other),
-                },
-            };
-
-            let last_modified = std::fs::symlink_metadata(&entry)?.modified()?;
-            if SystemTime::now().duration_since(last_modified)? <= args.keep_since.into() {
-                continue;
-            }
-
-            let delete = pointing_to.components().any(|comp| {
-                if let Component::Normal(s) = comp {
-                    let s = s.to_str().expect("Couldn't convert OsStr to UTF-8 str");
-                    if s == ".direnv" {
-                        return true;
-                    }
-                    if s.contains("result") {
-                        return true;
-                    }
+                let pointing_to = match std::fs::read_link(&entry) {
+                    Ok(p) => p,
+                    Err(err) => match err.kind() {
+                        std::io::ErrorKind::NotFound => continue,
+                        other => bail!(other),
+                    },
                 };
-                return false;
-            });
 
-            if delete {
-                eprintln!(" 🗑  {} -> {}", entry.to_str().unwrap(), pointing_to.to_str().unwrap());
-                gc_roots_to_remove.push(entry);
-            };
+                let last_modified = std::fs::symlink_metadata(&entry)?.modified()?;
+                if SystemTime::now().duration_since(last_modified)? <= args.keep_since.into() {
+                    continue;
+                }
+
+                let delete = pointing_to.components().any(|comp| {
+                    if let Component::Normal(s) = comp {
+                        let s = s.to_str().expect("Couldn't convert OsStr to UTF-8 str");
+                        if s == ".direnv" {
+                            return true;
+                        }
+                        if s.contains("result") {
+                            return true;
+                        }
+                    };
+                    return false;
+                });
+
+                if delete {
+                    eprintln!(
+                        " 🗑  {} -> {}",
+                        entry.to_str().unwrap(),
+                        pointing_to.to_str().unwrap()
+                    );
+                    gc_roots_to_remove.push(entry);
+                };
+            }
         }
     }
 
@@ -216,6 +223,14 @@ where
                 }
             }
         }
+    }
+
+    if !args.nogc {
+        commands::CommandBuilder::default()
+            .args(&["nix", "store", "gc"])
+            .message("nix store gc")
+            .build()?
+            .exec()?;
     }
 
     Ok(())
