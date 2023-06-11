@@ -52,6 +52,25 @@ For NixOS, configuring it could be as simple as:
 environment.sessionVariables.FLAKE = "/home/ayats/Documents/dotfiles";
 ```
 
+### NixOS module
+
+A NixOS module is provided, that contains a systemd service and timer for `nh clean all`. Read the module source to know what is configurable [./module.nix](module.nix).
+
+```nix
+nixosConfigurations.foo = nixpkgs.lib.nixosSystem {
+  modules = [
+    inputs.nh.nixosModules.default
+    {
+      nh = {
+        enable = true;
+        clean.enable = true;
+        clean.extraArgs = "--keep-since 4d --keep 3";
+      };
+    }
+  ];
+}
+```
+
 ### Configure specialisations
 
 NH is capable of detecting which spec you are running, so it runs the proper activation script.
