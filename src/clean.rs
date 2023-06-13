@@ -1,10 +1,11 @@
 use std::collections::HashMap;
+use std::os::unix::process::CommandExt;
 use std::path::{Component, Path, PathBuf};
 use std::time::SystemTime;
 
 use color_eyre::eyre::{bail, ensure, ContextCompat};
 use color_eyre::Result;
-use log::{info, trace, warn};
+use log::{debug, info, trace, warn};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -21,7 +22,11 @@ impl NHRunnable for CleanMode {
             CleanMode::All(args) => {
                 let uid = nix::unistd::Uid::effective();
                 if !uid.is_root() {
-                    bail!("nh clean all: must be run as root!");
+                    let mut cmd = std::process::Command::new("sudo");
+                    cmd.args(std::env::args());
+                    debug!("{:?}", cmd);
+                    let err = cmd.exec();
+                    bail!(err);
                 }
 
                 let mut profiles = Vec::new();
@@ -164,7 +169,10 @@ where
         let (_, base_profile_id) =
             parse_profile(base_profile_link).wrap_err("Parsing base profile")?;
         trace!("({base_profile_id:?}) {}", base_profile_link);
-        trace!("({last_id:?}) {}", generations.last().unwrap().path.to_str().unwrap());
+        trace!(
+            "({last_id:?}) {}",
+            generations.last().unwrap().path.to_str().unwrap()
+        );
         ensure!(
             base_profile_id == last_id,
             "Profile doesn't point into the generation with highest number, aborting"
