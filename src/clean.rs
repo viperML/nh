@@ -163,7 +163,8 @@ where
         let base_profile_link = base_profile_link.to_str().unwrap();
         let (_, base_profile_id) =
             parse_profile(base_profile_link).wrap_err("Parsing base profile")?;
-        trace!("{:?}", base_profile_link);
+        trace!("({base_profile_id:?}) {}", base_profile_link);
+        trace!("({last_id:?}) {}", generations.last().unwrap().path.to_str().unwrap());
         ensure!(
             base_profile_id == last_id,
             "Profile doesn't point into the generation with highest number, aborting"
