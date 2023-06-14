@@ -162,6 +162,9 @@ where
     trace!("{:?}", profiles);
 
     for (base_profile, generations) in &mut profiles {
+        generations.sort_by(|a, b| a.id.cmp(&b.id));
+        trace!("generations: {:?}", generations);
+
         let last_id = generations.last().unwrap().id;
 
         let base_profile_link = base_profile.read_link()?;
@@ -200,8 +203,6 @@ where
                 eprintln!("  ✅ {}", gen.path.to_str().unwrap());
             }
         }
-
-        trace!("{:?}", generations);
     }
 
     if args.dry {
