@@ -3,7 +3,7 @@ use std::os::unix::process::CommandExt;
 use std::path::{Component, Path, PathBuf};
 use std::time::SystemTime;
 
-use color_eyre::eyre::{bail, ensure, ContextCompat};
+use color_eyre::eyre::{bail, ensure, Context, ContextCompat};
 use color_eyre::Result;
 use log::{debug, info, trace, warn};
 use once_cell::sync::Lazy;
@@ -56,13 +56,37 @@ impl NHRunnable for CleanMode {
                     bail!("nh clean user: don't run me as root!");
                 }
                 let user = nix::unistd::User::from_uid(uid)?.unwrap();
-                let home = PathBuf::from(std::env::var("HOME")?);
+
+                let profiles = std::env::var("NIX_PROFILES")
+                    .wrap_err("Reading NIX_PROFILES to detect the profiles locations")?
+                    .split(' ')
+                    .map(PathBuf::from)
+                    .filter(|profile| {
+                        use nix::unistd::AccessFlags;
+                        let parent = match profile.parent() {
+                            Some(p) => p,
+                            None => {
+                                return false;
+                            }
+                        };
+                        let access = nix::unistd::access(
+                            parent,
+                            AccessFlags::F_OK | AccessFlags::R_OK | AccessFlags::W_OK,
+                        );
+                        trace!("eaccess {parent:?} -> {access:?}");
+
+                        if let (Ok(_), true) = (access, profile.exists()) {
+                            true
+                        } else {
+                            false
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
                 clean(
                     args,
-                    &[
-                        PathBuf::from("/nix/var/nix/profiles/per-user").join(&user.name),
-                        home.join(".local/state/nix/profiles"),
-                    ],
+                    &profiles,
+                    // FIXME scan auto
                     &[PathBuf::from("/nix/var/nix/gcroots/per-user").join(&user.name)],
                 )
             }
