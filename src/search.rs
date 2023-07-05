@@ -1,8 +1,33 @@
-use crate::*;
+use std::{collections::HashMap, process::Command, ops::Deref};
+
+use crate::{*, interface::FlakeRef};
 use interface::SearchArgs;
+use serde_json::Value;
+
+#[derive(Debug, serde::Deserialize)]
+struct RawEntry<'a> {
+    description: &'a str,
+    pname: &'a str,
+    version: &'a str,
+}
+
+type RawResults<'a> = HashMap<&'a str, RawEntry<'a>>;
 
 impl NHRunnable for SearchArgs {
     fn run(&self) -> Result<()> {
-        todo!()
+        trace!("args: {self:?}");
+
+        let results = Command::new("nix")
+            .arg("search")
+            .arg(&self.flake.deref())
+            .arg(&self.query)
+            .arg("--json")
+            .output()?;
+
+        let parsed: RawResults = serde_json::from_slice(&results.stdout)?;
+
+        trace!("{:?}", parsed);
+
+        todo!();
     }
 }

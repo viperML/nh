@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use color_eyre::eyre::bail;
 use color_eyre::Result;
 use log::{debug, info, trace};
@@ -50,7 +52,7 @@ impl HomeRebuildArgs {
 
         let flakeref = format!(
             "{}#homeConfigurations.{}.config.home.activationPackage",
-            &self.common.flakeref, hm_config_name
+            &self.common.flakeref.deref(), hm_config_name
         );
 
         commands::BuildCommandBuilder::default()
@@ -127,7 +129,7 @@ fn get_home_output<S: AsRef<str> + std::fmt::Display>(
 }
 
 fn configuration_exists(flakeref: &FlakeRef, configuration: &str) -> Result<bool> {
-    let output = format!("{}#homeConfigurations", flakeref);
+    let output = format!("{}#homeConfigurations", flakeref.deref());
     let filter = format!(r#" x: x ? "{}" "#, configuration);
 
     let result = commands::CommandBuilder::default()

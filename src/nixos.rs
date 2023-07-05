@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use color_eyre::eyre::{bail, Context};
 use color_eyre::Result;
 
@@ -51,7 +53,7 @@ impl OsRebuildArgs {
 
         let flake_output = format!(
             "{}#nixosConfigurations.{:?}.config.system.build.toplevel",
-            &self.common.flakeref, hostname
+            &self.common.flakeref.deref(), hostname
         );
 
         commands::BuildCommandBuilder::default()

@@ -2,7 +2,7 @@ use ambassador::{delegatable_trait, Delegate};
 use anstyle::Style;
 use clap::{builder::Styles, Args, Parser, Subcommand};
 use color_eyre::Result;
-use std::ffi::OsString;
+use std::{ffi::OsString, ops::Deref};
 
 #[derive(Debug, Clone, Default)]
 pub struct FlakeRef(String);
@@ -11,9 +11,17 @@ impl From<&str> for FlakeRef {
         FlakeRef(s.to_string())
     }
 }
-impl std::fmt::Display for FlakeRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+// impl std::fmt::Display for FlakeRef {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{}", self.0)
+//     }
+// }
+
+impl Deref for FlakeRef {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -127,8 +135,13 @@ pub struct CommonRebuildArgs {
 #[derive(Args, Debug)]
 /// Search a package
 pub struct SearchArgs {
-    #[arg(long, short)]
-    max_results: usize,
+    #[arg(long, short, default_value = "10")]
+    pub max_results: usize,
+
+    pub query: String,
+
+    #[arg(default_value = "nixpkgs")]
+    pub flake: FlakeRef,
 }
 
 // Needed a struct to have multiple sub-subcommands
