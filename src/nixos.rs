@@ -3,8 +3,6 @@ use std::ops::Deref;
 use color_eyre::eyre::{bail, Context};
 use color_eyre::Result;
 
-use thiserror::Error;
-
 use log::{debug, info, trace};
 
 use crate::interface::NHRunnable;
@@ -16,12 +14,6 @@ const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";
 
 const SPEC_LOCATION: &str = "/etc/specialisation";
-
-#[derive(Debug, Error)]
-pub enum OsRebuildError {
-    #[error("Specialisation {0} does not exist")]
-    SpecError(String),
-}
 
 impl NHRunnable for interface::OsArgs {
     fn run(&self) -> Result<()> {
@@ -53,7 +45,8 @@ impl OsRebuildArgs {
 
         let flake_output = format!(
             "{}#nixosConfigurations.{:?}.config.system.build.toplevel",
-            &self.common.flakeref.deref(), hostname
+            &self.common.flakeref.deref(),
+            hostname
         );
 
         commands::BuildCommandBuilder::default()
@@ -99,7 +92,7 @@ impl OsRebuildArgs {
             let confirmation = dialoguer::Confirm::new().default(false).interact()?;
 
             if !confirmation {
-                return Ok(())
+                return Ok(());
             }
         }
 

@@ -1,8 +1,7 @@
-use std::{collections::HashMap, process::Command, ops::Deref};
+use std::{collections::HashMap, ops::Deref, process::Command};
 
-use crate::{*, interface::FlakeRef};
+use crate::*;
 use interface::SearchArgs;
-use serde_json::Value;
 
 #[derive(Debug, serde::Deserialize)]
 struct RawEntry<'a> {
