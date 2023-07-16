@@ -117,9 +117,17 @@ where
                 };
 
                 let last_modified = std::fs::symlink_metadata(&entry)?.modified()?;
-                if SystemTime::now().duration_since(last_modified)? <= args.keep_since.into() {
-                    continue;
-                }
+                let now = SystemTime::now();
+                match now.duration_since(last_modified) {
+                    Err(err) => {
+                        warn!("Failed to compare time!: {now:?} , {last_modified:?}, err: {err:?}");
+                        warn!("Please file a bug on https://github.com/viperML/nh/issues");
+                    }
+                    Ok(val) if val <= args.keep_since.into() => {
+                        continue;
+                    }
+                    Ok(_) => {}
+                };
 
                 let delete = pointing_to.components().any(|comp| {
                     if let Component::Normal(s) = comp {
