@@ -120,8 +120,9 @@ where
                 let now = SystemTime::now();
                 match now.duration_since(last_modified) {
                     Err(err) => {
-                        warn!("Failed to compare time!: {now:?} , {last_modified:?}, err: {err:?}");
+                        warn!("Failed to compare time!: {entry:?} {now:?} , {last_modified:?}, err: {err:?}");
                         warn!("Please file a bug on https://github.com/viperML/nh/issues");
+                        continue;
                     }
                     Ok(val) if val <= args.keep_since.into() => {
                         continue;
