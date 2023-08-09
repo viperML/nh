@@ -96,6 +96,14 @@ impl OsRebuildArgs {
             }
         }
 
+        if self.common.update {
+            commands::CommandBuilder::default()
+                .args(&["nix", "flake", "update"])
+                .message("Updating flake")
+                .build()?
+                .exec()?;
+        }
+
         commands::CommandBuilder::default()
             .args(&[
                 "sudo",

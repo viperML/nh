@@ -52,7 +52,8 @@ impl HomeRebuildArgs {
 
         let flakeref = format!(
             "{}#homeConfigurations.{}.config.home.activationPackage",
-            &self.common.flakeref.deref(), hm_config_name
+            &self.common.flakeref.deref(),
+            hm_config_name
         );
 
         commands::BuildCommandBuilder::default()
@@ -81,8 +82,16 @@ impl HomeRebuildArgs {
             let confirmation = dialoguer::Confirm::new().default(false).interact()?;
 
             if !confirmation {
-                return Ok(())
+                return Ok(());
             }
+        }
+
+        if self.common.update {
+            commands::CommandBuilder::default()
+                .args(&["nix", "flake", "update"])
+                .message("Updating flake")
+                .build()?
+                .exec()?;
         }
 
         commands::CommandBuilder::default()
