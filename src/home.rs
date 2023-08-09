@@ -56,6 +56,14 @@ impl HomeRebuildArgs {
             hm_config_name
         );
 
+        if self.common.update {
+            commands::CommandBuilder::default()
+                .args(&["nix", "flake", "update", &self.common.flakeref])
+                .message("Updating flake")
+                .build()?
+                .exec()?;
+        }
+
         commands::BuildCommandBuilder::default()
             .flakeref(&flakeref)
             .extra_args(&["--out-link", out_link_str])
@@ -84,14 +92,6 @@ impl HomeRebuildArgs {
             if !confirmation {
                 return Ok(());
             }
-        }
-
-        if self.common.update {
-            commands::CommandBuilder::default()
-                .args(&["nix", "flake", "update"])
-                .message("Updating flake")
-                .build()?
-                .exec()?;
         }
 
         commands::CommandBuilder::default()

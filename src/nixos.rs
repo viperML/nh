@@ -49,6 +49,14 @@ impl OsRebuildArgs {
             hostname
         );
 
+        if self.common.update {
+            commands::CommandBuilder::default()
+                .args(&["nix", "flake", "update", &self.common.flakeref])
+                .message("Updating flake")
+                .build()?
+                .exec()?;
+        }
+
         commands::BuildCommandBuilder::default()
             .flakeref(flake_output)
             .message("Building NixOS configuration")
@@ -94,14 +102,6 @@ impl OsRebuildArgs {
             if !confirmation {
                 return Ok(());
             }
-        }
-
-        if self.common.update {
-            commands::CommandBuilder::default()
-                .args(&["nix", "flake", "update"])
-                .message("Updating flake")
-                .build()?
-                .exec()?;
         }
 
         commands::CommandBuilder::default()
