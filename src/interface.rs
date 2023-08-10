@@ -123,6 +123,10 @@ pub struct CommonRebuildArgs {
     #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
     pub flakeref: FlakeRef,
 
+    /// Update flake inputs before building specified configuration
+    #[arg(long, short = 'u')]
+    pub update: bool,
+
     /// Use nix-output-monitor for the build process
     #[arg(
         long,
