@@ -18,7 +18,7 @@ impl NHRunnable for SearchArgs {
 
         let results = Command::new("nix")
             .arg("search")
-            .arg(&self.flake.deref())
+            .arg(self.flake.deref())
             .arg(&self.query)
             .arg("--json")
             .output()?;

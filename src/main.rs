@@ -24,7 +24,6 @@ fn main() -> Result<()> {
         .display_env_section(false)
         .install()?;
 
-
     let args = <NHParser as clap::Parser>::parse();
 
     setup_logging(args.verbose)?;

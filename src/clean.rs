@@ -87,7 +87,7 @@ impl NHRunnable for CleanMode {
                     args,
                     &profiles,
                     // FIXME scan auto
-                    &[PathBuf::from("/nix/var/nix/gcroots/per-user").join(&user.name)],
+                    &[PathBuf::from("/nix/var/nix/gcroots/per-user").join(user.name)],
                 )
             }
         }
@@ -140,7 +140,7 @@ where
                             return true;
                         }
                     };
-                    return false;
+                    false
                 });
 
                 if delete {
@@ -159,9 +159,9 @@ where
     let mut profiles: HashMap<PathBuf, Vec<Generation>> = HashMap::new();
 
     for base_dir in base_dirs {
-        let mut read = std::fs::read_dir(base_dir)?;
+        let read = std::fs::read_dir(base_dir)?;
 
-        while let Some(entry) = read.next() {
+        for entry in read {
             // let x = x.await;
             let path = entry?.path();
             let parent = path.parent().unwrap();
@@ -289,7 +289,7 @@ struct Generation {
 
 static PROFILE_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(.*)-(\d+)-link$").unwrap());
 
-fn parse_profile<'s>(s: &'s str) -> Option<(&'s str, u32)> {
+fn parse_profile(s: &str) -> Option<(&str, u32)> {
     let captures = PROFILE_PATTERN.captures(s)?;
 
     let base = captures.get(1)?.as_str();
