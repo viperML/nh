@@ -1,6 +1,7 @@
 self: {
   config,
   lib,
+  pkgs,
   ...
 }: {
   options.nh = with lib; {
@@ -12,7 +13,7 @@ self: {
 
     package = mkOption {
       type = types.package;
-      default = self.packages.${config.nixpkgs.system}.default;
+      default = self.packages.${pkgs.stdenv.hostPlatform}.default;
       description = "Which NH package to use";
     };
 
