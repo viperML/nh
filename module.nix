@@ -13,7 +13,7 @@ self: {
 
     package = mkOption {
       type = types.package;
-      default = self.packages.${pkgs.stdenv.hostPlatform}.default;
+      default = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
       description = "Which NH package to use";
     };
 
