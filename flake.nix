@@ -1,6 +1,6 @@
 {
   inputs = {
-    # Need let-else stable since: rust 1.65
+    # Not compatible with nixos-23.05
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     nix-filter.url = "github:numtide/nix-filter";
