@@ -8,7 +8,7 @@ NH reimplements some basic nix commands. Adding functionality on top of the exis
 
 As the main features:
 - Tree of builds with [nix-output-manager](https://github.com/maralorn/nix-output-monitor)
-- Visualization of the upgrade diff with [nvd](https://github.com/maralorn/nix-output-monitor)
+- Visualization of the upgrade diff with [nvd](https://gitlab.com/khumba/nvd)
 - Asking for confirmation before performing activation
 
 
