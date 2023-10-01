@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::ErrorKind;
 use std::os::unix::process::CommandExt;
 use std::path::{Component, Path, PathBuf};
 use std::time::SystemTime;
@@ -159,7 +160,19 @@ where
     let mut profiles: HashMap<PathBuf, Vec<Generation>> = HashMap::new();
 
     for base_dir in base_dirs {
-        let read = std::fs::read_dir(base_dir)?;
+        // let read = std::fs::read_dir(base_dir)?;
+        let read = match std::fs::read_dir(base_dir) {
+            Ok(inner) => inner,
+            Err(inner) => match inner.kind() {
+                ErrorKind::NotFound => {
+                    debug!("Base dir not found!");
+                    continue;
+                }
+                _ => Err(inner)
+                    .context(base_dir.as_ref().to_str().unwrap().to_string())
+                    .context("Reading base dir")?,
+            },
+        };
 
         for entry in read {
             // let x = x.await;
