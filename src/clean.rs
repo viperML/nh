@@ -285,6 +285,7 @@ where
         commands::CommandBuilder::default()
             .args(&["nix", "store", "gc"])
             .message("nix store gc")
+            .capture(false)
             .build()?
             .exec()?;
     }
