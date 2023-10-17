@@ -1,4 +1,6 @@
+use std::env;
 use std::ops::Deref;
+use std::path::PathBuf;
 
 use color_eyre::eyre::bail;
 use color_eyre::Result;
@@ -73,10 +75,27 @@ impl HomeRebuildArgs {
             .build()?
             .exec()?;
 
-        let prev_generation = format!("/nix/var/nix/profiles/per-user/{}/home-manager", &username);
+        let prev_generation: PathBuf = [
+            PathBuf::from("/nix/var/nix/profiles/per-user")
+                .join(username)
+                .join("home-manager"),
+            PathBuf::from(env::var("HOME").unwrap()).join(".local/state/nix/profiles/home-manager"),
+        ]
+        .into_iter()
+        .fold(None, |res, next| {
+            res.or_else(|| if next.exists() { Some(next) } else { None })
+        })
+        .unwrap();
+
+        debug!("prev_generation: {:?}", prev_generation);
 
         commands::CommandBuilder::default()
-            .args(&["nvd", "diff", &prev_generation, out_link_str])
+            .args(&[
+                "nvd",
+                "diff",
+                (prev_generation.to_str().unwrap()),
+                out_link_str,
+            ])
             .message("Comparing changes")
             .build()?
             .exec()?;
