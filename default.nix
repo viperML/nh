@@ -35,4 +35,6 @@ in
     postFixup = ''
       wrapProgram $out/bin/nh --prefix PATH : ${lib.makeBinPath propagatedBuildInputs} ${lib.optionalString use-nom "--set-default NH_NOM 1"}
     '';
+
+    meta.mainProgram = "nh";
   }
