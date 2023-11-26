@@ -75,7 +75,7 @@ impl HomeRebuildArgs {
             .build()?
             .exec()?;
 
-        let prev_generation: PathBuf = [
+        let prev_generation: Option<PathBuf> = [
             PathBuf::from("/nix/var/nix/profiles/per-user")
                 .join(username)
                 .join("home-manager"),
@@ -84,21 +84,23 @@ impl HomeRebuildArgs {
         .into_iter()
         .fold(None, |res, next| {
             res.or_else(|| if next.exists() { Some(next) } else { None })
-        })
-        .unwrap();
+        });
 
         debug!("prev_generation: {:?}", prev_generation);
 
-        commands::CommandBuilder::default()
-            .args(&[
-                "nvd",
-                "diff",
-                (prev_generation.to_str().unwrap()),
-                out_link_str,
-            ])
-            .message("Comparing changes")
-            .build()?
-            .exec()?;
+        // just do nothing for None case (fresh installs)
+        if let Some(prev_gen) = prev_generation {
+            commands::CommandBuilder::default()
+                .args(&[
+                    "nvd",
+                    "diff",
+                    (prev_gen.to_str().unwrap()),
+                    out_link_str,
+                ])
+                .message("Comparing changes")
+                .build()?
+                .exec()?;
+        }
 
         if self.common.dry {
             return Ok(());
