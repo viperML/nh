@@ -28,7 +28,7 @@ jobs:
           source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
           mkdir -pv $out
           mount -t tmpfs none $out
-          nix profile install nixpkgs#nixos-install-tools nixpkgs#nix
+          nix profile install nixpkgs#nixos-install-tools
           nixos-install \
             --flake github:$GITHUB_REPOSITORY/$GITHUB_SHA#check \
             --root $out \
