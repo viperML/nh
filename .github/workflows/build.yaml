@@ -18,16 +18,14 @@ jobs:
       - name: Install Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - name: Checkout
-        uses: actions/checkout@v3
-
       - run: nix build github:$GITHUB_REPOSITORY/$GITHUB_SHA -L
 
       - name: NixOS check
         run: |
           sudo mkdir -pv result-nixos
           sudo mount -t tmpfs none ./result-nixos
-          sudo nixos-install \
+          nix build nixpkg#nixos-install-tools
+          sudo ./result/bin/nixos-install \
             --flake github:$GITHUB_REPOSITORY/$GITHUB_SHA#check \
             --root $PWD/result-nixos \
             --no-root-passwd \
