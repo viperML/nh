@@ -1,66 +1,46 @@
 {
   inputs = {
-    # Not compatible with nixos-23.05
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-parts.url = "github:hercules-ci/flake-parts";
-    nix-filter.url = "github:numtide/nix-filter";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
   };
 
-  outputs = inputs: let
-    src = inputs.nix-filter.lib {
-      root = inputs.self.outPath;
-      include = [
-        (inputs.nix-filter.lib.inDirectory "src")
-        "Cargo.toml"
-        "Cargo.lock"
-        "build.rs"
-      ];
-    };
-  in
-    inputs.flake-parts.lib.mkFlake {inherit inputs;} {
-      imports = [
-        inputs.flake-parts.flakeModules.easyOverlay
-      ];
-
-      systems = [
-        "aarch64-linux"
+  outputs = {
+    self,
+    nixpkgs,
+  }: let
+    forAllSystems = function:
+      nixpkgs.lib.genAttrs [
         "x86_64-linux"
-      ];
-
-      flake.nixosModules.default = import ./module.nix inputs.self;
-
-      perSystem = {
-        system,
-        pkgs,
-        config,
-        ...
-      }: {
-        packages = {
-          default = pkgs.callPackage ./default.nix {inherit src;};
-          debug = pkgs.callPackage ./default.nix {
-            inherit src;
-            buildType = "debug";
-          };
-        };
-
-        overlayAttrs.nh = config.packages.default;
-
-        devShells.default = with pkgs;
-          mkShell {
-            # Shell with CC
-            name = "nh-dev";
-            RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
-            NH_NOM = "1";
-            packages = [
-              cargo
-              rustc
-              rustfmt
-              clippy
-              rust-analyzer-unwrapped
-              nvd
-              nix-output-monitor
-            ];
-          };
-      };
+        "aarch64-linux"
+        # experimental
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ] (system: function nixpkgs.legacyPackages.${system});
+  in {
+    overlays.default = final: prev: {
+      nh = final.callPackage ./package.nix {};
     };
+
+    packages = forAllSystems (pkgs: rec {
+      nh = pkgs.callPackage ./package.nix {};
+      default = nh;
+    });
+
+    devShells = forAllSystems (pkgs: {
+      default = pkgs.callPackage ./devshell.nix {};
+    });
+
+    nixosModules.default = import ./module.nix self;
+
+    nixosConfigurations.check = let
+      system = "x86_64-linux";
+    in
+      nixpkgs.lib.nixosSystem {
+        modules = [
+          nixpkgs.nixosModules.readOnlyPkgs
+          {nixpkgs.pkgs = nixpkgs.legacyPackages.${system};}
+          self.nixosModules.default
+          {boot.isContainer = true;}
+        ];
+      };
+  };
 }

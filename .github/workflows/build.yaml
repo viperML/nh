@@ -21,4 +21,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - run: nix build -L
+      - run: nix build github:$GITHUB_REPOSITORY/$GITHUB_SHA -L
+
+      - name: NixOS check
+        run: |
+          sudo mkdir -pv result-nixos
+          sudo mount -t tmpfs none ./result-nixos
+          sudo nixos-install \
+            --flake github:$GITHUB_REPOSITORY/$GITHUB_SHA#check \
+            --root $PWD/result-nixos \
+            --no-root-passwd \
+            --no-bootloader
