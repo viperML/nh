@@ -21,12 +21,15 @@ jobs:
       - run: nix build github:$GITHUB_REPOSITORY/$GITHUB_SHA -L
 
       - name: NixOS check
+        env:
+          out: /nixos
         run: |
-          sudo mkdir -pv result-nixos
-          sudo mount -t tmpfs none ./result-nixos
+          export
+          sudo mkdir -pv $out
+          sudo mount -t tmpfs none $out
           nix build nixpkgs#nixos-install-tools
           sudo ./result/bin/nixos-install \
             --flake github:$GITHUB_REPOSITORY/$GITHUB_SHA#check \
-            --root $PWD/result-nixos \
+            --root $out \
             --no-root-passwd \
             --no-bootloader
