@@ -24,7 +24,7 @@ jobs:
         run: |
           sudo mkdir -pv result-nixos
           sudo mount -t tmpfs none ./result-nixos
-          nix build nixpkg#nixos-install-tools
+          nix build nixpkgs#nixos-install-tools
           sudo ./result/bin/nixos-install \
             --flake github:$GITHUB_REPOSITORY/$GITHUB_SHA#check \
             --root $PWD/result-nixos \
