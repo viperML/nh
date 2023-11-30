@@ -24,11 +24,14 @@ jobs:
         env:
           out: /nixos
         run: |
-          sudo mkdir -pv $out
-          sudo mount -t tmpfs none $out
-          sudo nix profile install nixpkgs#nixos-install-tools nixpkgs#nix
-          sudo nixos-install \
+          sudo /bin/bash <<EOF
+          source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+          mkdir -pv $out
+          mount -t tmpfs none $out
+          nix profile install nixpkgs#nixos-install-tools nixpkgs#nix
+          nixos-install \
             --flake github:$GITHUB_REPOSITORY/$GITHUB_SHA#check \
             --root $out \
             --no-root-passwd \
             --no-bootloader
+          EOF
