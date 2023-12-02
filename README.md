@@ -1,3 +1,5 @@
+[![dependency status](https://deps.rs/repo/github/viperML/nh/status.svg)](https://deps.rs/repo/github/viperML/nh)
+
 <h1 align="center">nh</h1>
 
 <h6 align="center">Because the name "yet-another-<u>n</u>ix-<u>h</u>elper" was too long to type...</h1>
