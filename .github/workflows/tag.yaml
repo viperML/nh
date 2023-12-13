@@ -1,0 +1,35 @@
+name: Tag version
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: actions/checkout@v3
+        name: Checkout
+
+      - run: |
+          echo -n "nh_version=v" >> "$GITHUB_ENV"
+          nix shell nixpkgs#nushell -c \
+            nu -c "open Cargo.toml | get package | get version" \
+            >> "$GITHUB_ENV"
+        name: Read version
+
+      - name: Tag
+        run: |
+          set -x
+          set +e
+          git show-ref --tags $nh_version --quiet
+
+          if [[ $? -ne 0 ]]; then
+            git tag $nh_version
+            git push --tags
+          fi

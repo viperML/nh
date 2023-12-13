@@ -1,12 +1,13 @@
 {
   mkShell,
-  rust-analyzer,
+  rust-analyzer-unwrapped,
   rustfmt,
   clippy,
   nvd,
   nix-output-monitor,
   cargo,
   rustc,
+  rustPlatform,
 }:
 mkShell {
   strictDeps = true;
@@ -15,7 +16,7 @@ mkShell {
     cargo
     rustc
 
-    rust-analyzer
+    rust-analyzer-unwrapped
     rustfmt
     clippy
     nvd
@@ -26,5 +27,6 @@ mkShell {
 
   env = {
     NH_NOM = "1";
+    RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
   };
 }

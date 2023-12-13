@@ -17,15 +17,13 @@ jobs:
       name: Checkout
 
     - run: nix flake update
+      name: Bump flake.lock
 
-    - run: nix profile install --inputs-from . nixpkgs#cargo nixpkgs#rustc
-
-    - run: |
-        cargo install cargo-bump
-        cargo bump
-      name: Bump version
+    - run: nix run --inputs-from . nixpkgs#cargo-bump
+      name: Bump Cargo.toml
 
     - run: cargo update
+      name: Bump Cargo.lock
 
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v4
