@@ -17,6 +17,12 @@ self: {
       description = "Which NH package to use";
     };
 
+    flake = mkOption {
+      type = with types; nullOr path;
+      default = null;
+      description = "The path that will be used for the `FLAKE` environment variable";
+    };
+
     clean = {
       enable = mkOption {
         type = types.bool;
@@ -45,9 +51,19 @@ self: {
         assertion = config.nh.clean.enable -> config.nh.enable;
         message = "nh.clean.enable requires nh.enable";
       }
+
+      {
+        assertion = (config.nh.flake != null) -> !(lib.hasSuffix ".nix" config.nh.flake);
+        message = "nh.flake must be a directory";
+      }
     ];
 
-    environment.systemPackages = [config.nh.package];
+    environment = {
+      systemPackages = [config.nh.package];
+      variables = lib.optionalAttrs (config.nh.flake != null) {
+        FLAKE = config.nh.flake;
+      };
+    };
 
     systemd = lib.mkIf config.nh.clean.enable {
       services.nh-clean = {
