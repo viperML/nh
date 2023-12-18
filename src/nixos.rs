@@ -3,7 +3,7 @@ use std::ops::Deref;
 use color_eyre::eyre::{bail, Context};
 use color_eyre::Result;
 
-use log::{debug, info, trace};
+use tracing::{debug, info, trace};
 
 use crate::interface::NHRunnable;
 use crate::interface::OsRebuildType::{self, Boot, Switch, Test};

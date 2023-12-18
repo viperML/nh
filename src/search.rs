@@ -1,5 +1,5 @@
 use std::{collections::HashMap, ops::Deref, process::Command};
-
+use tracing::trace;
 use crate::*;
 use interface::SearchArgs;
 

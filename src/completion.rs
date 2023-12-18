@@ -1,6 +1,7 @@
 use crate::*;
 use clap_complete::generate;
 use color_eyre::Result;
+use tracing::trace;
 
 impl NHRunnable for interface::CompletionArgs {
     fn run(&self) -> Result<()> {

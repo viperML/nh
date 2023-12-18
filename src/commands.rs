@@ -6,7 +6,7 @@ use color_eyre::{
 use std::ffi::{OsStr, OsString};
 use thiserror::Error;
 
-use log::{debug, info};
+use tracing::{debug, info};
 use subprocess::{Exec, ExitStatus, PopenError, Redirection};
 
 use crate::*;

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::bail;
 use color_eyre::Result;
-use log::{debug, info, trace};
+use tracing::{debug, info, trace};
 use thiserror::Error;
 
 use crate::*;

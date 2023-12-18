@@ -6,7 +6,7 @@ use std::time::SystemTime;
 
 use color_eyre::eyre::{bail, ensure, Context, ContextCompat};
 use color_eyre::Result;
-use log::{debug, info, trace, warn};
+use tracing::{debug, info, trace, warn};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
