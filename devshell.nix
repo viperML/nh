@@ -27,7 +27,7 @@ mkShell {
 
   env = {
     NH_NOM = "1";
-    RUST_LOG = "trace";
+    RUST_LOG = "nh=trace";
     RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
   };
 }

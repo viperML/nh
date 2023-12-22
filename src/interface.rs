@@ -2,7 +2,7 @@ use ambassador::{delegatable_trait, Delegate};
 use anstyle::Style;
 use clap::{builder::Styles, Args, Parser, Subcommand};
 use color_eyre::Result;
-use std::{ffi::OsString, ops::Deref};
+use std::{ffi::OsString, ops::Deref, path::PathBuf};
 
 #[derive(Debug, Clone, Default)]
 pub struct FlakeRef(String);
@@ -148,8 +148,9 @@ pub struct SearchArgs {
 
     pub query: String,
 
-    #[arg(default_value = "nixpkgs")]
-    pub flake: FlakeRef,
+    // #[arg(default_value = "nixpkgs")]
+    // pub flake: FlakeRef,
+    pub database: PathBuf
 }
 
 // Needed a struct to have multiple sub-subcommands
@@ -167,9 +168,6 @@ pub enum CleanMode {
     All(CleanArgs),
     /// Clean your user's profiles and gcroots
     User(CleanArgs),
-    /// Print information about the store of the system
-    #[clap(hide = true)]
-    Info,
 }
 
 #[derive(Args, Clone, Debug)]
