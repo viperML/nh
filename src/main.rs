@@ -11,6 +11,8 @@ use crate::interface::NHParser;
 use crate::interface::NHRunnable;
 use color_eyre::Result;
 
+const NH_VERSION: &'static str =  env!("CARGO_PKG_VERSION");
+
 fn main() -> Result<()> {
     logging::setup_logging()?;
 

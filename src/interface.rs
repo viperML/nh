@@ -144,13 +144,9 @@ pub struct CommonRebuildArgs {
 /// Search a package
 pub struct SearchArgs {
     #[arg(long, short, default_value = "10")]
-    pub max_results: usize,
+    pub limit: usize,
 
     pub query: String,
-
-    // #[arg(default_value = "nixpkgs")]
-    // pub flake: FlakeRef,
-    pub database: PathBuf
 }
 
 // Needed a struct to have multiple sub-subcommands
