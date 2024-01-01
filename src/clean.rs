@@ -7,7 +7,7 @@ use std::{
 use color_eyre::eyre::{Context, ContextCompat};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use tracing::{debug, instrument, trace, warn};
+use tracing::{debug, info, instrument, trace, warn};
 
 use crate::*;
 
@@ -20,7 +20,11 @@ impl NHRunnable for interface::CleanMode {
         match self {
             interface::CleanMode::Profile(args) => {
                 // cleanable_generations(args., keep, keep_size)
-                cleanable_generations(&args.profile, args.common.keep, args.common.keep_since)?;
+                let res =
+                    cleanable_generations(&args.profile, args.common.keep, args.common.keep_since)?;
+                let mut h = HashMap::new();
+                h.insert(args.profile.clone(), res);
+                prompt_clean(h, args.common.ask, args.common.dry)?;
             }
             interface::CleanMode::All(args) => todo!(),
             interface::CleanMode::User(args) => todo!(),
@@ -107,31 +111,43 @@ struct Generation {
     last_modified: SystemTime,
 }
 
-// static PROFILE_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(.*)-(\d+)-link$").unwrap());
+fn prompt_clean(
+    profiles: HashMap<PathBuf, Vec<(Generation, bool)>>,
+    ask: bool,
+    dry: bool,
+) -> Result<()> {
+    use owo_colors::OwoColorize;
+    for (k, v) in profiles.iter() {
+        println!("{}", k.to_string_lossy().bold().blue());
+        for (gen, toberemoved) in v {
+            if *toberemoved {
+                println!("- {} {}", "DEL".red(), gen.path.to_string_lossy());
+            } else {
+                println!("- {} {}", "OK ".green(), gen.path.to_string_lossy());
+            };
+        }
+        println!();
+    }
 
-// fn parse_profile(s: &str) -> Option<(&str, u32)> {
-//     let captures = PROFILE_PATTERN.captures(s)?;
+    if !dry {
+        if ask {
+            info!("Confirm the cleanup plan?");
+            if !dialoguer::Confirm::new().default(false).interact()? {
+                return Ok(());
+            }
+        }
 
-//     let base = captures.get(1)?.as_str();
-//     let number = captures.get(2)?.as_str().parse().ok()?;
+        for (_, v) in profiles.iter() {
+            for (gen, toberemoved) in v {
+                if *toberemoved {
+                    info!("Removing {}", gen.path.to_string_lossy());
+                    if let Err(err) = std::fs::remove_file(&gen.path) {
+                        warn!(?err, "Failed to remove");
+                    }
+                }
+            }
+        }
+    }
 
-//     Some((base, number))
-// }
-
-// #[test]
-// fn test_parse_profile() {
-//     assert_eq!(
-//         parse_profile("home-manager-3-link"),
-//         Some(("home-manager", 3))
-//     );
-//     assert_eq!(
-//         parse_profile("home-manager-30-link"),
-//         Some(("home-manager", 30))
-//     );
-//     assert_eq!(parse_profile("home-manager"), None);
-//     assert_eq!(
-//         parse_profile("foo-bar-baz-0-link"),
-//         Some(("foo-bar-baz", 0))
-//     );
-//     assert_eq!(parse_profile("foo-bar-baz-X-link"), None);
-// }
+    Ok(())
+}
