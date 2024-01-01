@@ -170,10 +170,12 @@ pub struct CleanProxy {
 #[derive(Debug, Clone, Subcommand)]
 /// Enhanced nix cleanup
 pub enum CleanMode {
-    /// Elevate to root to clean all profiles and gcroots
+    /// Cleans root profiles and calls a store gc
     All(CleanArgs),
-    /// Clean your user's profiles and gcroots
+    /// Cleans the current user's profiles and calls a store gc
     User(CleanArgs),
+    /// Cleans a specific profile
+    Profile(CleanProfileArgs),
 }
 
 #[derive(Args, Clone, Debug)]
@@ -205,6 +207,14 @@ pub struct CleanArgs {
     /// Don't clean gcroots
     #[arg(long)]
     pub nogcroots: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct CleanProfileArgs {
+    #[command(flatten)]
+    pub common: CleanArgs,
+
+    pub profile: PathBuf
 }
 
 #[derive(Debug, Args)]
