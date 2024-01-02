@@ -1,47 +1,75 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     path::{Path, PathBuf},
     time::SystemTime,
 };
 
-use color_eyre::eyre::{Context, ContextCompat};
-use once_cell::sync::Lazy;
+use color_eyre::eyre::{bail, Context, ContextCompat};
 use regex::Regex;
 use tracing::{debug, info, instrument, trace, warn};
 
 use crate::*;
 
-// Reference: https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc
+// Nix impl:
+// https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc
+
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+struct Generation {
+    number: u32,
+    last_modified: SystemTime,
+    path: PathBuf,
+}
+
+type ToBeCleaned = bool;
+// BTreeMap to automatically sort generations by id
+type GenerationsTagged = BTreeMap<Generation, ToBeCleaned>;
+type ProfilesTagged = HashMap<PathBuf, GenerationsTagged>;
 
 impl NHRunnable for interface::CleanMode {
     fn run(&self) -> Result<()> {
         let uid = nix::unistd::Uid::effective();
 
+        let mut profiles = ProfilesTagged::new();
+
         match self {
             interface::CleanMode::Profile(args) => {
-                // cleanable_generations(args., keep, keep_size)
-                let res =
-                    cleanable_generations(&args.profile, args.common.keep, args.common.keep_since)?;
-                let mut h = HashMap::new();
-                h.insert(args.profile.clone(), res);
-                prompt_clean(h, args.common.ask, args.common.dry)?;
+                profiles.insert(
+                    args.profile.clone(),
+                    cleanable_generations(&args.profile, args.common.keep, args.common.keep_since)?,
+                );
+                prompt_clean(profiles, args.common.ask, args.common.dry)?;
             }
-            interface::CleanMode::All(args) => todo!(),
-            interface::CleanMode::User(args) => todo!(),
+            interface::CleanMode::All(args) => {}
+            interface::CleanMode::User(args) => {
+                if uid.is_root() {
+                    bail!("nh clean user: don't run me as root!");
+                }
+
+                for p in std::env::var("NIX_PROFILES")
+                    .wrap_err("Reading NIX_PROFILES to detect the profiles locations")?
+                    .split(' ')
+                    .map(PathBuf::from)
+                {
+                    profiles.insert(
+                        p.clone(),
+                        cleanable_generations(&p, args.keep, args.keep_since)?,
+                    );
+                }
+
+                prompt_clean(profiles, args.ask, args.dry)?;
+            }
         }
 
         Ok(())
     }
 }
 
-type ToBeCleaned = bool;
-
 #[instrument(err, level = "debug")]
 fn cleanable_generations(
     profile: &Path,
     keep: u32,
     keep_since: humantime::Duration,
-) -> Result<Vec<(Generation, ToBeCleaned)>> {
+) -> Result<GenerationsTagged> {
     let name = profile
         .file_name()
         .context("Checking profile's name")?
@@ -50,7 +78,7 @@ fn cleanable_generations(
 
     let generation_regex = Regex::new(&format!(r"{name}-(\d+)-link"))?;
 
-    let mut generations = Vec::new();
+    let mut result = GenerationsTagged::new();
 
     for entry in profile
         .parent()
@@ -68,59 +96,44 @@ fn cleanable_generations(
                     .modified()
                     .context("Reading modified time")?;
 
-                generations.push((
+                result.insert(
                     Generation {
                         number: number.as_str().parse().unwrap(),
                         last_modified,
                         path: path.clone(),
                     },
                     true,
-                ));
+                );
             }
         }
     }
 
-    // Sort generations because I don't know if the fs reports paths in any order
-    generations.sort_by(|a, b| b.0.number.cmp(&a.0.number));
-
     let now = SystemTime::now();
-    for gen in generations.iter_mut() {
-        match now.duration_since(gen.0.last_modified) {
+    for (gen, tbr) in result.iter_mut() {
+        match now.duration_since(gen.last_modified) {
             Err(err) => {
                 warn!(?err, ?now, ?gen, "Failed to compare time!");
             }
             Ok(val) if val <= keep_since.into() => {
-                gen.1 = false;
+                *tbr = false;
             }
             Ok(_) => {}
-        };
+        }
     }
 
-    for gen in generations.iter_mut().take(keep as _) {
-        gen.1 = false;
+    for (_, tbr) in result.iter_mut().rev().take(keep as _) {
+        *tbr = false;
     }
 
-    debug!("{:#?}", generations);
-    Ok(generations)
+    debug!("{:#?}", result);
+    Ok(result)
 }
 
-#[derive(Debug)]
-struct Generation {
-    path: PathBuf,
-    number: u32,
-    last_modified: SystemTime,
-}
-
-fn prompt_clean(
-    profiles: HashMap<PathBuf, Vec<(Generation, bool)>>,
-    ask: bool,
-    dry: bool,
-) -> Result<()> {
+fn prompt_clean(profiles: ProfilesTagged, ask: bool, dry: bool) -> Result<()> {
     use owo_colors::OwoColorize;
-    for (k, v) in profiles.iter() {
-        println!("{}", k.to_string_lossy().bold().blue());
-        for (gen, toberemoved) in v {
-            if *toberemoved {
+    for (_, generations_tagged) in profiles.iter() {
+        for (gen, tbr) in generations_tagged.iter().rev() {
+            if *tbr {
                 println!("- {} {}", "DEL".red(), gen.path.to_string_lossy());
             } else {
                 println!("- {} {}", "OK ".green(), gen.path.to_string_lossy());
@@ -137,9 +150,9 @@ fn prompt_clean(
             }
         }
 
-        for (_, v) in profiles.iter() {
-            for (gen, toberemoved) in v {
-                if *toberemoved {
+        for (_, generations_tagged) in profiles.iter() {
+            for (gen, tbr) in generations_tagged.iter().rev() {
+                if *tbr {
                     info!("Removing {}", gen.path.to_string_lossy());
                     if let Err(err) = std::fs::remove_file(&gen.path) {
                         warn!(?err, "Failed to remove");
