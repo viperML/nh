@@ -169,7 +169,9 @@ fn cleanable_generations(
 
 fn prompt_clean(profiles: ProfilesTagged, ask: bool, dry: bool) -> Result<()> {
     use owo_colors::OwoColorize;
-    for (_, generations_tagged) in profiles.iter() {
+
+    for (profile, generations_tagged) in profiles.iter() {
+        println!("{}", profile.to_string_lossy().blue().bold());
         for (gen, tbr) in generations_tagged.iter().rev() {
             if *tbr {
                 println!("- {} {}", "DEL".red(), gen.path.to_string_lossy());
