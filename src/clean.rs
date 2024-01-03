@@ -29,39 +29,77 @@ impl NHRunnable for interface::CleanMode {
     fn run(&self) -> Result<()> {
         let uid = nix::unistd::Uid::effective();
 
-        let mut profiles = ProfilesTagged::new();
+        let mut profiles = Vec::new();
 
-        match self {
+        let args = match self {
             interface::CleanMode::Profile(args) => {
-                profiles.insert(
-                    args.profile.clone(),
-                    cleanable_generations(&args.profile, args.common.keep, args.common.keep_since)?,
-                );
-                prompt_clean(profiles, args.common.ask, args.common.dry)?;
+                profiles.push(args.profile.clone());
+                &args.common
             }
-            interface::CleanMode::All(args) => {}
+            interface::CleanMode::All(args) => {
+                if !uid.is_root() {
+                    bail!("nh clean all: root permissions required, rerun with sudo!");
+                }
+                todo!();
+            }
             interface::CleanMode::User(args) => {
                 if uid.is_root() {
                     bail!("nh clean user: don't run me as root!");
                 }
 
-                for p in std::env::var("NIX_PROFILES")
-                    .wrap_err("Reading NIX_PROFILES to detect the profiles locations")?
-                    .split(' ')
-                    .map(PathBuf::from)
-                {
-                    profiles.insert(
-                        p.clone(),
-                        cleanable_generations(&p, args.keep, args.keep_since)?,
-                    );
-                }
+                let user = nix::unistd::User::from_uid(uid)?.unwrap();
 
-                prompt_clean(profiles, args.ask, args.dry)?;
+                profiles.extend(profiles_in_dir(
+                    &PathBuf::from(std::env::var("HOME")?).join(".local/state/nix/profiles"),
+                )?);
+
+                profiles.extend(profiles_in_dir(
+                    &PathBuf::from("/nix/var/nix/profiles/per-user").join(user.name),
+                )?);
+
+                args
             }
+        };
+
+        // Use mutation to raise errors as they come
+        let mut profiles_tagged = ProfilesTagged::new();
+        for p in profiles {
+            profiles_tagged.insert(
+                p.clone(),
+                cleanable_generations(&p, args.keep, args.keep_since)?,
+            );
         }
+
+        prompt_clean(profiles_tagged, args.ask, args.dry)?;
 
         Ok(())
     }
+}
+
+#[instrument(ret, err, level = "trace")]
+fn profiles_in_dir(dir: &Path) -> Result<Vec<PathBuf>> {
+    let mut res = Vec::new();
+
+    if let Ok(read_dir) = dir.read_dir() {
+        for entry in read_dir {
+            let path = entry?.path();
+
+            if let Ok(dst) = path.read_link() {
+                let name = dst
+                    .file_name()
+                    .wrap_err("Reading file_name")?
+                    .to_string_lossy();
+
+                let generation_regex = Regex::new(r"^(.*)-(\d+)-link$")?;
+
+                if let Some(_) = generation_regex.captures(&name) {
+                    res.push(path);
+                }
+            }
+        }
+    }
+
+    Ok(res)
 }
 
 #[instrument(err, level = "debug")]
@@ -76,7 +114,7 @@ fn cleanable_generations(
         .to_str()
         .unwrap();
 
-    let generation_regex = Regex::new(&format!(r"{name}-(\d+)-link"))?;
+    let generation_regex = Regex::new(&format!(r"^{name}-(\d+)-link"))?;
 
     let mut result = GenerationsTagged::new();
 
