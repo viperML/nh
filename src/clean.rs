@@ -4,11 +4,11 @@ use std::{
     time::SystemTime,
 };
 
+use crate::*;
 use color_eyre::eyre::{bail, Context, ContextCompat};
 use regex::Regex;
 use tracing::{debug, info, instrument, trace, warn};
-
-use crate::*;
+use uzers::os::unix::UserExt;
 
 // Nix impl:
 // https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc
@@ -38,9 +38,23 @@ impl NHRunnable for interface::CleanMode {
             }
             interface::CleanMode::All(args) => {
                 if !uid.is_root() {
-                    bail!("nh clean all: root permissions required, rerun with sudo!");
+                    crate::self_elevate();
                 }
-                todo!();
+
+                profiles.extend(profiles_in_dir("/nix/var/nix/profiles")?);
+
+                for read_dir in PathBuf::from("/nix/var/nix/profiles/per-user").read_dir()? {
+                    let path = read_dir?.path();
+                    profiles.extend(profiles_in_dir(path)?);
+                }
+
+                for user in unsafe { uzers::all_users() } {
+                    profiles.extend(profiles_in_dir(
+                        user.home_dir().join(".local/state/nix/profiles"),
+                    )?);
+                }
+
+                args
             }
             interface::CleanMode::User(args) => {
                 if uid.is_root() {
@@ -52,7 +66,6 @@ impl NHRunnable for interface::CleanMode {
                 profiles.extend(profiles_in_dir(
                     &PathBuf::from(std::env::var("HOME")?).join(".local/state/nix/profiles"),
                 )?);
-
                 profiles.extend(profiles_in_dir(
                     &PathBuf::from("/nix/var/nix/profiles/per-user").join(user.name),
                 )?);
@@ -77,10 +90,10 @@ impl NHRunnable for interface::CleanMode {
 }
 
 #[instrument(ret, err, level = "trace")]
-fn profiles_in_dir(dir: &Path) -> Result<Vec<PathBuf>> {
+fn profiles_in_dir<P: AsRef<Path> + std::fmt::Debug>(dir: P) -> Result<Vec<PathBuf>> {
     let mut res = Vec::new();
 
-    if let Ok(read_dir) = dir.read_dir() {
+    if let Ok(read_dir) = dir.as_ref().read_dir() {
         for entry in read_dir {
             let path = entry?.path();
 

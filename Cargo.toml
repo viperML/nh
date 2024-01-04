@@ -47,3 +47,4 @@ tracing-subscriber = { version = "0.3.18", features = [
     "env-filter",
     "registry",
 ] }
+uzers = { version = "0.11.3", default-features = false }
