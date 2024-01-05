@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::*;
 use owo_colors::OwoColorize;
 use tracing::Event;
@@ -8,7 +6,7 @@ use tracing::Subscriber;
 use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::filter::FilterExt;
 use tracing_subscriber::fmt;
-use tracing_subscriber::fmt::format::Format;
+
 use tracing_subscriber::fmt::FormatEvent;
 use tracing_subscriber::fmt::FormatFields;
 use tracing_subscriber::prelude::*;

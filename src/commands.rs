@@ -6,10 +6,8 @@ use color_eyre::{
 use std::ffi::{OsStr, OsString};
 use thiserror::Error;
 
-use tracing::{debug, info};
 use subprocess::{Exec, ExitStatus, PopenError, Redirection};
-
-use crate::*;
+use tracing::{debug, info};
 
 #[derive(Debug, derive_builder::Builder, Default)]
 #[builder(derive(Debug), setter(into), default)]

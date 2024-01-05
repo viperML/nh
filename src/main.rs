@@ -7,13 +7,12 @@ mod logging;
 mod nixos;
 mod search;
 
-
 use crate::interface::NHParser;
 use crate::interface::NHRunnable;
 use color_eyre::Result;
 use tracing::debug;
 
-const NH_VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const NH_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<()> {
     let args = <NHParser as clap::Parser>::parse();

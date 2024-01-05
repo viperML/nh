@@ -214,7 +214,7 @@ pub struct CleanProfileArgs {
     #[command(flatten)]
     pub common: CleanArgs,
 
-    pub profile: PathBuf
+    pub profile: PathBuf,
 }
 
 #[derive(Debug, Args)]

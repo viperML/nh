@@ -8,7 +8,7 @@ use std::{
 use crate::*;
 use color_eyre::eyre::{bail, Context, ContextCompat};
 use regex::Regex;
-use tracing::{debug, info, instrument, trace, warn};
+use tracing::{debug, info, instrument, warn};
 use uzers::os::unix::UserExt;
 
 // Nix impl:

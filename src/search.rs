@@ -1,9 +1,9 @@
 use crate::*;
 use color_eyre::eyre::Context;
 use interface::SearchArgs;
-use serde_json::{json, Value};
-use std::{collections::HashMap, ops::Deref, process::Command, time::Instant};
-use tracing::{debug, info, trace};
+
+use std::time::Instant;
+use tracing::{debug, trace};
 
 use elasticsearch_dsl::*;
 use serde::Deserialize;
@@ -131,7 +131,7 @@ impl NHRunnable for SearchArgs {
             println!();
 
             if let Some(ref desc) = elem.package_description {
-                let desc = desc.replace("\n", " ");
+                let desc = desc.replace('\n', " ");
                 for line in textwrap::wrap(&desc, textwrap::Options::with_termwidth()) {
                     println!("  {}", line);
                 }

@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::bail;
 use color_eyre::Result;
-use tracing::{debug, info, trace};
 use thiserror::Error;
+use tracing::{debug, info, trace};
 
 use crate::*;
 use crate::{
@@ -91,12 +91,7 @@ impl HomeRebuildArgs {
         // just do nothing for None case (fresh installs)
         if let Some(prev_gen) = prev_generation {
             commands::CommandBuilder::default()
-                .args(&[
-                    "nvd",
-                    "diff",
-                    (prev_gen.to_str().unwrap()),
-                    out_link_str,
-                ])
+                .args(&["nvd", "diff", (prev_gen.to_str().unwrap()), out_link_str])
                 .message("Comparing changes")
                 .build()?
                 .exec()?;
