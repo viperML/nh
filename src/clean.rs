@@ -28,11 +28,11 @@ type ProfilesTagged = HashMap<PathBuf, GenerationsTagged>;
 
 impl NHRunnable for interface::CleanMode {
     fn run(&self) -> Result<()> {
-        let uid = nix::unistd::Uid::effective();
-
         let mut profiles = Vec::new();
-        let mut other_paths = Vec::new();
+        let mut other_paths: Vec<PathBuf> = Vec::new();
 
+        // What profiles to clean depending on the call mode
+        let uid = nix::unistd::Uid::effective();
         let args = match self {
             interface::CleanMode::Profile(args) => {
                 profiles.push(args.profile.clone());
@@ -42,14 +42,11 @@ impl NHRunnable for interface::CleanMode {
                 if !uid.is_root() {
                     crate::self_elevate();
                 }
-
                 profiles.extend(profiles_in_dir("/nix/var/nix/profiles"));
-
                 for read_dir in PathBuf::from("/nix/var/nix/profiles/per-user").read_dir()? {
                     let path = read_dir?.path();
                     profiles.extend(profiles_in_dir(path));
                 }
-
                 for user in unsafe { uzers::all_users() } {
                     if user.uid() >= 1000 || user.uid() == 0 {
                         debug!(?user, "Adding XDG profiles for user");
@@ -58,23 +55,19 @@ impl NHRunnable for interface::CleanMode {
                         ));
                     }
                 }
-
                 args
             }
             interface::CleanMode::User(args) => {
                 if uid.is_root() {
                     bail!("nh clean user: don't run me as root!");
                 }
-
                 let user = nix::unistd::User::from_uid(uid)?.unwrap();
-
                 profiles.extend(profiles_in_dir(
                     &PathBuf::from(std::env::var("HOME")?).join(".local/state/nix/profiles"),
                 ));
                 profiles.extend(profiles_in_dir(
                     &PathBuf::from("/nix/var/nix/profiles/per-user").join(user.name),
                 ));
-
                 args
             }
         };
@@ -88,7 +81,49 @@ impl NHRunnable for interface::CleanMode {
             );
         }
 
-        prompt_clean(profiles_tagged, other_paths, args.ask, args.dry)?;
+        // Preset the user the information about the paths to clean
+        use owo_colors::OwoColorize;
+
+        if !other_paths.is_empty() {
+            println!("{}", "gcroots".blue().bold());
+        }
+        for path in &other_paths {
+            println!("- {} {}", "DEL".red(), path.to_string_lossy());
+        }
+
+        for (profile, generations_tagged) in profiles_tagged.iter() {
+            println!("{}", profile.to_string_lossy().blue().bold());
+            for (gen, tbr) in generations_tagged.iter().rev() {
+                if *tbr {
+                    println!("- {} {}", "DEL".red(), gen.path.to_string_lossy());
+                } else {
+                    println!("- {} {}", "OK ".green(), gen.path.to_string_lossy());
+                };
+            }
+            println!();
+        }
+
+        // Clean the paths
+        if !args.dry {
+            if args.ask {
+                info!("Confirm the cleanup plan?");
+                if !dialoguer::Confirm::new().default(false).interact()? {
+                    return Ok(());
+                }
+            }
+
+            for path in &other_paths {
+                remove_path_nofail(path);
+            }
+
+            for (_, generations_tagged) in profiles_tagged.iter() {
+                for (gen, tbr) in generations_tagged.iter().rev() {
+                    if *tbr {
+                        remove_path_nofail(&gen.path);
+                    }
+                }
+            }
+        }
 
         Ok(())
     }
@@ -196,52 +231,6 @@ fn cleanable_generations(
 
     debug!("{:#?}", result);
     Ok(result)
-}
-
-fn prompt_clean(profiles: ProfilesTagged, other_paths: Vec<PathBuf>, ask: bool, dry: bool) -> Result<()> {
-    use owo_colors::OwoColorize;
-
-    if !other_paths.is_empty() {
-        println!("{}", "gcroots".blue().bold());
-    }
-    for path in &other_paths {
-        println!("- {} {}", "DEL".red(), path.to_string_lossy());
-    }
-
-    for (profile, generations_tagged) in profiles.iter() {
-        println!("{}", profile.to_string_lossy().blue().bold());
-        for (gen, tbr) in generations_tagged.iter().rev() {
-            if *tbr {
-                println!("- {} {}", "DEL".red(), gen.path.to_string_lossy());
-            } else {
-                println!("- {} {}", "OK ".green(), gen.path.to_string_lossy());
-            };
-        }
-        println!();
-    }
-
-    if !dry {
-        if ask {
-            info!("Confirm the cleanup plan?");
-            if !dialoguer::Confirm::new().default(false).interact()? {
-                return Ok(());
-            }
-        }
-
-        for path in &other_paths {
-            remove_path_nofail(path);
-        }
-
-        for (_, generations_tagged) in profiles.iter() {
-            for (gen, tbr) in generations_tagged.iter().rev() {
-                if *tbr {
-                    remove_path_nofail(&gen.path);
-                }
-            }
-        }
-    }
-
-    Ok(())
 }
 
 fn remove_path_nofail(path: &Path) {
