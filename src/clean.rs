@@ -31,6 +31,7 @@ impl NHRunnable for interface::CleanMode {
         let uid = nix::unistd::Uid::effective();
 
         let mut profiles = Vec::new();
+        let mut other_paths = Vec::new();
 
         let args = match self {
             interface::CleanMode::Profile(args) => {
@@ -87,7 +88,7 @@ impl NHRunnable for interface::CleanMode {
             );
         }
 
-        prompt_clean(profiles_tagged, args.ask, args.dry)?;
+        prompt_clean(profiles_tagged, other_paths, args.ask, args.dry)?;
 
         Ok(())
     }
@@ -197,8 +198,15 @@ fn cleanable_generations(
     Ok(result)
 }
 
-fn prompt_clean(profiles: ProfilesTagged, ask: bool, dry: bool) -> Result<()> {
+fn prompt_clean(profiles: ProfilesTagged, other_paths: Vec<PathBuf>, ask: bool, dry: bool) -> Result<()> {
     use owo_colors::OwoColorize;
+
+    if !other_paths.is_empty() {
+        println!("{}", "gcroots".blue().bold());
+    }
+    for path in &other_paths {
+        println!("- {} {}", "DEL".red(), path.to_string_lossy());
+    }
 
     for (profile, generations_tagged) in profiles.iter() {
         println!("{}", profile.to_string_lossy().blue().bold());
@@ -220,17 +228,25 @@ fn prompt_clean(profiles: ProfilesTagged, ask: bool, dry: bool) -> Result<()> {
             }
         }
 
+        for path in &other_paths {
+            remove_path_nofail(path);
+        }
+
         for (_, generations_tagged) in profiles.iter() {
             for (gen, tbr) in generations_tagged.iter().rev() {
                 if *tbr {
-                    info!("Removing {}", gen.path.to_string_lossy());
-                    if let Err(err) = std::fs::remove_file(&gen.path) {
-                        warn!(?err, "Failed to remove");
-                    }
+                    remove_path_nofail(&gen.path);
                 }
             }
         }
     }
 
     Ok(())
+}
+
+fn remove_path_nofail(path: &Path) {
+    info!("Removing {}", path.to_string_lossy());
+    if let Err(err) = std::fs::remove_file(path) {
+        warn!(?path, ?err, "Failed to remove path");
+    }
 }
