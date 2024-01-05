@@ -139,9 +139,10 @@ impl NHRunnable for interface::CleanMode {
         use owo_colors::OwoColorize;
         if !other_paths.is_empty() {
             println!("{}", "gcroots".blue().bold());
-        }
-        for path in &other_paths {
-            println!("- {} {}", "DEL".red(), path.to_string_lossy());
+            for path in &other_paths {
+                println!("- {} {}", "DEL".red(), path.to_string_lossy());
+            }
+            println!();
         }
         for (profile, generations_tagged) in profiles_tagged.iter() {
             println!("{}", profile.to_string_lossy().blue().bold());
