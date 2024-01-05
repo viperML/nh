@@ -16,9 +16,8 @@ use tracing::debug;
 const NH_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<()> {
-    logging::setup_logging()?;
-
     let args = <NHParser as clap::Parser>::parse();
+    crate::logging::setup_logging(args.verbose)?;
 
     args.command.run()
 }

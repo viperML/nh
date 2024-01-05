@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use owo_colors::OwoColorize;
 use tracing::Event;
 use tracing::Level;
@@ -10,6 +12,7 @@ use tracing_subscriber::fmt::FormatFields;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::EnvFilter;
+use tracing_subscriber::filter::FilterExt;
 use crate::*;
 
 struct InfoFormatter;
@@ -34,7 +37,7 @@ where
     }
 }
 
-pub(crate) fn setup_logging() -> Result<()> {
+pub(crate) fn setup_logging(verbose: bool) -> Result<()> {
     color_eyre::config::HookBuilder::default()
         .display_location_section(false)
         .panic_section("Please report the bug at https://github.com/viperML/nh/issues")
@@ -46,8 +49,8 @@ pub(crate) fn setup_logging() -> Result<()> {
         .without_time()
         .compact()
         .with_line_number(true)
-        .with_filter(EnvFilter::from_default_env())
-        .with_filter(filter_fn(|meta| *meta.level() != Level::INFO));
+        .with_filter(EnvFilter::from_default_env().or(filter_fn(move |_| verbose)))
+        .with_filter(filter_fn(|meta| *meta.level() > Level::INFO));
 
     let layer_info = fmt::layer()
         .with_writer(std::io::stderr)
@@ -55,14 +58,14 @@ pub(crate) fn setup_logging() -> Result<()> {
         .with_target(false)
         .with_level(false)
         .event_format(InfoFormatter)
-        .with_filter(filter_fn(|meta| *meta.level() == Level::INFO));
+        .with_filter(filter_fn(|meta| *meta.level() <= Level::INFO));
 
     tracing_subscriber::registry()
         .with(layer_debug)
         .with(layer_info)
         .init();
 
-    tracing::trace!("Logging setup!");
+    tracing::trace!("Logging OK");
 
     Ok(())
 }

@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, HashMap},
+    fmt,
     path::{Path, PathBuf},
     time::SystemTime,
 };
@@ -41,17 +42,20 @@ impl NHRunnable for interface::CleanMode {
                     crate::self_elevate();
                 }
 
-                profiles.extend(profiles_in_dir("/nix/var/nix/profiles")?);
+                profiles.extend(profiles_in_dir("/nix/var/nix/profiles"));
 
                 for read_dir in PathBuf::from("/nix/var/nix/profiles/per-user").read_dir()? {
                     let path = read_dir?.path();
-                    profiles.extend(profiles_in_dir(path)?);
+                    profiles.extend(profiles_in_dir(path));
                 }
 
                 for user in unsafe { uzers::all_users() } {
-                    profiles.extend(profiles_in_dir(
-                        user.home_dir().join(".local/state/nix/profiles"),
-                    )?);
+                    if user.uid() >= 1000 || user.uid() == 0 {
+                        debug!(?user, "Adding XDG profiles for user");
+                        profiles.extend(profiles_in_dir(
+                            user.home_dir().join(".local/state/nix/profiles"),
+                        ));
+                    }
                 }
 
                 args
@@ -65,10 +69,10 @@ impl NHRunnable for interface::CleanMode {
 
                 profiles.extend(profiles_in_dir(
                     &PathBuf::from(std::env::var("HOME")?).join(".local/state/nix/profiles"),
-                )?);
+                ));
                 profiles.extend(profiles_in_dir(
                     &PathBuf::from("/nix/var/nix/profiles/per-user").join(user.name),
-                )?);
+                ));
 
                 args
             }
@@ -89,30 +93,43 @@ impl NHRunnable for interface::CleanMode {
     }
 }
 
-#[instrument(ret, err, level = "trace")]
-fn profiles_in_dir<P: AsRef<Path> + std::fmt::Debug>(dir: P) -> Result<Vec<PathBuf>> {
+#[instrument(ret, level = "trace")]
+fn profiles_in_dir<P: AsRef<Path> + fmt::Debug>(dir: P) -> Vec<PathBuf> {
     let mut res = Vec::new();
+    let dir = dir.as_ref();
 
-    if let Ok(read_dir) = dir.as_ref().read_dir() {
-        for entry in read_dir {
-            let path = entry?.path();
+    match dir.read_dir() {
+        Ok(read_dir) => {
+            for entry in read_dir {
+                match entry {
+                    Ok(e) => {
+                        let path = e.path();
 
-            if let Ok(dst) = path.read_link() {
-                let name = dst
-                    .file_name()
-                    .wrap_err("Reading file_name")?
-                    .to_string_lossy();
+                        if let Ok(dst) = path.read_link() {
+                            let name = dst
+                                .file_name()
+                                .expect("Failed to get filename")
+                                .to_string_lossy();
 
-                let generation_regex = Regex::new(r"^(.*)-(\d+)-link$")?;
+                            let generation_regex = Regex::new(r"^(.*)-(\d+)-link$").unwrap();
 
-                if let Some(_) = generation_regex.captures(&name) {
-                    res.push(path);
+                            if let Some(_) = generation_regex.captures(&name) {
+                                res.push(path);
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        warn!(?dir, ?error, "Failed to read folder element");
+                    }
                 }
             }
         }
+        Err(error) => {
+            warn!(?dir, ?error, "Failed to read profiles directory");
+        }
     }
 
-    Ok(res)
+    res
 }
 
 #[instrument(err, level = "debug")]
