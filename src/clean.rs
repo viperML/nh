@@ -1,14 +1,21 @@
 use std::{
     collections::{BTreeMap, HashMap},
     fmt,
+    os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
     time::SystemTime,
 };
 
 use crate::*;
-use color_eyre::eyre::{bail, Context, ContextCompat};
+use color_eyre::eyre::{bail, eyre, Context, ContextCompat};
+use nix::errno::Errno;
+use nix::{
+    fcntl::AtFlags,
+    unistd::{faccessat, AccessFlags},
+};
 use regex::Regex;
-use tracing::{debug, info, instrument, warn};
+use std::os::unix::fs::MetadataExt;
+use tracing::{debug, info, instrument, trace, warn};
 use uzers::os::unix::UserExt;
 
 // Nix impl:
@@ -30,6 +37,7 @@ impl NHRunnable for interface::CleanMode {
     fn run(&self) -> Result<()> {
         let mut profiles = Vec::new();
         let mut other_paths: Vec<PathBuf> = Vec::new();
+        let now = SystemTime::now();
 
         // What profiles to clean depending on the call mode
         let uid = nix::unistd::Uid::effective();
@@ -81,16 +89,60 @@ impl NHRunnable for interface::CleanMode {
             );
         }
 
-        // Preset the user the information about the paths to clean
-        use owo_colors::OwoColorize;
+        // Query gcroots
+        for elem in PathBuf::from("/nix/var/nix/gcroots/auto")
+            .read_dir()
+            .wrap_err("Reading auto gcroots dir")?
+        {
+            let src = elem.wrap_err("Reading auto gcroots element")?.path();
+            let dst = src.read_link().wrap_err("Reading symlink destination")?;
+            debug!(?src, ?dst);
 
+            // Use .exists to not travel symlinks
+            if dst.exists() {
+                let meta = dst.metadata().wrap_err("Reading gcroot metadata")?;
+                let last_modified = meta.modified()?;
+
+                let access = match faccessat(
+                    None,
+                    &dst,
+                    AccessFlags::F_OK | AccessFlags::W_OK,
+                    AtFlags::AT_SYMLINK_NOFOLLOW,
+                ) {
+                    Ok(_) => true,
+                    Err(errno) => match errno {
+                        Errno::EACCES => false,
+                        _ => bail!(eyre!("Checking gcroot access, unknown error").wrap_err(errno)),
+                    },
+                };
+
+                debug!(?access);
+
+                // filter gcroots by filename
+
+                if access {
+                    match now.duration_since(last_modified) {
+                        Err(err) => {
+                            warn!(?err, ?now, ?dst, "Failed to compare time!");
+                        }
+                        Ok(val) if val <= args.keep_since.into() => {}
+                        Ok(_) => {
+                            other_paths.push(dst);
+                        }
+                    }
+                }
+            }
+        }
+        trace!("other_paths: {:#?}", other_paths);
+
+        // Present the user the information about the paths to clean
+        use owo_colors::OwoColorize;
         if !other_paths.is_empty() {
             println!("{}", "gcroots".blue().bold());
         }
         for path in &other_paths {
             println!("- {} {}", "DEL".red(), path.to_string_lossy());
         }
-
         for (profile, generations_tagged) in profiles_tagged.iter() {
             println!("{}", profile.to_string_lossy().blue().bold());
             for (gen, tbr) in generations_tagged.iter().rev() {
