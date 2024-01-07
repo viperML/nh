@@ -28,22 +28,24 @@ struct Generation {
     path: PathBuf,
 }
 
-type ToBeCleaned = bool;
+type ToBeRemoved = bool;
 // BTreeMap to automatically sort generations by id
-type GenerationsTagged = BTreeMap<Generation, ToBeCleaned>;
+type GenerationsTagged = BTreeMap<Generation, ToBeRemoved>;
 type ProfilesTagged = HashMap<PathBuf, GenerationsTagged>;
 
 impl NHRunnable for interface::CleanMode {
     fn run(&self) -> Result<()> {
         let mut profiles = Vec::new();
-        let mut other_paths: Vec<PathBuf> = Vec::new();
+        let mut gcroots_tagged: HashMap<PathBuf, ToBeRemoved> = HashMap::new();
         let now = SystemTime::now();
+        let mut is_profile_clean = false;
 
         // What profiles to clean depending on the call mode
         let uid = nix::unistd::Uid::effective();
         let args = match self {
             interface::CleanMode::Profile(args) => {
                 profiles.push(args.profile.clone());
+                is_profile_clean = true;
                 &args.common
             }
             interface::CleanMode::All(args) => {
@@ -90,57 +92,99 @@ impl NHRunnable for interface::CleanMode {
         }
 
         // Query gcroots
-        for elem in PathBuf::from("/nix/var/nix/gcroots/auto")
-            .read_dir()
-            .wrap_err("Reading auto gcroots dir")?
-        {
-            let src = elem.wrap_err("Reading auto gcroots element")?.path();
-            let dst = src.read_link().wrap_err("Reading symlink destination")?;
-            debug!(?src, ?dst);
+        let filename_tests = [r".*/.direnv/.*", r".*result.*"];
+        let regexes = filename_tests
+            .into_iter()
+            .map(Regex::new)
+            .collect::<Result<Vec<_>, regex::Error>>()?;
 
-            // Use .exists to not travel symlinks
-            if dst.exists() {
-                let meta = dst.metadata().wrap_err("Reading gcroot metadata")?;
-                let last_modified = meta.modified()?;
+        if !is_profile_clean {
+            for elem in PathBuf::from("/nix/var/nix/gcroots/auto")
+                .read_dir()
+                .wrap_err("Reading auto gcroots dir")?
+            {
+                let src = elem.wrap_err("Reading auto gcroots element")?.path();
+                let dst = src.read_link().wrap_err("Reading symlink destination")?;
+                debug!(?src, ?dst);
 
-                let access = match faccessat(
-                    None,
-                    &dst,
-                    AccessFlags::F_OK | AccessFlags::W_OK,
-                    AtFlags::AT_SYMLINK_NOFOLLOW,
-                ) {
-                    Ok(_) => true,
-                    Err(errno) => match errno {
-                        Errno::EACCES => false,
-                        _ => bail!(eyre!("Checking gcroot access, unknown error").wrap_err(errno)),
-                    },
+                if !regexes.iter().fold(false, |acc, next| {
+                    acc || next.is_match(&dst.to_string_lossy())
+                }) {
+                    trace!(?dst, "dst doesn't match any gcroot regex, skipping");
+                    continue;
                 };
 
-                debug!(?access);
+                // Use .exists to not travel symlinks
+                if dst.exists() {
+                    let access = match faccessat(
+                        None,
+                        &dst,
+                        AccessFlags::F_OK | AccessFlags::W_OK,
+                        AtFlags::AT_SYMLINK_NOFOLLOW,
+                    ) {
+                        Ok(_) => true,
+                        Err(errno) => match errno {
+                            Errno::EACCES => false,
+                            _ => {
+                                bail!(eyre!("Checking gcroot access, unknown error").wrap_err(errno))
+                            }
+                        },
+                    };
 
-                // filter gcroots by filename
+                    debug!(?access);
 
-                if access {
-                    match now.duration_since(last_modified) {
-                        Err(err) => {
-                            warn!(?err, ?now, ?dst, "Failed to compare time!");
-                        }
-                        Ok(val) if val <= args.keep_since.into() => {}
-                        Ok(_) => {
-                            other_paths.push(dst);
+                    let dur = now.duration_since(
+                        dst.symlink_metadata()
+                            .wrap_err("Reading gcroot metadata")?
+                            .modified()?,
+                    );
+                    trace!(?dur, ?dst);
+                    if access {
+                        match dur {
+                            Err(err) => {
+                                warn!(?err, ?now, ?dst, "Failed to compare time!");
+                            }
+                            Ok(val) if val <= args.keep_since.into() => {
+                                trace!(?dst, "gcroot old");
+                                gcroots_tagged.insert(dst, false);
+                            }
+                            Ok(_) => {
+                                trace!(?dst, "gcroot new");
+                                gcroots_tagged.insert(dst, true);
+                            }
                         }
                     }
                 }
             }
         }
-        trace!("other_paths: {:#?}", other_paths);
 
         // Present the user the information about the paths to clean
         use owo_colors::OwoColorize;
-        if !other_paths.is_empty() {
-            println!("{}", "gcroots".blue().bold());
-            for path in &other_paths {
-                println!("- {} {}", "DEL".red(), path.to_string_lossy());
+        println!();
+        println!("{}", "Welcome to nh clean".bold());
+        println!("Keeping {} generation(s)", args.keep.green());
+        println!("Keeping paths newer than {}", args.keep_since.green());
+        println!();
+        println!("legend:");
+        println!("{}: path to be kept", "OK".green());
+        println!("{}: path to be removed", "DEL".red());
+        println!();
+        if !gcroots_tagged.is_empty() {
+            println!(
+                "{}",
+                "gcroots (matching the following regex patterns)"
+                    .blue()
+                    .bold()
+            );
+            for re in regexes {
+                println!("- {}  {}", "RE".purple(), re);
+            }
+            for (path, tbr) in &gcroots_tagged {
+                if *tbr {
+                    println!("- {} {}", "DEL".red(), path.to_string_lossy());
+                } else {
+                    println!("- {} {}", "OK ".green(), path.to_string_lossy());
+                }
             }
             println!();
         }
@@ -165,8 +209,10 @@ impl NHRunnable for interface::CleanMode {
                 }
             }
 
-            for path in &other_paths {
-                remove_path_nofail(path);
+            for (path, tbr) in &gcroots_tagged {
+                if *tbr {
+                    remove_path_nofail(path);
+                }
             }
 
             for (_, generations_tagged) in profiles_tagged.iter() {
@@ -248,7 +294,8 @@ fn cleanable_generations(
 
         if let Some(caps) = captures {
             if let Some(number) = caps.get(1) {
-                let last_modified = std::fs::symlink_metadata(&path)
+                let last_modified = path
+                    .symlink_metadata()
                     .context("Checking symlink metadata")?
                     .modified()
                     .context("Reading modified time")?;

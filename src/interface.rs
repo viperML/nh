@@ -188,7 +188,7 @@ pub struct CleanArgs {
     /// At least keep this number of generations
     pub keep: u32,
 
-    #[arg(long, short = 'K', default_value = "0s")]
+    #[arg(long, short = 'K', default_value = "0h")]
     /// At least keep gcroots and generations in this time range since now.
     pub keep_since: humantime::Duration,
 
