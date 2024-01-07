@@ -15,7 +15,7 @@ use nix::{
 };
 use regex::Regex;
 use std::os::unix::fs::MetadataExt;
-use tracing::{debug, info, instrument, trace, warn};
+use tracing::{debug, info, instrument, span, trace, warn, Level};
 use uzers::os::unix::UserExt;
 
 // Nix impl:
@@ -105,55 +105,51 @@ impl NHRunnable for interface::CleanMode {
             {
                 let src = elem.wrap_err("Reading auto gcroots element")?.path();
                 let dst = src.read_link().wrap_err("Reading symlink destination")?;
-                debug!(?src, ?dst);
+                let span = span!(Level::TRACE, "gcroot detection", ?dst);
+                let _entered = span.enter();
+                debug!(?src);
 
                 if !regexes.iter().fold(false, |acc, next| {
                     acc || next.is_match(&dst.to_string_lossy())
                 }) {
-                    trace!(?dst, "dst doesn't match any gcroot regex, skipping");
+                    debug!("dst doesn't match any gcroot regex, skipping");
                     continue;
                 };
 
                 // Use .exists to not travel symlinks
-                if dst.exists() {
-                    let access = match faccessat(
-                        None,
-                        &dst,
-                        AccessFlags::F_OK | AccessFlags::W_OK,
-                        AtFlags::AT_SYMLINK_NOFOLLOW,
-                    ) {
-                        Ok(_) => true,
-                        Err(errno) => match errno {
-                            Errno::EACCES => false,
-                            _ => {
-                                bail!(eyre!("Checking gcroot access, unknown error").wrap_err(errno))
-                            }
-                        },
-                    };
-
-                    debug!(?access);
-
+                if match faccessat(
+                    None,
+                    &dst,
+                    AccessFlags::F_OK | AccessFlags::W_OK,
+                    AtFlags::AT_SYMLINK_NOFOLLOW,
+                ) {
+                    Ok(_) => true,
+                    Err(errno) => match errno {
+                        Errno::EACCES | Errno::ENOENT => false,
+                        _ => {
+                            bail!(eyre!("Checking access for gcroot {:?}, unknown error", dst).wrap_err(errno))
+                        }
+                    },
+                } {
                     let dur = now.duration_since(
                         dst.symlink_metadata()
                             .wrap_err("Reading gcroot metadata")?
                             .modified()?,
                     );
-                    trace!(?dur, ?dst);
-                    if access {
-                        match dur {
-                            Err(err) => {
-                                warn!(?err, ?now, ?dst, "Failed to compare time!");
-                            }
-                            Ok(val) if val <= args.keep_since.into() => {
-                                trace!(?dst, "gcroot old");
-                                gcroots_tagged.insert(dst, false);
-                            }
-                            Ok(_) => {
-                                trace!(?dst, "gcroot new");
-                                gcroots_tagged.insert(dst, true);
-                            }
+                    debug!(?dur);
+                    match dur {
+                        Err(err) => {
+                            warn!(?err, ?now, "Failed to compare time!");
+                        }
+                        Ok(val) if val <= args.keep_since.into() => {
+                            gcroots_tagged.insert(dst, false);
+                        }
+                        Ok(_) => {
+                            gcroots_tagged.insert(dst, true);
                         }
                     }
+                } else {
+                    debug!("dst doesn't exist or is not writable, skipping");
                 }
             }
         }
@@ -228,7 +224,7 @@ impl NHRunnable for interface::CleanMode {
     }
 }
 
-#[instrument(ret, level = "trace")]
+#[instrument(ret, level = "debug")]
 fn profiles_in_dir<P: AsRef<Path> + fmt::Debug>(dir: P) -> Vec<PathBuf> {
     let mut res = Vec::new();
     let dir = dir.as_ref();
