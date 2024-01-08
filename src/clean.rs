@@ -127,7 +127,8 @@ impl NHRunnable for interface::CleanMode {
                     Err(errno) => match errno {
                         Errno::EACCES | Errno::ENOENT => false,
                         _ => {
-                            bail!(eyre!("Checking access for gcroot {:?}, unknown error", dst).wrap_err(errno))
+                            bail!(eyre!("Checking access for gcroot {:?}, unknown error", dst)
+                                .wrap_err(errno))
                         }
                     },
                 } {
@@ -197,14 +198,14 @@ impl NHRunnable for interface::CleanMode {
         }
 
         // Clean the paths
-        if !args.dry {
-            if args.ask {
-                info!("Confirm the cleanup plan?");
-                if !dialoguer::Confirm::new().default(false).interact()? {
-                    return Ok(());
-                }
+        if args.ask {
+            info!("Confirm the cleanup plan?");
+            if !dialoguer::Confirm::new().default(false).interact()? {
+                return Ok(());
             }
+        }
 
+        if !args.dry {
             for (path, tbr) in &gcroots_tagged {
                 if *tbr {
                     remove_path_nofail(path);
@@ -219,6 +220,14 @@ impl NHRunnable for interface::CleanMode {
                 }
             }
         }
+
+        crate::commands::CommandBuilder::default()
+            .args(&["nix", "store", "gc"])
+            .dry(args.dry)
+            .message("Running nix store gc")
+            .capture(false)
+            .build()?
+            .exec()?;
 
         Ok(())
     }
