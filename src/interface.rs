@@ -62,7 +62,6 @@ pub trait NHRunnable {
 pub enum NHCommand {
     Os(OsArgs),
     Home(HomeArgs),
-    #[command(hide = true)]
     Search(SearchArgs),
     Clean(CleanProxy),
     Completions(CompletionArgs),
