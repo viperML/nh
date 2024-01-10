@@ -2,7 +2,7 @@ use ambassador::{delegatable_trait, Delegate};
 use anstyle::Style;
 use clap::{builder::Styles, Args, Parser, Subcommand};
 use color_eyre::Result;
-use std::{ffi::OsString, ops::Deref};
+use std::{ffi::OsString, ops::Deref, path::PathBuf};
 
 #[derive(Debug, Clone, Default)]
 pub struct FlakeRef(String);
@@ -141,15 +141,22 @@ pub struct CommonRebuildArgs {
 }
 
 #[derive(Args, Debug)]
-/// Search a package
+/// Searches packages by querying search.nixos.org
 pub struct SearchArgs {
-    #[arg(long, short, default_value = "10")]
-    pub max_results: usize,
+    #[arg(long, short, default_value = "30")]
+    /// Number of search results to display
+    pub limit: u64,
 
+    #[arg(long, short = 'L')]
+    /// Display more information about each result
+    pub long: bool,
+
+    #[arg(long, short, default_value = "nixos-unstable")]
+    /// Name of the channel to query (e.g nixos-23.11, nixos-unstable)
+    pub channel: String,
+
+    /// Name of the package to search
     pub query: String,
-
-    #[arg(default_value = "nixpkgs")]
-    pub flake: FlakeRef,
 }
 
 // Needed a struct to have multiple sub-subcommands
@@ -163,13 +170,12 @@ pub struct CleanProxy {
 #[derive(Debug, Clone, Subcommand)]
 /// Enhanced nix cleanup
 pub enum CleanMode {
-    /// Elevate to root to clean all profiles and gcroots
+    /// Cleans root profiles and calls a store gc
     All(CleanArgs),
-    /// Clean your user's profiles and gcroots
+    /// Cleans the current user's profiles and calls a store gc
     User(CleanArgs),
-    /// Print information about the store of the system
-    #[clap(hide = true)]
-    Info,
+    /// Cleans a specific profile
+    Profile(CleanProfileArgs),
 }
 
 #[derive(Args, Clone, Debug)]
@@ -182,7 +188,7 @@ pub struct CleanArgs {
     /// At least keep this number of generations
     pub keep: u32,
 
-    #[arg(long, short = 'K', default_value = "0s")]
+    #[arg(long, short = 'K', default_value = "0h")]
     /// At least keep gcroots and generations in this time range since now.
     pub keep_since: humantime::Duration,
 
@@ -201,6 +207,14 @@ pub struct CleanArgs {
     /// Don't clean gcroots
     #[arg(long)]
     pub nogcroots: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct CleanProfileArgs {
+    #[command(flatten)]
+    pub common: CleanArgs,
+
+    pub profile: PathBuf,
 }
 
 #[derive(Debug, Args)]

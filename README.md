@@ -136,3 +136,8 @@ Just `nix develop`
 [^1]: At the time of this writing.
 
 [^2]: The toplevel package is what you can build with `nix build /flake#nixosConfiguration.HOSTNAME.config.system.build.toplevel`, and what sits on `/run/current-system`, `/run/booted-system` and `/nix/var/nix/profiles/system`.
+
+## FIXME
+
+https://hydra.nixos.org/job/nixos/trunk-combined/nixpkgs.nh.x86_64-linux
+https://hydra.nixos.org/job/nixos/trunk-combined/nixpkgs.nh.aarch64-linux

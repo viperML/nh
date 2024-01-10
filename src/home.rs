@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::bail;
 use color_eyre::Result;
-use log::{debug, info, trace};
 use thiserror::Error;
+use tracing::{debug, info, instrument};
 
 use crate::*;
 use crate::{
@@ -60,7 +60,7 @@ impl HomeRebuildArgs {
 
         if self.common.update {
             commands::CommandBuilder::default()
-                .args(&["nix", "flake", "update", &self.common.flakeref])
+                .args(["nix", "flake", "update", &self.common.flakeref])
                 .message("Updating flake")
                 .build()?
                 .exec()?;
@@ -68,7 +68,7 @@ impl HomeRebuildArgs {
 
         commands::BuildCommandBuilder::default()
             .flakeref(&flakeref)
-            .extra_args(&["--out-link", out_link_str])
+            .extra_args(["--out-link", out_link_str])
             .extra_args(&self.extra_args)
             .message("Building home configuration")
             .nom(self.common.nom)
@@ -91,12 +91,7 @@ impl HomeRebuildArgs {
         // just do nothing for None case (fresh installs)
         if let Some(prev_gen) = prev_generation {
             commands::CommandBuilder::default()
-                .args(&[
-                    "nvd",
-                    "diff",
-                    (prev_gen.to_str().unwrap()),
-                    out_link_str,
-                ])
+                .args(["nvd", "diff", (prev_gen.to_str().unwrap()), out_link_str])
                 .message("Comparing changes")
                 .build()?
                 .exec()?;
@@ -116,7 +111,7 @@ impl HomeRebuildArgs {
         }
 
         commands::CommandBuilder::default()
-            .args(&[&format!("{}/activate", out_link_str)])
+            .args([&format!("{}/activate", out_link_str)])
             .message("Activating configuration")
             .build()?
             .exec()?;
@@ -158,19 +153,18 @@ fn get_home_output<S: AsRef<str> + std::fmt::Display>(
     }
 }
 
+#[instrument(ret, err, level = "debug")]
 fn configuration_exists(flakeref: &FlakeRef, configuration: &str) -> Result<bool> {
     let output = format!("{}#homeConfigurations", flakeref.deref());
     let filter = format!(r#" x: x ? "{}" "#, configuration);
 
     let result = commands::CommandBuilder::default()
-        .args(&["nix", "eval", &output, "--apply", &filter])
-        .capture(true)
-        .build()
-        .unwrap()
-        .exec()?
+        .args(["nix", "eval", &output, "--apply", &filter])
+        .build()?
+        .exec_capture()?
         .unwrap();
 
-    trace!("{:?}", result);
+    debug!(?result);
 
     match result.as_str().trim() {
         "true" => Ok(true),

@@ -3,7 +3,7 @@ use std::ops::Deref;
 use color_eyre::eyre::{bail, Context};
 use color_eyre::Result;
 
-use log::{debug, info, trace};
+use tracing::{debug, info};
 
 use crate::interface::NHRunnable;
 use crate::interface::OsRebuildType::{self, Boot, Switch, Test};
@@ -17,8 +17,6 @@ const SPEC_LOCATION: &str = "/etc/specialisation";
 
 impl NHRunnable for interface::OsArgs {
     fn run(&self) -> Result<()> {
-        trace!("{:?}", self);
-
         match &self.action {
             Switch(args) | Boot(args) | Test(args) => args.rebuild(&self.action),
             s => bail!("Subcommand {:?} not yet implemented", s),
@@ -51,7 +49,7 @@ impl OsRebuildArgs {
 
         if self.common.update {
             commands::CommandBuilder::default()
-                .args(&["nix", "flake", "update", &self.common.flakeref])
+                .args(["nix", "flake", "update", &self.common.flakeref])
                 .message("Updating flake")
                 .build()?
                 .exec()?;
@@ -60,7 +58,7 @@ impl OsRebuildArgs {
         commands::BuildCommandBuilder::default()
             .flakeref(flake_output)
             .message("Building NixOS configuration")
-            .extra_args(&["--out-link", out_link_str])
+            .extra_args(["--out-link", out_link_str])
             .extra_args(&self.extra_args)
             .nom(self.common.nom)
             .build()?
@@ -84,7 +82,7 @@ impl OsRebuildArgs {
         target_profile.try_exists().context("Doesn't exist")?;
 
         commands::CommandBuilder::default()
-            .args(&[
+            .args([
                 "nvd",
                 "diff",
                 CURRENT_PROFILE,
@@ -108,7 +106,7 @@ impl OsRebuildArgs {
         }
 
         commands::CommandBuilder::default()
-            .args(&[
+            .args([
                 "sudo",
                 "nix-env",
                 "--profile",
@@ -126,7 +124,7 @@ impl OsRebuildArgs {
             let switch_to_configuration = switch_to_configuration.to_str().unwrap();
 
             commands::CommandBuilder::default()
-                .args(&["sudo", switch_to_configuration, "test"])
+                .args(["sudo", switch_to_configuration, "test"])
                 .message("Activating configuration")
                 .build()?
                 .exec()?;
@@ -138,7 +136,7 @@ impl OsRebuildArgs {
             let switch_to_configuration = switch_to_configuration.to_str().unwrap();
 
             commands::CommandBuilder::default()
-                .args(&["sudo", switch_to_configuration, "boot"])
+                .args(["sudo", switch_to_configuration, "boot"])
                 .message("Adding configuration to bootloader")
                 .build()?
                 .exec()?;
