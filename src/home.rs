@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use color_eyre::eyre::bail;
 use color_eyre::Result;
 use thiserror::Error;
-use tracing::{debug, info, instrument, trace};
+use tracing::{debug, info, instrument};
 
 use crate::*;
 use crate::{
@@ -60,7 +60,7 @@ impl HomeRebuildArgs {
 
         if self.common.update {
             commands::CommandBuilder::default()
-                .args(&["nix", "flake", "update", &self.common.flakeref])
+                .args(["nix", "flake", "update", &self.common.flakeref])
                 .message("Updating flake")
                 .build()?
                 .exec()?;
@@ -91,7 +91,7 @@ impl HomeRebuildArgs {
         // just do nothing for None case (fresh installs)
         if let Some(prev_gen) = prev_generation {
             commands::CommandBuilder::default()
-                .args(&["nvd", "diff", (prev_gen.to_str().unwrap()), out_link_str])
+                .args(["nvd", "diff", (prev_gen.to_str().unwrap()), out_link_str])
                 .message("Comparing changes")
                 .build()?
                 .exec()?;
@@ -111,7 +111,7 @@ impl HomeRebuildArgs {
         }
 
         commands::CommandBuilder::default()
-            .args(&[&format!("{}/activate", out_link_str)])
+            .args([&format!("{}/activate", out_link_str)])
             .message("Activating configuration")
             .build()?
             .exec()?;
@@ -159,7 +159,7 @@ fn configuration_exists(flakeref: &FlakeRef, configuration: &str) -> Result<bool
     let filter = format!(r#" x: x ? "{}" "#, configuration);
 
     let result = commands::CommandBuilder::default()
-        .args(&["nix", "eval", &output, "--apply", &filter])
+        .args(["nix", "eval", &output, "--apply", &filter])
         .build()?
         .exec_capture()?
         .unwrap();

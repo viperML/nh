@@ -6,7 +6,7 @@ use color_eyre::{
 use std::ffi::{OsStr, OsString};
 use thiserror::Error;
 
-use subprocess::{Exec, ExitStatus, PopenError, Redirection};
+use subprocess::{Exec, ExitStatus, Redirection};
 use tracing::{debug, info};
 
 #[derive(Debug, derive_builder::Builder)]
@@ -47,7 +47,6 @@ impl Command {
             .stderr(Redirection::None)
             .stdout(Redirection::None);
 
-
         if let Some(m) = &self.message {
             info!("{}", m);
         }
@@ -60,7 +59,6 @@ impl Command {
                 cmd.join()?;
             }
         }
-
 
         Ok(())
     }

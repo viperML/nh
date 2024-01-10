@@ -1,7 +1,7 @@
 use crate::*;
 use clap_complete::generate;
 use color_eyre::Result;
-use tracing::{instrument, trace};
+use tracing::instrument;
 
 impl NHRunnable for interface::CompletionArgs {
     #[instrument(ret, level = "trace")]

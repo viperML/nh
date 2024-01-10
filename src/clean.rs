@@ -1,7 +1,6 @@
 use std::{
     collections::{BTreeMap, HashMap},
     fmt,
-    os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
     time::SystemTime,
 };
@@ -15,7 +14,7 @@ use nix::{
 };
 use regex::Regex;
 use std::os::unix::fs::MetadataExt;
-use tracing::{debug, info, instrument, span, trace, warn, Level};
+use tracing::{debug, info, instrument, span, warn, Level};
 use uzers::os::unix::UserExt;
 
 // Nix impl:
@@ -109,9 +108,10 @@ impl NHRunnable for interface::CleanMode {
                 let _entered = span.enter();
                 debug!(?src);
 
-                if !regexes.iter().fold(false, |acc, next| {
-                    acc || next.is_match(&dst.to_string_lossy())
-                }) {
+                if !regexes
+                    .iter()
+                    .any(|next| next.is_match(&dst.to_string_lossy()))
+                {
                     debug!("dst doesn't match any gcroot regex, skipping");
                     continue;
                 };
@@ -222,7 +222,7 @@ impl NHRunnable for interface::CleanMode {
         }
 
         commands::CommandBuilder::default()
-            .args(&["nix", "store", "gc"])
+            .args(["nix", "store", "gc"])
             .dry(args.dry)
             .message("Performing garbage collection on the nix store")
             .build()?
