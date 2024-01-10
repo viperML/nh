@@ -31,12 +31,6 @@ struct SearchResult {
     package_position: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-struct License {
-    url: String,
-    fullName: String,
-}
-
 impl NHRunnable for SearchArgs {
     fn run(&self) -> Result<()> {
         trace!("args: {self:?}");
@@ -139,11 +133,11 @@ impl NHRunnable for SearchArgs {
 
             if self.long {
                 for url in elem.package_homepage.iter() {
-                    println!("   Homepage: {}", url);
+                    println!("  Homepage: {}", url);
                 }
 
                 if !elem.package_license_set.is_empty() {
-                    println!("   License: {}", elem.package_license_set.join(", "));
+                    println!("  License: {}", elem.package_license_set.join(", "));
                 }
             }
         }
