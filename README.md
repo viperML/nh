@@ -13,8 +13,6 @@ As the main features:
 - Visualization of the upgrade diff with [nvd](https://gitlab.com/khumba/nvd)
 - Asking for confirmation before performing activation
 
-
-
 <p align="center">
   <img
     alt="build: passing"
@@ -24,10 +22,20 @@ As the main features:
 </p>
 
 
-
 ## Installation
 
-nh is a flake-only tool, so to include it in your configuration add this flake into your flake's inputs:
+### Nixpkgs
+
+nh is available in nixpkgs:
+
+- NixOS search: https://search.nixos.org/packages?channel=unstable&query=nh
+- Hydra status:
+  - x86_64-linux: https://hydra.nixos.org/job/nixos/trunk-combined/nixpkgs.nh.x86_64-linux
+  - aarch64-linux: https://hydra.nixos.org/job/nixos/trunk-combined/nixpkgs.nh.aarch64-linux
+
+### Flake
+
+If you want to get the latest nh version not published to nixpkgs, you can use the flake
 
 ```nix
 {
@@ -56,7 +64,7 @@ environment.sessionVariables.FLAKE = "/home/ayats/Documents/dotfiles";
 
 ### NixOS module
 
-A NixOS module is provided, that contains a systemd service and timer for `nh clean all`. Read the module source to know what is configurable [./module.nix](module.nix).
+The nh NixOS modules provides an garbage collection alternative to the default one. Currently you can only get it through the flake.
 
 ```nix
 nixosConfigurations.foo = nixpkgs.lib.nixosSystem {
@@ -75,7 +83,7 @@ nixosConfigurations.foo = nixpkgs.lib.nixosSystem {
 
 ### Configure specialisations
 
-NH is capable of detecting which spec you are running, so it runs the proper activation script.
+NH is capable of detecting which specialisation you are running, so it runs the proper activation script.
 To do so, you need to give NH some information of the spec that is currently running by writing its name to `/etc/specialisation`. The config would look like this:
 
 ```nix
@@ -99,36 +107,6 @@ By default nh uses nix-output-monitor (nom) to show the build log. This can be d
 - Exporting the environment variable `NH_NOM=0`
 - Overriding the package: `nh.override { use-nom = false; }`
 
-### Binary cache
-
-`nh` is built and pushed for every commit to my personal cachix cache.
-
-```nix
-{
-  nix.settings = {
-    extra-substituters = ["https://viperml.cachix.org"];
-    extra-trusted-public-keys = ["viperml.cachix.org-1:qZhKBMTfmcLL+OG6fj/hzsMEedgKvZVFRRAhq7j8Vh8="];
-  };
-}
-```
-
-<details>
-<summary>Why are specialisations broken with nixos-rebuild?</summary>
-
-To understand why `nixos-rebuild` doesn't work[^1], we must know that it is just a shell wrapper around a more fundamental script from NixOS: `<toplevel package>/bin/switch-to-configuration`[^2].
-
-This scripts has 2 possible commands: `boot` and `test`. What nixos-rebuild and nh do is basically building the toplevel pkg, and running `switch-to-configuration`. For `switch`, we run `test+boot` one after the other.
-
-So, with specialisation, this changes. Specs create "another toplevel" under `<toplevel>/specialisation/<spec toplevel>`, with its own `/bin/switch-to-configuration`. Which one should we run?
-
-- For `test`: `<toplevel>/specialisation/<spec>/bin/switch-to-configuration test`
-- For `boot`: `<toplevel>/bin/switch-to-configuration boot`
-
-We must run the namespaced one for `test`, and the root one for `boot`. Which is what `nixos-rebuild` doesn't do properly.
-
-
-</details>
-
 ## Hacking
 
 Just `nix develop`
@@ -136,8 +114,3 @@ Just `nix develop`
 [^1]: At the time of this writing.
 
 [^2]: The toplevel package is what you can build with `nix build /flake#nixosConfiguration.HOSTNAME.config.system.build.toplevel`, and what sits on `/run/current-system`, `/run/booted-system` and `/nix/var/nix/profiles/system`.
-
-## FIXME
-
-https://hydra.nixos.org/job/nixos/trunk-combined/nixpkgs.nh.x86_64-linux
-https://hydra.nixos.org/job/nixos/trunk-combined/nixpkgs.nh.aarch64-linux
