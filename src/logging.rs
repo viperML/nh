@@ -28,7 +28,8 @@ where
     ) -> std::fmt::Result {
         // Based on https://docs.rs/tracing-subscriber/latest/tracing_subscriber/fmt/trait.FormatEvent.html#examples
         // Without the unused parts
-        let level = event.metadata().level();
+        let metadata = event.metadata();
+        let level = metadata.level();
 
         if *level == Level::ERROR {
             write!(writer, "{} ", "!".red())?;
@@ -39,6 +40,13 @@ where
         }
 
         ctx.field_format().format_fields(writer.by_ref(), event)?;
+
+        if *level != Level::INFO {
+            if let (Some(file), Some(line)) = (metadata.file(), metadata.line()) {
+                write!(writer, " @ {}:{}", file, line)?;
+            }
+        }
+
         writeln!(writer)?;
         Ok(())
     }
@@ -46,7 +54,7 @@ where
 
 pub(crate) fn setup_logging(verbose: bool) -> Result<()> {
     color_eyre::config::HookBuilder::default()
-        .display_location_section(false)
+        .display_location_section(true)
         .panic_section("Please report the bug at https://github.com/viperML/nh/issues")
         .display_env_section(false)
         .install()?;
@@ -65,7 +73,10 @@ pub(crate) fn setup_logging(verbose: bool) -> Result<()> {
         .with_target(false)
         .with_level(false)
         .event_format(InfoFormatter)
-        .with_filter(filter_fn(|meta| *meta.level() <= Level::INFO));
+        .with_filter(filter_fn(|meta| {
+            let level = *meta.level();
+            (level == Level::INFO) || (level == Level::WARN)
+        }));
 
     tracing_subscriber::registry()
         .with(layer_debug)

@@ -17,8 +17,6 @@ const SPEC_LOCATION: &str = "/etc/specialisation";
 
 impl NHRunnable for interface::OsArgs {
     fn run(&self) -> Result<()> {
-        trace!("{:?}", self);
-
         match &self.action {
             Switch(args) | Boot(args) | Test(args) => args.rebuild(&self.action),
             s => bail!("Subcommand {:?} not yet implemented", s),

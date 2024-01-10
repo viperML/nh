@@ -221,11 +221,10 @@ impl NHRunnable for interface::CleanMode {
             }
         }
 
-        crate::commands::CommandBuilder::default()
+        commands::CommandBuilder::default()
             .args(&["nix", "store", "gc"])
             .dry(args.dry)
-            .message("Running nix store gc")
-            .capture(false)
+            .message("Performing garbage collection on the nix store")
             .build()?
             .exec()?;
 

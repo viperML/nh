@@ -17,6 +17,7 @@ const NH_VERSION: &str = env!("CARGO_PKG_VERSION");
 fn main() -> Result<()> {
     let args = <NHParser as clap::Parser>::parse();
     crate::logging::setup_logging(args.verbose)?;
+    tracing::debug!(?args);
 
     args.command.run()
 }

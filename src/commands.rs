@@ -9,83 +9,90 @@ use thiserror::Error;
 use subprocess::{Exec, ExitStatus, PopenError, Redirection};
 use tracing::{debug, info};
 
-#[derive(Debug, derive_builder::Builder, Default)]
-#[builder(derive(Debug), setter(into), default)]
+#[derive(Debug, derive_builder::Builder)]
+#[builder(derive(Debug), setter(into))]
 pub struct Command {
     /// Whether to actually run the command or just log it
+    #[builder(default = "false")]
     dry: bool,
     /// Human-readable message regarding what the command does
-    #[builder(setter(strip_option))]
+    #[builder(setter(strip_option), default = "None")]
     message: Option<String>,
-    /// Whether to capture the stdout or let it inherit the parent
-    capture: bool,
     /// Arguments 0..N
-    #[builder(setter(custom), default = "vec![]")]
+    #[builder(setter(custom))]
     args: Vec<OsString>,
 }
 
 impl CommandBuilder {
-    pub fn args(&mut self, input: &[impl AsRef<OsStr>]) -> &mut Self {
-        if let Some(args) = &mut self.args {
-            args.extend(input.iter().map(|elem| elem.as_ref().to_owned()));
-            self
-        } else {
-            self.args = Some(Vec::new());
-            self.args(input)
-        }
+    pub fn args<S, I>(&mut self, input: I) -> &mut Self
+    where
+        S: AsRef<OsStr>,
+        I: IntoIterator<Item = S>,
+    {
+        self.args
+            .get_or_insert_with(Default::default)
+            .extend(input.into_iter().map(|s| s.as_ref().to_owned()));
+        self
     }
 }
 
 impl Command {
-    fn exec_inner(&self) -> Result<Option<String>, PopenError> {
+    pub fn exec(&self) -> Result<()> {
         let [head, tail @ ..] = &*self.args else {
-            panic!("Args was length 0");
+            bail!("Args was length 0");
         };
 
-        let cmd = if self.capture {
-            Exec::cmd(head)
-                .args(tail)
-                .stderr(Redirection::None)
-                .stdout(Redirection::Pipe)
-        } else {
-            Exec::cmd(head)
-                .args(tail)
-                .stderr(Redirection::None)
-                .stdout(Redirection::None)
-        };
+        let cmd = Exec::cmd(head)
+            .args(tail)
+            .stderr(Redirection::None)
+            .stdout(Redirection::None);
+
 
         if let Some(m) = &self.message {
             info!("{}", m);
         }
-        debug!("{:?}", cmd);
+        debug!(?cmd);
 
-        let result = if self.capture {
-            Some(cmd.capture()?.stdout_str())
-        } else {
-            cmd.join()?;
-            None
-        };
+        if !self.dry {
+            if let Some(m) = &self.message {
+                cmd.join().wrap_err(m.clone())?;
+            } else {
+                cmd.join()?;
+            }
+        }
 
-        Ok(result)
+
+        Ok(())
     }
 
-    pub fn exec(self) -> Result<Option<String>> {
-        let result = self.exec_inner();
+    pub fn exec_capture(&self) -> Result<Option<String>> {
+        let [head, tail @ ..] = &*self.args else {
+            bail!("Args was length 0");
+        };
 
-        if let Some(m) = self.message {
-            Ok(result.context(m)?)
+        let cmd = Exec::cmd(head)
+            .args(tail)
+            .stderr(Redirection::None)
+            .stdout(Redirection::Pipe);
+
+        if let Some(m) = &self.message {
+            info!("{}", m);
+        }
+        debug!(?cmd);
+
+        if !self.dry {
+            Ok(Some(cmd.capture()?.stdout_str()))
         } else {
-            Ok(result?)
+            Ok(None)
         }
     }
 }
 
-#[derive(Debug, Default, derive_builder::Builder)]
-#[builder(setter(into), default)]
+#[derive(Debug, derive_builder::Builder)]
+#[builder(setter(into))]
 pub struct BuildCommand {
     /// Human-readable message regarding what the command does
-    #[builder(setter(strip_option))]
-    message: Option<String>,
+    message: String,
     // Flakeref to build
     flakeref: String,
     // Extra arguments passed to nix build
@@ -96,22 +103,21 @@ pub struct BuildCommand {
 }
 
 impl BuildCommandBuilder {
-    pub fn extra_args(&mut self, input: &[impl AsRef<OsStr>]) -> &mut Self {
-        if let Some(args) = &mut self.extra_args {
-            args.extend(input.iter().map(|elem| elem.as_ref().to_owned()));
-            self
-        } else {
-            self.extra_args = Some(Vec::new());
-            self.extra_args(input)
-        }
+    pub fn extra_args<S, I>(&mut self, input: I) -> &mut Self
+    where
+        S: AsRef<OsStr>,
+        I: IntoIterator<Item = S>,
+    {
+        self.extra_args
+            .get_or_insert_with(Default::default)
+            .extend(input.into_iter().map(|s| s.as_ref().to_owned()));
+        self
     }
 }
 
 impl BuildCommand {
-    fn exec_inner(&self) -> Result<()> {
-        if let Some(m) = &self.message {
-            info!("{}", m);
-        }
+    pub fn exec(&self) -> Result<()> {
+        info!("{}", self.message);
 
         let exit = if self.nom {
             let cmd = {
@@ -129,7 +135,7 @@ impl BuildCommand {
                     | Exec::cmd("nom").args(&["--json"])
             }
             .stdout(Redirection::None);
-            debug!("{:?}", cmd);
+            debug!(?cmd);
             cmd.join()
         } else {
             let cmd = Exec::cmd("nix")
@@ -138,32 +144,16 @@ impl BuildCommand {
                 .stdout(Redirection::None)
                 .stderr(Redirection::Merge);
 
-            debug!("{:?}", cmd);
+            debug!(?cmd);
             cmd.join()
         };
 
-        let exit: ExitStatus = if let Some(ref m) = self.message {
-            exit.context(m.clone())?
-        } else {
-            exit?
-        };
-
-        match exit {
+        match exit.wrap_err(self.message.clone())? {
             ExitStatus::Exited(0) => (),
             other => bail!(ExitError(other)),
         }
 
         Ok(())
-    }
-
-    pub fn exec(self) -> Result<()> {
-        let result = self.exec_inner();
-
-        if let Some(m) = self.message {
-            Ok(result.context(m)?)
-        } else {
-            Ok(result?)
-        }
     }
 }
 

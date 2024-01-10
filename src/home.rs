@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use color_eyre::eyre::bail;
 use color_eyre::Result;
 use thiserror::Error;
-use tracing::{debug, info, trace};
+use tracing::{debug, info, instrument, trace};
 
 use crate::*;
 use crate::{
@@ -68,7 +68,7 @@ impl HomeRebuildArgs {
 
         commands::BuildCommandBuilder::default()
             .flakeref(&flakeref)
-            .extra_args(&["--out-link", out_link_str])
+            .extra_args(["--out-link", out_link_str])
             .extra_args(&self.extra_args)
             .message("Building home configuration")
             .nom(self.common.nom)
@@ -153,19 +153,18 @@ fn get_home_output<S: AsRef<str> + std::fmt::Display>(
     }
 }
 
+#[instrument(ret, err, level = "debug")]
 fn configuration_exists(flakeref: &FlakeRef, configuration: &str) -> Result<bool> {
     let output = format!("{}#homeConfigurations", flakeref.deref());
     let filter = format!(r#" x: x ? "{}" "#, configuration);
 
     let result = commands::CommandBuilder::default()
         .args(&["nix", "eval", &output, "--apply", &filter])
-        .capture(true)
-        .build()
-        .unwrap()
-        .exec()?
+        .build()?
+        .exec_capture()?
         .unwrap();
 
-    trace!("{:?}", result);
+    debug!(?result);
 
     match result.as_str().trim() {
         "true" => Ok(true),
