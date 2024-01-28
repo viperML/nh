@@ -8,6 +8,7 @@ use tracing::{debug, info};
 use crate::interface::NHRunnable;
 use crate::interface::OsRebuildType::{self, Boot, Switch, Test};
 use crate::interface::{self, OsRebuildArgs};
+use crate::util::{compare_semver, get_nix_version};
 use crate::*;
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
@@ -48,11 +49,28 @@ impl OsRebuildArgs {
         );
 
         if self.common.update {
+            // Get the Nix version
+            let nix_version = get_nix_version().unwrap_or_else(|_| {
+                panic!("Failed to get Nix version. Custom Nix fork?");
+            });
+
+            // Default interface for updating flake inputs
+            let mut update_args = vec!["nix", "flake", "update"];
+
+            // If user is on Nix 2.19.0 or above, --flake must be passed
+            if let Ok(ordering) = compare_semver(&nix_version, "2.19.0") {
+                if ordering == std::cmp::Ordering::Greater {
+                    update_args.push("--flake");
+                }
+            }
+
+            update_args.push(&self.common.flakeref);
+
+            debug!("nix_version: {:?}", nix_version);
+            debug!("update_args: {:?}", update_args);
+
             commands::CommandBuilder::default()
-                // FIXME: if user is running an older version of Nix (i.e pre-`nix flake lock` change)
-                // the below command will fail. maybe check for Nix version and decide on the
-                // command?
-                .args(["nix", "flake", "update", "--flake", &self.common.flakeref])
+                .args(&update_args)
                 .message("Updating flake")
                 .build()?
                 .exec()?;
