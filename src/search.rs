@@ -118,7 +118,7 @@ impl NHRunnable for SearchArgs {
         debug!(?elapsed);
         trace!(?response);
         println!("Took {}ms", elapsed.as_millis());
-        println!("Most relevant results at end");
+        println!("Most relevant results at the end");
         println!();
 
         let parsed_response: SearchResponse = response

@@ -49,7 +49,10 @@ impl OsRebuildArgs {
 
         if self.common.update {
             commands::CommandBuilder::default()
-                .args(["nix", "flake", "update", &self.common.flakeref])
+                // FIXME: if user is running an older version of Nix (i.e pre-`nix flake lock` change)
+                // the below command will fail. maybe check for Nix version and decide on the
+                // command?
+                .args(["nix", "flake", "update", "--flake", &self.common.flakeref])
                 .message("Updating flake")
                 .build()?
                 .exec()?;

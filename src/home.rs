@@ -60,7 +60,7 @@ impl HomeRebuildArgs {
 
         if self.common.update {
             commands::CommandBuilder::default()
-                .args(["nix", "flake", "update", &self.common.flakeref])
+                .args(["nix", "flake", "update", "--flake", &self.common.flakeref])
                 .message("Updating flake")
                 .build()?
                 .exec()?;
