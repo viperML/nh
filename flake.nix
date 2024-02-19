@@ -15,16 +15,18 @@
         "x86_64-darwin"
         "aarch64-darwin"
       ] (system: function nixpkgs.legacyPackages.${system});
+
+    rev = self.shortRev or self.dirtyShortRev or "dirty";
   in {
     overlays.default = final: prev: {
       nh = final.callPackage ./package.nix {
-        rev = self.dirtyShortRev;
+        inherit rev;
       };
     };
 
     packages = forAllSystems (pkgs: rec {
       nh = pkgs.callPackage ./package.nix {
-        rev = self.dirtyShortRev;
+        inherit rev;
       };
       default = nh;
     });
