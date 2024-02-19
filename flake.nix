@@ -17,11 +17,15 @@
       ] (system: function nixpkgs.legacyPackages.${system});
   in {
     overlays.default = final: prev: {
-      nh = final.callPackage ./package.nix {};
+      nh = final.callPackage ./package.nix {
+        rev = self.dirtyShortRev;
+      };
     };
 
     packages = forAllSystems (pkgs: rec {
-      nh = pkgs.callPackage ./package.nix {};
+      nh = pkgs.callPackage ./package.nix {
+        rev = self.dirtyShortRev;
+      };
       default = nh;
     });
 

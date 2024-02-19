@@ -1,21 +1,22 @@
 {
+  stdenv,
+  lib,
   rustPlatform,
   installShellFiles,
-  makeWrapper,
-  lib,
+  makeBinaryWrapper,
+  darwin,
   nvd,
   use-nom ? true,
-  nix-output-monitor,
-  buildType ? "release",
-}: let
+  nix-output-monitor ? null,
+  rev ? "dirty",
+}:
+assert use-nom -> nix-output-monitor != null; let
+  runtimeDeps = [nvd] ++ lib.optionals use-nom [nix-output-monitor];
   cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
-  propagatedBuildInputs = [nvd] ++ lib.optionals use-nom [nix-output-monitor];
 in
   rustPlatform.buildRustPackage {
-    inherit propagatedBuildInputs buildType;
-    pname = cargoToml.package.name;
-    inherit (cargoToml.package) version;
-    cargoLock.lockFile = ./Cargo.lock;
+    pname = "nh";
+    version = "${cargoToml.package.version}-${rev}";
 
     src = lib.fileset.toSource {
       root = ./.;
@@ -29,10 +30,14 @@ in
         ]);
     };
 
+    strictDeps = true;
+
     nativeBuildInputs = [
       installShellFiles
-      makeWrapper
+      makeBinaryWrapper
     ];
+
+    buildInputs = lib.optionals stdenv.isDarwin [darwin.apple_sdk.frameworks.SystemConfiguration];
 
     preFixup = ''
       mkdir completions
@@ -45,11 +50,17 @@ in
 
     postFixup = ''
       wrapProgram $out/bin/nh \
-        --prefix PATH : ${lib.makeBinPath propagatedBuildInputs} \
+        --prefix PATH : ${lib.makeBinPath runtimeDeps} \
         ${lib.optionalString use-nom "--set-default NH_NOM 1"}
     '';
 
-    meta.mainProgram = "nh";
+    cargoLock.lockFile = ./Cargo.lock;
 
-    strictDeps = true;
+    meta = {
+      description = "Yet another nix cli helper";
+      homepage = "https://github.com/viperML/nh";
+      license = lib.licenses.eupl12;
+      mainProgram = "nh";
+      maintainers = with lib.maintainers; [drupol viperML];
+    };
   }
