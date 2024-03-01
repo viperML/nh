@@ -15,7 +15,9 @@ clap = { version = "4.0", features = [
     "env",
     "unstable-styles",
 ] }
-clap_complete = "4.0"
+# Requires high MRSV, change when nixpkgs updates
+clap_builder = "~4.4.0"
+clap_complete = "~4.4.0"
 clean-path = "0.2"
 color-eyre = { version = "0.6.2", default-features = false, features = [
     "track-caller",
