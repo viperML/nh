@@ -19,10 +19,10 @@ jobs:
     - run: nix flake update
       name: Bump flake.lock
 
-    - run: nix run --inputs-from . nixpkgs#cargo-bump
+    - run: nix run --inputs-from . nixpkgs#cargo-bump -- minor
       name: Bump Cargo.toml
 
-    - run: cargo update
+    - run: nix run --inputs-from . nixpkgs#cargo -- update
       name: Bump Cargo.lock
 
     - name: Create Pull Request
