@@ -130,13 +130,9 @@ pub struct CommonRebuildArgs {
     #[arg(long, short = 'u')]
     pub update: bool,
 
-    /// Use nix-output-monitor for the build process
-    #[arg(
-        long,
-        env = "NH_NOM",
-        value_parser(clap::builder::FalseyValueParser::new())
-    )]
-    pub nom: bool,
+    /// Don't use nix-output-monitor for the build process
+    #[arg(long)]
+    pub no_nom: bool,
 }
 
 #[derive(Args, Debug)]

@@ -60,7 +60,7 @@ impl OsRebuildArgs {
             .message("Building NixOS configuration")
             .extra_args(["--out-link", out_link_str])
             .extra_args(&self.extra_args)
-            .nom(self.common.nom)
+            .nom(!self.common.no_nom)
             .build()?
             .exec()?;
 

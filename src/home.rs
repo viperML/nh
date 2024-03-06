@@ -71,7 +71,7 @@ impl HomeRebuildArgs {
             .extra_args(["--out-link", out_link_str])
             .extra_args(&self.extra_args)
             .message("Building home configuration")
-            .nom(self.common.nom)
+            .nom(!self.common.no_nom)
             .build()?
             .exec()?;
 

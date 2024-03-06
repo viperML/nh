@@ -50,8 +50,7 @@ in
 
     postFixup = ''
       wrapProgram $out/bin/nh \
-        --prefix PATH : ${lib.makeBinPath runtimeDeps} \
-        ${lib.optionalString use-nom "--set-default NH_NOM 1"}
+        --prefix PATH : ${lib.makeBinPath runtimeDeps}
     '';
 
     cargoLock.lockFile = ./Cargo.lock;
