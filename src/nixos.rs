@@ -6,7 +6,7 @@ use color_eyre::Result;
 use tracing::{debug, info};
 
 use crate::interface::NHRunnable;
-use crate::interface::OsRebuildType::{self, Boot, Switch, Test};
+use crate::interface::OsRebuildType::{self, Boot, Switch, Test, BuildVm};
 use crate::interface::{self, OsRebuildArgs};
 use crate::*;
 
@@ -18,7 +18,7 @@ const SPEC_LOCATION: &str = "/etc/specialisation";
 impl NHRunnable for interface::OsArgs {
     fn run(&self) -> Result<()> {
         match &self.action {
-            Switch(args) | Boot(args) | Test(args) => args.rebuild(&self.action),
+            Switch(args) | Boot(args) | Test(args) | BuildVm(args) => args.rebuild(&self.action),
             s => bail!("Subcommand {:?} not yet implemented", s),
         }
     }
@@ -41,11 +41,23 @@ impl OsRebuildArgs {
         debug!("out_dir: {:?}", out_dir);
         debug!("out_link {:?}", out_link);
 
-        let flake_output = format!(
-            "{}#nixosConfigurations.{:?}.config.system.build.toplevel",
-            &self.common.flakeref.deref(),
-            hostname
-        );
+        let flake_output = match rebuild_type {
+            Switch(_) | Boot(_) | Test(_) => {
+                format!(
+                    "{}#nixosConfigurations.{:?}.config.system.build.toplevel",
+                    &self.common.flakeref.deref(),
+                    hostname
+                )
+            }
+            BuildVm(_) => {
+                format!(
+                    "{}#nixosConfigurations.{:?}.config.system.build.vm",
+                    &self.common.flakeref.deref(),
+                    hostname
+                )
+            }
+            _ => bail!("Invalid rebuild type"),
+        };
 
         if self.common.update {
             commands::CommandBuilder::default()
@@ -138,6 +150,17 @@ impl OsRebuildArgs {
             commands::CommandBuilder::default()
                 .args(["sudo", switch_to_configuration, "boot"])
                 .message("Adding configuration to bootloader")
+                .build()?
+                .exec()?;
+        }
+        if let BuildVm(_) = rebuild_type {
+            // !! Use the base profile aka no spec-namespace
+            let run_vm = out_link.join("bin").join(format!("run-{}-vm", hostname.to_str().unwrap()));
+            let run_vm = run_vm.to_str().unwrap();
+
+            commands::CommandBuilder::default()
+                .args([run_vm])
+                .message("Activating configuration")
                 .build()?
                 .exec()?;
         }
