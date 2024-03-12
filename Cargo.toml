@@ -40,6 +40,7 @@ serde = { version = "1.0.166", features = [
 ] }
 serde_json = "1.0.100"
 subprocess = "0.2"
+supports-hyperlinks = "3.0.0"
 tempfile = "3.5.0"
 textwrap = { version = "0.16.0", features = ["terminal_size"] }
 thiserror = "1.0"

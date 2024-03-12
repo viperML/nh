@@ -1,8 +1,8 @@
 use crate::*;
-use color_eyre::eyre::Context;
+use color_eyre::eyre::{Context, ContextCompat};
 use interface::SearchArgs;
 
-use std::time::Instant;
+use std::{process::Stdio, time::Instant};
 use tracing::{debug, trace};
 
 use elasticsearch_dsl::*;
@@ -31,9 +31,27 @@ struct SearchResult {
     package_position: Option<String>,
 }
 
+macro_rules! print_hyperlink {
+    ($text:expr, $link:expr) => {
+        print!("\x1b]8;;{}\x07", $link);
+        print!("{}", $text.underline());
+        println!("\x1b]8;;\x07");
+    };
+}
+
 impl NHRunnable for SearchArgs {
     fn run(&self) -> Result<()> {
         trace!("args: {self:?}");
+
+        let nixpkgs_path = std::thread::spawn(|| {
+            std::process::Command::new("nix")
+                .stderr(Stdio::inherit())
+                .args(["eval", "nixpkgs#path"])
+                .output()
+        });
+
+        // let mut nixpkgs_path = std::process::Command::new("nix")
+        // .context("Evaluating the nixpkgs path for results positions")?;
 
         let query = Search::new().from(0).size(self.limit).query(
             Query::bool().filter(Query::term("type", "package")).must(
@@ -112,11 +130,24 @@ impl NHRunnable for SearchArgs {
             .documents::<SearchResult>()
             .context("parsing search document")?;
 
+        let hyperlinks = supports_hyperlinks::supports_hyperlinks();
+        debug!(?hyperlinks);
+
+        let nixpkgs_path = String::from_utf8(
+            nixpkgs_path
+                .join()
+                .unwrap()
+                .context("Evaluating the nixpkgs path location")?
+                .stdout,
+        )
+        .unwrap();
+
         for elem in documents.iter().rev() {
             println!();
             use owo_colors::OwoColorize;
             trace!("{elem:#?}");
-            print!("{}", elem.package_attr_name.blue(),);
+
+            print!("{}", elem.package_attr_name.blue());
             let v = &elem.package_pversion;
             if !v.is_empty() {
                 print!(" ({})", v.green());
@@ -131,13 +162,26 @@ impl NHRunnable for SearchArgs {
                 }
             }
 
-            if self.long {
-                for url in elem.package_homepage.iter() {
-                    println!("  Homepage: {}", url);
+            for url in elem.package_homepage.iter() {
+                print!("  Homepage: ");
+                if hyperlinks {
+                    print_hyperlink!(url, url);
+                } else {
+                    println!("{}", url);
                 }
+            }
 
-                if !elem.package_license_set.is_empty() {
-                    println!("  License: {}", elem.package_license_set.join(", "));
+            if let Some(position) = &elem.package_position {
+                print!("  Position: ");
+                if hyperlinks {
+                    let postion_trimmed = position
+                        .split(':')
+                        .next()
+                        .expect("Removing line number from position");
+
+                    print_hyperlink!(position, format!("file://{nixpkgs_path}/{postion_trimmed}"));
+                } else {
+                    println!("{}", position);
                 }
             }
         }

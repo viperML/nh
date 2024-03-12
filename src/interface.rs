@@ -142,10 +142,6 @@ pub struct SearchArgs {
     /// Number of search results to display
     pub limit: u64,
 
-    #[arg(long, short = 'L')]
-    /// Display more information about each result
-    pub long: bool,
-
     #[arg(long, short, default_value = "nixos-unstable")]
     /// Name of the channel to query (e.g nixos-23.11, nixos-unstable)
     pub channel: String,

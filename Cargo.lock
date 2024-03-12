@@ -790,6 +790,7 @@ dependencies = [
  "serde",
  "serde_json",
  "subprocess",
+ "supports-hyperlinks",
  "tempfile",
  "textwrap",
  "thiserror",
@@ -1199,6 +1200,12 @@ dependencies = [
  "libc",
  "winapi",
 ]
+
+[[package]]
+name = "supports-hyperlinks"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c0a1e5168041f5f3ff68ff7d95dcb9c8749df29f6e7e89ada40dd4c9de404ee"
 
 [[package]]
 name = "syn"
