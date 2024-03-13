@@ -11,6 +11,7 @@ use crate::*;
 use crate::{
     interface::NHRunnable,
     interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand},
+    util::{compare_semver, get_nix_version},
 };
 
 #[derive(Error, Debug)]
@@ -59,8 +60,28 @@ impl HomeRebuildArgs {
         );
 
         if self.common.update {
+            // Get the Nix version
+            let nix_version = get_nix_version().unwrap_or_else(|_| {
+                panic!("Failed to get Nix version. Custom Nix fork?");
+            });
+
+            // Default interface for updating flake inputs
+            let mut update_args = vec!["nix", "flake", "update"];
+
+            // If user is on Nix 2.19.0 or above, --flake must be passed
+            if let Ok(ordering) = compare_semver(&nix_version, "2.19.0") {
+                if ordering == std::cmp::Ordering::Greater {
+                    update_args.push("--flake");
+                }
+            }
+
+            update_args.push(&self.common.flakeref);
+
+            debug!("nix_version: {:?}", nix_version);
+            debug!("update_args: {:?}", update_args);
+
             commands::CommandBuilder::default()
-                .args(["nix", "flake", "update", "--flake", &self.common.flakeref])
+                .args(&update_args)
                 .message("Updating flake")
                 .build()?
                 .exec()?;

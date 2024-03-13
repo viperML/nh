@@ -768,7 +768,7 @@ dependencies = [
 
 [[package]]
 name = "nh"
-version = "3.5.6"
+version = "3.5.7"
 dependencies = [
  "ambassador",
  "anstyle",
@@ -787,6 +787,7 @@ dependencies = [
  "owo-colors 4.0.0",
  "regex",
  "reqwest",
+ "semver",
  "serde",
  "serde_json",
  "subprocess",
@@ -1089,6 +1090,12 @@ dependencies = [
  "ring",
  "untrusted",
 ]
+
+[[package]]
+name = "semver"
+version = "1.0.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92d43fe69e652f3df9bdc2b85b2854a0825b86e4fb76bc44d945137d053639ca"
 
 [[package]]
 name = "serde"
