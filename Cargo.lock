@@ -768,7 +768,7 @@ dependencies = [
 
 [[package]]
 name = "nh"
-version = "3.5.5"
+version = "3.5.6"
 dependencies = [
  "ambassador",
  "anstyle",
