@@ -51,6 +51,7 @@ impl NHRunnable for interface::CleanMode {
                 if !uid.is_root() {
                     crate::self_elevate();
                 }
+                warn!("If you are intersted in automatic nh clean as a NixOS module, please add your comment in the nixpkgs PR: https://github.com/NixOS/nixpkgs/pull/294923");
                 profiles.extend(profiles_in_dir("/nix/var/nix/profiles"));
                 for read_dir in PathBuf::from("/nix/var/nix/profiles/per-user").read_dir()? {
                     let path = read_dir?.path();
