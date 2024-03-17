@@ -85,6 +85,8 @@ pub enum OsRebuildType {
     Boot(OsRebuildArgs),
     /// Build and activate the new configuration
     Test(OsRebuildArgs),
+    /// Build vm with the new configuration
+    BuildVm(OsRebuildArgs),
     /// Show an overview of the system's info
     #[command(hide = true)]
     Info,
