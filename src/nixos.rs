@@ -126,18 +126,6 @@ impl OsRebuildArgs {
             }
         }
 
-        commands::CommandBuilder::default()
-            .args([
-                "sudo",
-                "nix-env",
-                "--profile",
-                SYSTEM_PROFILE,
-                "--set",
-                out_link_str,
-            ])
-            .build()?
-            .exec()?;
-
         if let Test(_) | Switch(_) = rebuild_type {
             // !! Use the target profile aka spec-namespaced
             let switch_to_configuration =
@@ -152,6 +140,18 @@ impl OsRebuildArgs {
         }
 
         if let Boot(_) | Switch(_) = rebuild_type {
+            commands::CommandBuilder::default()
+                .args([
+                    "sudo",
+                    "nix-env",
+                    "--profile",
+                    SYSTEM_PROFILE,
+                    "--set",
+                    out_link_str,
+                ])
+                .build()?
+                .exec()?;
+
             // !! Use the base profile aka no spec-namespace
             let switch_to_configuration = out_link.join("bin").join("switch-to-configuration");
             let switch_to_configuration = switch_to_configuration.to_str().unwrap();
