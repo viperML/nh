@@ -35,7 +35,7 @@
       default = pkgs.callPackage ./devshell.nix {};
     });
 
-    nixosModules.default = import ./module.nix self;
+    nixosModules.default = import ./module.nix;
 
     nixosConfigurations.check = let
       system = "x86_64-linux";
