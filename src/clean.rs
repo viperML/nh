@@ -148,7 +148,11 @@ impl NHRunnable for interface::CleanMode {
                             gcroots_tagged.insert(dst, false);
                         }
                         Ok(_) => {
-                            gcroots_tagged.insert(dst, true);
+                            if args.nogcroots {
+                                gcroots_tagged.insert(dst, false);
+                            } else {
+                                gcroots_tagged.insert(dst, true);
+                            }
                         }
                     }
                 } else {
