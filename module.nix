@@ -7,4 +7,7 @@ builtins.throw ''
   >>> inputs.nh.nixosModules.default
   With just swapping the nh package:
   <<< { programs.nh.package = inputs.nh.packages.x86_64-linux.default; }
+
+  The nh options are now in the programs.* namespace
+  You may need to adjust nh.enable -> programs.nh.enable , etc.
 ''
