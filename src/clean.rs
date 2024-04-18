@@ -98,7 +98,7 @@ impl NHRunnable for interface::CleanMode {
             .map(Regex::new)
             .collect::<Result<Vec<_>, regex::Error>>()?;
 
-        if !is_profile_clean {
+        if !is_profile_clean && !args.nogcroots {
             for elem in PathBuf::from("/nix/var/nix/gcroots/auto")
                 .read_dir()
                 .wrap_err("Reading auto gcroots dir")?
