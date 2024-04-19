@@ -36,17 +36,5 @@
     });
 
     nixosModules.default = import ./module.nix;
-
-    nixosConfigurations.check = let
-      system = "x86_64-linux";
-    in
-      nixpkgs.lib.nixosSystem {
-        modules = [
-          nixpkgs.nixosModules.readOnlyPkgs
-          {nixpkgs.pkgs = nixpkgs.legacyPackages.${system};}
-          self.nixosModules.default
-          {boot.isContainer = true;}
-        ];
-      };
   };
 }
