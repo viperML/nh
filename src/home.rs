@@ -131,6 +131,11 @@ impl HomeRebuildArgs {
             }
         }
 
+        if let Some(ext) = &self.backup_extension {
+            info!("Using {} as the backup extension", ext);
+            env::set_var("HOME_MANAGER_BACKUP_EXT", ext);
+        }
+
         commands::CommandBuilder::default()
             .args([&format!("{}/activate", out_link_str)])
             .message("Activating configuration")

@@ -241,6 +241,10 @@ pub struct HomeRebuildArgs {
     /// Extra arguments passed to nix build
     #[arg(last = true)]
     pub extra_args: Vec<String>,
+
+    /// Move existing files by backing up with the extension
+    #[arg(long, short = 'b')]
+    pub backup_extension: Option<String>,
 }
 
 #[derive(Debug, Parser)]
