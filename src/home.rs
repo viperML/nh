@@ -149,10 +149,6 @@ impl HomeRebuildArgs {
     }
 }
 
-fn home_info() -> Result<()> {
-    Ok(())
-}
-
 fn get_home_output<S: AsRef<str> + std::fmt::Display>(
     flakeref: &FlakeRef,
     username: S,

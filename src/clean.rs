@@ -13,7 +13,6 @@ use nix::{
     unistd::{faccessat, AccessFlags},
 };
 use regex::Regex;
-use std::os::unix::fs::MetadataExt;
 use tracing::{debug, info, instrument, span, warn, Level};
 use uzers::os::unix::UserExt;
 
