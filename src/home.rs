@@ -24,14 +24,16 @@ impl NHRunnable for HomeArgs {
     fn run(&self) -> Result<()> {
         // self.subcommand
         match &self.subcommand {
-            HomeSubcommand::Switch(args) => args.rebuild(),
+            HomeSubcommand::Switch(args) | HomeSubcommand::Build(args) => {
+                args.rebuild(&self.subcommand)
+            }
             s => bail!("Subcommand {:?} not yet implemented", s),
         }
     }
 }
 
 impl HomeRebuildArgs {
-    fn rebuild(&self) -> Result<()> {
+    fn rebuild(&self, action: &HomeSubcommand) -> Result<()> {
         let out_dir = tempfile::Builder::new().prefix("nh-home-").tempdir()?;
         let out_link = out_dir.path().join("result");
         let out_link_str = out_link.to_str().unwrap();
@@ -118,7 +120,7 @@ impl HomeRebuildArgs {
                 .exec()?;
         }
 
-        if self.common.dry {
+        if self.common.dry || matches!(action, HomeSubcommand::Build(_)) {
             return Ok(());
         }
 
@@ -147,10 +149,6 @@ impl HomeRebuildArgs {
 
         Ok(())
     }
-}
-
-fn home_info() -> Result<()> {
-    Ok(())
 }
 
 fn get_home_output<S: AsRef<str> + std::fmt::Display>(

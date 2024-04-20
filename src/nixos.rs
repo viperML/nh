@@ -6,7 +6,7 @@ use color_eyre::Result;
 use tracing::{debug, info};
 
 use crate::interface::NHRunnable;
-use crate::interface::OsRebuildType::{self, Boot, Switch, Test};
+use crate::interface::OsRebuildType::{self, Boot, Build, Switch, Test};
 use crate::interface::{self, OsRebuildArgs};
 use crate::util::{compare_semver, get_nix_version};
 use crate::*;
@@ -19,7 +19,7 @@ const SPEC_LOCATION: &str = "/etc/specialisation";
 impl NHRunnable for interface::OsArgs {
     fn run(&self) -> Result<()> {
         match &self.action {
-            Switch(args) | Boot(args) | Test(args) => args.rebuild(&self.action),
+            Switch(args) | Boot(args) | Test(args) | Build(args) => args.rebuild(&self.action),
             s => bail!("Subcommand {:?} not yet implemented", s),
         }
     }
@@ -113,7 +113,7 @@ impl OsRebuildArgs {
             .build()?
             .exec()?;
 
-        if self.common.dry {
+        if self.common.dry || matches!(rebuild_type, OsRebuildType::Build(_)) {
             return Ok(());
         }
 
