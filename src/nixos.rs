@@ -133,7 +133,8 @@ impl OsRebuildArgs {
             let switch_to_configuration = switch_to_configuration.to_str().unwrap();
 
             commands::CommandBuilder::default()
-                .args(["sudo", switch_to_configuration, "test"])
+                .root(true)
+                .args([switch_to_configuration, "test"])
                 .message("Activating configuration")
                 .build()?
                 .exec()?;
@@ -141,8 +142,8 @@ impl OsRebuildArgs {
 
         if let Boot(_) | Switch(_) = rebuild_type {
             commands::CommandBuilder::default()
+                .root(true)
                 .args([
-                    "sudo",
                     "nix-env",
                     "--profile",
                     SYSTEM_PROFILE,
@@ -157,7 +158,8 @@ impl OsRebuildArgs {
             let switch_to_configuration = switch_to_configuration.to_str().unwrap();
 
             commands::CommandBuilder::default()
-                .args(["sudo", switch_to_configuration, "boot"])
+                .root(true)
+                .args([switch_to_configuration, "boot"])
                 .message("Adding configuration to bootloader")
                 .build()?
                 .exec()?;

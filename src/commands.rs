@@ -9,6 +9,8 @@ use thiserror::Error;
 use subprocess::{Exec, ExitStatus, Redirection};
 use tracing::{debug, info};
 
+use crate::util::get_elevation_program;
+
 #[derive(Debug, derive_builder::Builder)]
 #[builder(derive(Debug), setter(into))]
 pub struct Command {
@@ -21,6 +23,9 @@ pub struct Command {
     /// Arguments 0..N
     #[builder(setter(custom))]
     args: Vec<OsString>,
+    /// Whether to run the command as root or not
+    #[builder(default = "false")]
+    root: bool,
 }
 
 impl CommandBuilder {
@@ -38,9 +43,7 @@ impl CommandBuilder {
 
 impl Command {
     pub fn exec(&self) -> Result<()> {
-        let [head, tail @ ..] = &*self.args else {
-            bail!("Args was length 0");
-        };
+        let (head, tail) = self.get_cmd_head_args()?;
 
         let cmd = Exec::cmd(head)
             .args(tail)
@@ -64,9 +67,7 @@ impl Command {
     }
 
     pub fn exec_capture(&self) -> Result<Option<String>> {
-        let [head, tail @ ..] = &*self.args else {
-            bail!("Args was length 0");
-        };
+        let (head, tail) = self.get_cmd_head_args()?;
 
         let cmd = Exec::cmd(head)
             .args(tail)
@@ -82,6 +83,17 @@ impl Command {
             Ok(Some(cmd.capture()?.stdout_str()))
         } else {
             Ok(None)
+        }
+    }
+
+    fn get_cmd_head_args<'a>(&'a self) -> Result<(OsString, &'a [OsString])> {
+        if self.root {
+            Ok((get_elevation_program()?, self.args.as_ref()))
+        } else {
+            let [head, tail @ ..] = &*self.args else {
+                bail!("Args was length 0");
+            };
+            Ok((head.clone(), tail))
         }
     }
 }
