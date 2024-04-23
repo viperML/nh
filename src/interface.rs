@@ -85,6 +85,8 @@ pub enum OsRebuildType {
     Boot(OsRebuildArgs),
     /// Build and activate the new configuration
     Test(OsRebuildArgs),
+    /// Build the new configuration
+    Build(OsRebuildArgs),
     /// Show an overview of the system's info
     #[command(hide = true)]
     Info,
@@ -222,6 +224,12 @@ pub enum HomeSubcommand {
     ///
     /// Will check the current $USER and $(hostname) to determine which output to build, unless -c is passed
     Switch(HomeRebuildArgs),
+
+    #[clap(verbatim_doc_comment)]
+    /// Build a home-manager configuration
+    ///
+    /// Will check the current $USER and $(hostname) to determine which output to build, unless -c is passed
+    Build(HomeRebuildArgs),
 
     /// Show an overview of the installation
     #[command(hide(true))]

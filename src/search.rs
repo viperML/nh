@@ -1,5 +1,5 @@
 use crate::*;
-use color_eyre::eyre::{Context, ContextCompat};
+use color_eyre::eyre::Context;
 use interface::SearchArgs;
 
 use std::{process::Stdio, time::Instant};
