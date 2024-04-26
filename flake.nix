@@ -36,5 +36,6 @@
     });
 
     nixosModules.default = import ./module.nix;
+    nixDarwinMoules.default = import ./darwin-module.nix;
   };
 }
