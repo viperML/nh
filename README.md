@@ -9,7 +9,7 @@
 NH reimplements some basic nix commands. Adding functionality on top of the existing solutions, like nixos-rebuild, home-manager cli or nix itself.
 
 As the main features:
-- Tree of builds with [nix-output-manager](https://github.com/maralorn/nix-output-monitor)
+- Tree of builds with [nix-output-monitor](https://github.com/maralorn/nix-output-monitor)
 - Visualization of the upgrade diff with [nvd](https://gitlab.com/khumba/nvd)
 - Asking for confirmation before performing activation
 
