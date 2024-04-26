@@ -89,8 +89,8 @@ in
         command = "exec ${lib.getExe cfg.package} clean all ${cfg.clean.extraArgs}";
         environment.NIX_REMOTE = lib.optionalString config.nix.useDaemon "daemon";
         serviceConfig.RunAtLoad = false;
-        serviceConfig.StartCalendarInterval = [ cfg.interval ];
-        serviceConfig.UserName = cfg.user;
+        serviceConfig.StartCalendarInterval = [ cfg.clean.interval ];
+        serviceConfig.UserName = cfg.clean.user;
       };
     };
   };
