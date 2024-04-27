@@ -10,6 +10,7 @@ mod util;
 
 use crate::interface::NHParser;
 use crate::interface::NHRunnable;
+use crate::util::get_elevation_program;
 use color_eyre::Result;
 use tracing::debug;
 
@@ -26,7 +27,7 @@ fn main() -> Result<()> {
 fn self_elevate() -> ! {
     use std::os::unix::process::CommandExt;
 
-    let mut cmd = std::process::Command::new("sudo");
+    let mut cmd = std::process::Command::new(get_elevation_program().unwrap());
     cmd.args(std::env::args());
     debug!("{:?}", cmd);
     let err = cmd.exec();
