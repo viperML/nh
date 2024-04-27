@@ -40,6 +40,7 @@ The NixOS module has some niceties, like an alternative to `nix.gc.automatic` wh
 
 ```nix
 { config, pkgs, ... }:
+{
   programs.nh = {
     enable = true;
     clean.enable = true;
