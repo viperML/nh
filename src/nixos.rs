@@ -1,3 +1,4 @@
+use std::fs::OpenOptions;
 use std::ops::Deref;
 
 use color_eyre::eyre::{bail, Context};
@@ -53,6 +54,25 @@ impl OsRebuildArgs {
             let nix_version = get_nix_version().unwrap_or_else(|_| {
                 panic!("Failed to get Nix version. Custom Nix fork?");
             });
+
+            // Get the permissions of flake.lock, check if we can write to it
+            // as the current user. If we can write, proceed with the update
+            // or else bail out.
+            let file = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(false) // probably the default, but I am not taking my chances -raf
+                .open("flake.lock");
+
+            match file {
+                Ok(_) => (),
+                Err(e) => {
+                    panic!(
+                        "nh does not support updating flakes owned by root. Error: {:?}.",
+                        e
+                    );
+                }
+            }
 
             // Default interface for updating flake inputs
             let mut update_args = vec!["nix", "flake", "update"];
