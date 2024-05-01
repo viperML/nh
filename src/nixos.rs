@@ -8,7 +8,7 @@ use tracing::{debug, info};
 use crate::interface::NHRunnable;
 use crate::interface::OsRebuildType::{self, Boot, Build, Switch, Test};
 use crate::interface::{self, OsRebuildArgs};
-use crate::util::{compare_semver, get_nix_version};
+use crate::util::{check_perms, compare_semver, get_nix_version};
 use crate::*;
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
@@ -53,6 +53,8 @@ impl OsRebuildArgs {
             let nix_version = get_nix_version().unwrap_or_else(|_| {
                 panic!("Failed to get Nix version. Custom Nix fork?");
             });
+
+            check_perms("flake.lock")?;
 
             // Default interface for updating flake inputs
             let mut update_args = vec!["nix", "flake", "update"];
