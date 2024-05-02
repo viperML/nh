@@ -40,6 +40,7 @@ The NixOS module has some niceties, like an alternative to `nix.gc.automatic` wh
 
 ```nix
 { config, pkgs, ... }:
+
 {
   programs.nh = {
     enable = true;
@@ -61,7 +62,9 @@ nh is capable of detecting which specialisation you are running, so it runs the 
 To do so, you need to give nh some information of the spec that is currently running by writing its name to `/etc/specialisation`. The config would look like this:
 
 ```nix
-{config, pkgs, ...}: {
+{config, pkgs, ...}: 
+
+{
   specialisation."foo".configuration = {
     environment.etc."specialisation".text = "foo";
     # ..rest of config
