@@ -135,6 +135,17 @@ pub struct CommonRebuildArgs {
     /// Don't use nix-output-monitor for the build process
     #[arg(long)]
     pub no_nom: bool,
+
+    /// Closure diff provider
+    ///
+    /// Default is "nvd diff", but "nix store diff-closures" is also supported
+    #[arg(
+        long,
+        short = 'D',
+        env = "NH_DIFF_PROVIDER",
+        default_value = "nvd diff"
+    )]
+    pub diff_provider: String,
 }
 
 #[derive(Args, Debug)]
