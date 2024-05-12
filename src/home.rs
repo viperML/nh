@@ -69,11 +69,30 @@ impl HomeRebuildArgs {
 
         debug!(?prev_generation);
 
+        let spec_location =
+            PathBuf::from(std::env::var("HOME")?).join(".local/share/home-manager/specialisation");
+
+        let current_specialisation = std::fs::read_to_string(&spec_location.to_str().unwrap()).ok();
+
+        let target_specialisation = if self.no_specialisation {
+            None
+        } else {
+            current_specialisation.or_else(|| self.specialisation)
+        };
+
+        debug!("target_specialisation: {target_specialisation:?}");
+
+        let target_profile = match &target_specialisation {
+            None => out_path,
+            Some(spec) => Box::new(out_path.get_path().join("specialisation").join(spec)),
+        };
+
+        // just do nothing for None case (fresh installs)
         if let Some(generation) = prev_generation {
             Command::new("nvd")
                 .arg("diff")
                 .arg(generation)
-                .arg(out_path.get_path())
+                .arg(target_profile.get_path())
                 .message("Comparing changes")
                 .run()?;
         }
@@ -96,13 +115,13 @@ impl HomeRebuildArgs {
             env::set_var("HOME_MANAGER_BACKUP_EXT", ext);
         }
 
-        Command::new(out_path.get_path().join("activate"))
+        Command::new(target_profile.get_path().join("activate"))
             .message("Activating configuration")
             .run()?;
 
         // Make sure out_path is not accidentally dropped
         // https://docs.rs/tempfile/3.12.0/tempfile/index.html#early-drop-pitfall
-        drop(out_path);
+        drop(target_profile);
 
         Ok(())
     }
