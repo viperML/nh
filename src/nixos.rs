@@ -103,9 +103,8 @@ impl OsRebuildArgs {
         target_profile.try_exists().context("Doesn't exist")?;
 
         commands::CommandBuilder::default()
+            .args(self.common.diff_provider.split_ascii_whitespace())
             .args([
-                "nvd",
-                "diff",
                 CURRENT_PROFILE,
                 target_profile.to_str().unwrap(),
             ])

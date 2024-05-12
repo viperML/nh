@@ -114,7 +114,8 @@ impl HomeRebuildArgs {
         // just do nothing for None case (fresh installs)
         if let Some(prev_gen) = prev_generation {
             commands::CommandBuilder::default()
-                .args(["nvd", "diff", (prev_gen.to_str().unwrap()), out_link_str])
+                .args(self.common.diff_provider.split_ascii_whitespace())
+                .args([(prev_gen.to_str().unwrap()), out_link_str])
                 .message("Comparing changes")
                 .build()?
                 .exec()?;
