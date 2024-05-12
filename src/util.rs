@@ -80,20 +80,13 @@ pub fn get_nix_version() -> Result<String> {
 /// * `Result<OsString>` - The absolute path to the privilege elevation program binary or an error if a
 /// program can't be found.
 pub fn get_elevation_program() -> Result<OsString> {
-    let has_doas = which("doas");
-    if let Ok(path) = has_doas {
-        debug!(?path, "doas path found");
-        return Ok(path.into_os_string());
-    }
-    let has_sudo = which("sudo");
-    if let Ok(path) = has_sudo {
-        debug!(?path, "sudo path found");
-        return Ok(path.into_os_string());
-    }
-    let has_pkexec = which("pkexec");
-    if let Ok(path) = has_pkexec {
-        debug!(?path, "pkexec path found");
-        return Ok(path.into_os_string());
+    let strategies = ["doas", "sudo", "pkexec"];
+
+    for strategy in strategies {
+        if let Ok(path) = which(strategy) {
+            debug!(?path, "{strategy} path found");
+            return Ok(path.into_os_string());
+        }
     }
 
     Err(eyre::eyre!("No elevation strategy found"))
