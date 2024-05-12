@@ -2,7 +2,7 @@ use std::env;
 use std::ops::Deref;
 use std::path::PathBuf;
 
-use color_eyre::eyre::bail;
+use color_eyre::eyre::{bail, Context};
 use color_eyre::Result;
 use thiserror::Error;
 use tracing::{debug, info, instrument};
@@ -111,11 +111,34 @@ impl HomeRebuildArgs {
 
         debug!("prev_generation: {:?}", prev_generation);
 
+        let spec_location =
+            PathBuf::from(std::env::var("HOME")?).join(".local/share/home-manager/specialisation");
+
+        let current_specialisation = std::fs::read_to_string(&spec_location.to_str().unwrap()).ok();
+
+        let target_specialisation = if self.common.no_specialisation {
+            None
+        } else {
+            current_specialisation.or_else(|| self.common.specialisation.to_owned())
+        };
+
+        debug!("target_specialisation: {target_specialisation:?}");
+
+        let target_profile = match &target_specialisation {
+            None => out_link.to_owned(),
+            Some(spec) => out_link.join("specialisation").join(spec),
+        };
+
+        target_profile.try_exists().context("Doesn't exist")?;
+
         // just do nothing for None case (fresh installs)
         if let Some(prev_gen) = prev_generation {
             commands::CommandBuilder::default()
                 .args(self.common.diff_provider.split_ascii_whitespace())
-                .args([(prev_gen.to_str().unwrap()), out_link_str])
+                .args([
+                    (prev_gen.to_str().unwrap()),
+                    target_profile.to_str().unwrap(),
+                ])
                 .message("Comparing changes")
                 .build()?
                 .exec()?;
@@ -140,7 +163,7 @@ impl HomeRebuildArgs {
         }
 
         commands::CommandBuilder::default()
-            .args([&format!("{}/activate", out_link_str)])
+            .args([&target_profile.join("activate").to_str().unwrap()])
             .message("Activating configuration")
             .build()?
             .exec()?;
