@@ -87,10 +87,10 @@ impl OsRebuildArgs {
 
         let current_specialisation = std::fs::read_to_string(SPEC_LOCATION).ok();
 
-        let target_specialisation = if self.no_specialisation {
+        let target_specialisation = if self.common.no_specialisation {
             None
         } else {
-            current_specialisation.or_else(|| self.specialisation.to_owned())
+            current_specialisation.or_else(|| self.common.specialisation.to_owned())
         };
 
         debug!("target_specialisation: {target_specialisation:?}");
@@ -104,10 +104,7 @@ impl OsRebuildArgs {
 
         commands::CommandBuilder::default()
             .args(self.common.diff_provider.split_ascii_whitespace())
-            .args([
-                CURRENT_PROFILE,
-                target_profile.to_str().unwrap(),
-            ])
+            .args([CURRENT_PROFILE, target_profile.to_str().unwrap()])
             .message("Comparing changes")
             .build()?
             .exec()?;
