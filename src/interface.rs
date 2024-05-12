@@ -281,6 +281,14 @@ pub struct HomeRebuildArgs {
     #[arg(long, short)]
     pub configuration: Option<String>,
 
+    /// Explicitely select some specialisation
+    #[arg(long, short)]
+    pub specialisation: Option<String>,
+
+    /// Ignore specialisations
+    #[arg(long, short = 'S')]
+    pub no_specialisation: bool,
+
     /// Extra arguments passed to nix build
     #[arg(last = true)]
     pub extra_args: Vec<String>,
