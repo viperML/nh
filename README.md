@@ -71,7 +71,6 @@ Nh supports both Flakes and classical NixOS configurations:
 You might want to check `nh os --help` for other values and the defaults from
 environment variables.
 
-
 #### Specialisations support
 
 Nh is capable of detecting which specialisation you are running, so it runs the proper activation script.
@@ -86,6 +85,24 @@ To do so, you need to give nh some information of the spec that is currently run
 
   specialisation."bar".configuration = {
     environment.etc."specialisation".text = "bar";
+    # ..rest of config
+  };
+}
+```
+
+#### Home-Manager
+
+Home specialisations are read from `~/.local/share/home-manager/specialisation`. The config would look like this:
+
+```nix
+{config, pkgs, ...}: {
+  specialisation."foo".configuration = {
+    xdg.dataFile."home-manager/specialisation".text = "foo";
+    # ..rest of config
+  };
+
+  specialisation."bar".configuration = {
+    xdg.dataFile."home-manager/specialisation".text = "bar";
     # ..rest of config
   };
 }
