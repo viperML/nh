@@ -1,6 +1,6 @@
 [package]
 name = "nh"
-version = "3.5.15"
+version = "3.5.17"
 edition = "2021"
 license = "EUPL-1.2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -27,7 +27,7 @@ dialoguer = { version = "0.11.0", default-features = false }
 elasticsearch-dsl = "0.4.19"
 hostname = "0.4"
 humantime = "2.1.0"
-nix = { version = "0.28.0", default-features = false, features = [
+nix = { version = "0.29.0", default-features = false, features = [
     "fs",
     "user",
 ] }

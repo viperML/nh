@@ -1,12 +1,13 @@
-use crate::*;
-use color_eyre::eyre::Context;
-use interface::SearchArgs;
+use std::{collections::HashMap, process::Stdio, time::Instant};
 
-use std::{process::Stdio, time::Instant};
-use tracing::{debug, trace};
-
+use color_eyre::eyre::{eyre, Context, ContextCompat};
 use elasticsearch_dsl::*;
+use interface::{FlakeRef, SearchArgs};
+use regex::Regex;
 use serde::Deserialize;
+use tracing::{debug, trace, warn};
+
+use crate::*;
 
 #[derive(Debug, Deserialize)]
 #[allow(non_snake_case, dead_code)]
@@ -87,10 +88,32 @@ impl NHRunnable for SearchArgs {
             ),
         );
 
-        println!(
-            "Querying search.nixos.org, with channel {}...",
-            self.channel
-        );
+        let channel: String = match (&self.channel, &self.flake) {
+            (Some(c), _) => c.clone(),
+            (None, Some(f)) => {
+                let c = my_nix_branch(f);
+                match c {
+                    Ok(s) => s,
+                    Err(err) => {
+                        warn!(
+                            "Failed to read the nixpkgs input for the flake {}",
+                            f.as_str()
+                        );
+                        for e in err.chain() {
+                            warn!("{}", e);
+                        }
+                        String::from("nixos-unstable")
+                    }
+                }
+            }
+            (None, None) => {
+                debug!("Using default search channel");
+                String::from("nixos-unstable")
+            }
+        };
+        debug!(?channel);
+
+        println!("Querying search.nixos.org, with channel {}...", channel);
         let then = Instant::now();
 
         let client = reqwest::blocking::Client::new();
@@ -99,7 +122,7 @@ impl NHRunnable for SearchArgs {
             // TODO: have a GH action or something check if they updated this thing
             .post(format!(
                 "https://search.nixos.org/backend/latest-42-{}/_search",
-                self.channel
+                channel
             ))
             .json(&query)
             .header("User-Agent", format!("nh/{}", crate::NH_VERSION))
@@ -188,4 +211,79 @@ impl NHRunnable for SearchArgs {
 
         Ok(())
     }
+}
+
+fn my_nix_branch(flake: &FlakeRef) -> Result<String> {
+    let mut child = std::process::Command::new("nix")
+        .args(["flake", "metadata", "--json"])
+        .arg(flake.as_str())
+        .stderr(Stdio::inherit())
+        .stdout(Stdio::piped())
+        .spawn()?;
+
+    child.wait()?;
+
+    let stdout = child.stdout.take().wrap_err("Couldn't get stdout")?;
+
+    let mut metadata: FlakeMetadata = serde_json::from_reader(stdout)?;
+
+    let branch = metadata
+        .locks
+        .nodes
+        .remove("nixpkgs")
+        .wrap_err(r#"Couldn't find input "nixpkgs" on the flake"#)?
+        .original
+        .wrap_err("Couldn't find original")?
+        .r#ref
+        .wrap_err("Couldn't find ref field")?;
+
+    if supported_branch(&branch) {
+        Ok(branch)
+    } else {
+        Err(eyre!("Branch {} is not supported", &branch))
+    }
+}
+
+fn supported_branch<S: AsRef<str>>(branch: S) -> bool {
+    let branch = branch.as_ref();
+
+    if branch == "nixos-unstable" {
+        return true;
+    }
+
+    let re = Regex::new(r"nixos-[0-9]+\.[0-9]+").unwrap();
+    return re.is_match(branch);
+}
+
+#[test]
+fn test_supported_branch() {
+    assert_eq!(supported_branch("nixos-unstable"), true);
+    assert_eq!(supported_branch("nixos-unstable-small"), false);
+    assert_eq!(supported_branch("nixos-24.05"), true);
+    assert_eq!(supported_branch("24.05"), false);
+    assert_eq!(supported_branch("nixpkgs-darwin"), false);
+    assert_eq!(supported_branch("nixpks-21.11-darwin"), false);
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct FlakeMetadata {
+    locks: FlakeLocks,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct FlakeLocks {
+    nodes: HashMap<String, FlakeLockedNode>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct FlakeLockedNode {
+    original: Option<FlakeLockedOriginal>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct FlakeLockedOriginal {
+    r#ref: Option<String>,
+    // owner: String,
+    // repo: String,
+    // r#type: String,
 }
