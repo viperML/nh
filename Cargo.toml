@@ -53,3 +53,4 @@ tracing-subscriber = { version = "0.3.18", features = [
     "std"
 ] }
 uzers = { version = "0.11.3", default-features = false }
+which = "6.0.1"
