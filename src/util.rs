@@ -6,7 +6,6 @@ use tracing::debug;
 use which::which;
 
 use std::ffi::OsString;
-use std::path::PathBuf;
 use std::process::Command;
 use std::str;
 
@@ -79,6 +78,7 @@ pub fn get_nix_version() -> Result<String> {
 ///
 /// 1. `doas`
 /// 1. `sudo`
+/// 1. `run0`
 /// 1. `pkexec`
 ///
 /// The logic for choosing this order is that a person with doas installed is more likely
@@ -91,11 +91,14 @@ pub fn get_nix_version() -> Result<String> {
 pub fn get_elevation_program() -> Result<OsString> {
     let args = <NHParser as clap::Parser>::parse();
     if let Some(path) = args.elevation_program.map(|path| which(path)) {
-        debug!(?path, "privilege elevation path specified via command line argument");
+        debug!(
+            ?path,
+            "privilege elevation path specified via command line argument"
+        );
         return Ok(path?.into_os_string());
     }
 
-    const STRATEGIES: [&str; 3] = ["doas", "sudo", "pkexec"];
+    const STRATEGIES: [&str; 4] = ["doas", "sudo", "run0", "pkexec"];
 
     for strategy in STRATEGIES {
         if let Ok(path) = which(strategy) {
