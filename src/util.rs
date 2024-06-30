@@ -6,8 +6,11 @@ use tracing::debug;
 use which::which;
 
 use std::ffi::OsString;
+use std::path::PathBuf;
 use std::process::Command;
 use std::str;
+
+use crate::interface::NHParser;
 
 /// Compares two semantic versions and returns their order.
 ///
@@ -60,11 +63,17 @@ pub fn get_nix_version() -> Result<String> {
     Err(eyre::eyre!("Failed to extract version"))
 }
 
-/// Gets a path to a previlege elevation program based on what is available in the system.
+/// Gets a path to a previlege elevation program based on what is available in the system
+/// or from the command line arguments.
 ///
-/// This funtion checks for the existence of common privilege elevation program names in
-/// the `PATH` using the `which` crate and returns a Ok result with the `OsString` of the
-/// path to the binary. In the case none of the checked programs are found a Err result is returned.
+/// First this function checks for a program specified by the command line arguments,
+/// checks if it exists in the `PATH` with the `which` crate and returns a Ok result
+/// with the OsString of the path to the binary or a Err result if not.
+///
+/// If no command line arguments were found, this funtion checks for the existence of
+/// common privilege elevation program names in the `PATH` using the `which` crate and
+/// returns a Ok result with the `OsString` of the path to the binary. In the case none
+/// of the checked programs are found a Err result is returned.
 ///
 /// The search is done in this order:
 ///
@@ -72,17 +81,23 @@ pub fn get_nix_version() -> Result<String> {
 /// 1. `sudo`
 /// 1. `pkexec`
 ///
-/// The logic for choosing this order is that a person with doas installed is more likely to be
-/// using it as their main privilege elevation program.
+/// The logic for choosing this order is that a person with doas installed is more likely
+/// to be using it as their main privilege elevation program.
 ///
 /// # Returns
 ///
 /// * `Result<OsString>` - The absolute path to the privilege elevation program binary or an error if a
 /// program can't be found.
 pub fn get_elevation_program() -> Result<OsString> {
-    let strategies = ["doas", "sudo", "pkexec"];
+    let args = <NHParser as clap::Parser>::parse();
+    if let Some(path) = args.elevation_program.map(|path| which(path)) {
+        debug!(?path, "privilege elevation path specified via command line argument");
+        return Ok(path?.into_os_string());
+    }
 
-    for strategy in strategies {
+    const STRATEGIES: [&str; 3] = ["doas", "sudo", "pkexec"];
+
+    for strategy in STRATEGIES {
         if let Ok(path) = which(strategy) {
             debug!(?path, "{strategy} path found");
             return Ok(path.into_os_string());
