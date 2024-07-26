@@ -1,5 +1,6 @@
 use std::env;
 use std::ops::Deref;
+use std::path::Path;
 use std::path::PathBuf;
 
 use color_eyre::eyre::bail;
@@ -34,10 +35,23 @@ impl NHRunnable for HomeArgs {
 
 impl HomeRebuildArgs {
     fn rebuild(&self, action: &HomeSubcommand) -> Result<()> {
-        let out_dir = tempfile::Builder::new().prefix("nh-home-").tempdir()?;
-        let out_link = out_dir.path().join("result");
+        let mut out_dir = None;
+        let out_link;
+
+        if self.common.result && matches!(action, HomeSubcommand::Build(_)) {
+            out_link = Path::new("result").to_path_buf();
+        } else {
+            out_dir = Some(tempfile::Builder::new().prefix("nh-home-").tempdir()?);
+            out_link = out_dir.as_ref().unwrap().path().join("result");
+        }
+
         let out_link_str = out_link.to_str().unwrap();
-        debug!("out_dir: {:?}", out_dir);
+
+        if out_dir.is_some() {
+            debug!("out_dir: {:?}", out_dir.as_ref().unwrap());
+        } else {
+            debug!("no out_dir because --result was passed");
+        }
         debug!("out_link {:?}", out_link);
 
         let username = std::env::var("USER").expect("Couldn't get username");
@@ -146,7 +160,9 @@ impl HomeRebuildArgs {
             .exec()?;
 
         // Drop the out dir *only* when we are finished
-        drop(out_dir);
+        if out_dir.is_some() {
+            drop(out_dir.unwrap());
+        }
 
         Ok(())
     }

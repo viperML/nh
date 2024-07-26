@@ -1,4 +1,5 @@
 use std::ops::Deref;
+use std::path::Path;
 
 use color_eyre::eyre::{bail, Context};
 use color_eyre::Result;
@@ -36,11 +37,24 @@ impl OsRebuildArgs {
             None => hostname::get().context("Failed to get hostname")?,
         };
 
-        let out_dir = tempfile::Builder::new().prefix("nh-os-").tempdir()?;
-        let out_link = out_dir.path().join("result");
+        let mut out_dir = None;
+        let out_link;
+
+        if self.common.result && matches!(rebuild_type, OsRebuildType::Build(_)) {
+            out_link = Path::new("result").to_path_buf();
+        } else {
+            out_dir = Some(tempfile::Builder::new().prefix("nh-os-").tempdir()?);
+            out_link = out_dir.as_ref().unwrap().path().join("result");
+        };
+
         let out_link_str = out_link.to_str().unwrap();
-        debug!("out_dir: {:?}", out_dir);
-        debug!("out_link {:?}", out_link);
+
+        if out_dir.is_some() {
+            debug!("out_dir: {:?}", out_dir.as_ref().unwrap());
+        } else {
+            debug!("no out_dir because --result was passed");
+        };
+        debug!("out_link: {:?}", out_link);
 
         let flake_output = format!(
             "{}#nixosConfigurations.{:?}.config.system.build.toplevel",
@@ -104,10 +118,7 @@ impl OsRebuildArgs {
 
         commands::CommandBuilder::default()
             .args(self.common.diff_provider.split_ascii_whitespace())
-            .args([
-                CURRENT_PROFILE,
-                target_profile.to_str().unwrap(),
-            ])
+            .args([CURRENT_PROFILE, target_profile.to_str().unwrap()])
             .message("Comparing changes")
             .build()?
             .exec()?;
@@ -163,7 +174,9 @@ impl OsRebuildArgs {
         }
 
         // Drop the out dir *only* when we are finished
-        drop(out_dir);
+        if out_dir.is_some() {
+            drop(out_dir.unwrap());
+        }
 
         Ok(())
     }
