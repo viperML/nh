@@ -1,6 +1,6 @@
 [package]
 name = "nh"
-version = "3.5.19"
+version = "3.5.20"
 edition = "2021"
 license = "EUPL-1.2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -51,4 +51,4 @@ tracing-subscriber = { version = "0.3.18", features = [
     "registry",
     "std"
 ] }
-uzers = { version = "0.11.3", default-features = false }
+uzers = { version = "0.12.0", default-features = false }
