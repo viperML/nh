@@ -214,18 +214,13 @@ impl NHRunnable for SearchArgs {
 }
 
 fn my_nix_branch(flake: &FlakeRef) -> Result<String> {
-    let mut child = std::process::Command::new("nix")
+    let output = std::process::Command::new("nix")
         .args(["flake", "metadata", "--json"])
         .arg(flake.as_str())
-        .stderr(Stdio::inherit())
-        .stdout(Stdio::piped())
-        .spawn()?;
+        .output()?;
 
-    child.wait()?;
-
-    let stdout = child.stdout.take().wrap_err("Couldn't get stdout")?;
-
-    let mut metadata: FlakeMetadata = serde_json::from_reader(stdout)?;
+    let stdout = String::from_utf8(output.stdout)?;
+    let mut metadata: FlakeMetadata = serde_json::from_str(&stdout)?;
 
     let branch = metadata
         .locks
