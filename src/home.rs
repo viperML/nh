@@ -56,7 +56,7 @@ impl HomeRebuildArgs {
         debug!("hm_config_name: {}", hm_config_name);
 
         let flakeref = format!(
-            "{}#homeConfigurations.{}.config.home.activationPackage",
+            "{}#homeConfigurations.\"{}\".config.home.activationPackage",
             &self.common.flakeref.deref(),
             hm_config_name
         );

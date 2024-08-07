@@ -43,7 +43,7 @@ impl OsRebuildArgs {
         debug!("out_link {:?}", out_link);
 
         let flake_output = format!(
-            "{}#nixosConfigurations.{:?}.config.system.build.toplevel",
+            "{}#nixosConfigurations.\"{:?}\".config.system.build.toplevel",
             &self.common.flakeref.deref(),
             hostname
         );
