@@ -132,6 +132,10 @@ pub struct CommonRebuildArgs {
     #[arg(long, short = 'u')]
     pub update: bool,
 
+    /// Create `result` symlink in current directory
+    #[arg(long)]
+    pub result: bool,
+
     /// Don't use nix-output-monitor for the build process
     #[arg(long)]
     pub no_nom: bool,
