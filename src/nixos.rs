@@ -28,7 +28,7 @@ impl NHRunnable for interface::OsArgs {
 
 impl OsEditArgs {
     fn edit(&self) -> Result<()> {
-        let flakeref = self.flakeref.clone().expect("NH_HOME_FLAKE not set");
+        let flakeref = self.flakeref.clone().expect("NH_OS_FLAKE not set");
         commands::edit(flakeref)
     }
 }
