@@ -177,12 +177,12 @@ pub fn edit_with(flakeref: FlakeRef, editor: String) -> Result<()> {
         }
     };
 
-    CommandBuilder::default()
-        .args(&vec![editor, flakedir])
-        .message("Editing flake")
-        .build()?
-        .exec()?;
+    Exec::cmd(editor)
+        .args(&vec!["."])
+        .cwd(flakedir)
+        .stderr(Redirection::None)
+        .stdout(Redirection::None)
+        .join()?;
 
     Ok(())
 }
-
