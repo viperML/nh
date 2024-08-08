@@ -5,7 +5,7 @@ use color_eyre::Result;
 use std::{ffi::OsString, ops::Deref, path::PathBuf};
 
 #[derive(Debug, Clone, Default)]
-pub struct FlakeRef(String);
+pub struct FlakeRef(pub String);
 impl From<&str> for FlakeRef {
     fn from(s: &str) -> Self {
         FlakeRef(s.to_string())
@@ -112,6 +112,9 @@ pub struct OsRebuildArgs {
     /// Extra arguments passed to nix build
     #[arg(last = true)]
     pub extra_args: Vec<String>,
+
+    #[arg(env = "NH_OS_FLAKE", value_hint = clap::ValueHint::DirPath)]
+    pub flakeref: Option<FlakeRef>,
 }
 
 #[derive(Debug, Args)]
@@ -123,10 +126,6 @@ pub struct CommonRebuildArgs {
     /// Ask for confirmation
     #[arg(long, short)]
     pub ask: bool,
-
-    /// Flake reference to build
-    #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
-    pub flakeref: FlakeRef,
 
     /// Update flake inputs before building specified configuration
     #[arg(long, short = 'u')]
@@ -268,6 +267,9 @@ pub struct HomeRebuildArgs {
     /// Move existing files by backing up with the extension
     #[arg(long, short = 'b')]
     pub backup_extension: Option<String>,
+    
+    #[arg(env = "NH_HOME_FLAKE", value_hint = clap::ValueHint::DirPath)]
+    pub flakeref: Option<FlakeRef>,
 }
 
 #[derive(Debug, Parser)]
@@ -277,3 +279,4 @@ pub struct CompletionArgs {
     #[arg(long, short)]
     pub shell: clap_complete::Shell,
 }
+

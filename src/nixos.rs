@@ -3,11 +3,11 @@ use std::ops::Deref;
 use color_eyre::eyre::{bail, Context};
 use color_eyre::Result;
 
-use tracing::{debug, info};
+use tracing::{debug, warn, info};
 
 use crate::interface::NHRunnable;
 use crate::interface::OsRebuildType::{self, Boot, Build, Switch, Test};
-use crate::interface::{self, OsRebuildArgs};
+use crate::interface::{self, OsRebuildArgs, FlakeRef};
 use crate::util::{compare_semver, get_nix_version};
 use crate::*;
 
@@ -42,9 +42,14 @@ impl OsRebuildArgs {
         debug!("out_dir: {:?}", out_dir);
         debug!("out_link {:?}", out_link);
 
+        let flakeref = self.flakeref.clone().or_else(|| {
+            warn!("NH_OS_FLAKE not set");
+            std::env::var("FLAKE").ok().map(|s| FlakeRef(s))
+        }).unwrap_or("./".into());
+
         let flake_output = format!(
             "{}#nixosConfigurations.\"{:?}\".config.system.build.toplevel",
-            &self.common.flakeref.deref(),
+            flakeref.deref(),
             hostname
         );
 
@@ -64,7 +69,7 @@ impl OsRebuildArgs {
                 }
             }
 
-            update_args.push(&self.common.flakeref);
+            update_args.push(&flakeref);
 
             debug!("nix_version: {:?}", nix_version);
             debug!("update_args: {:?}", update_args);

@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use color_eyre::eyre::bail;
 use color_eyre::Result;
 use thiserror::Error;
-use tracing::{debug, info, instrument};
+use tracing::{debug, warn, info, instrument};
 
 use crate::*;
 use crate::{
@@ -42,22 +42,27 @@ impl HomeRebuildArgs {
 
         let username = std::env::var("USER").expect("Couldn't get username");
 
+        let flakeref = self.flakeref.clone().or_else(|| {
+            warn!("NH_HOME_FLAKE not set");
+            std::env::var("FLAKE").ok().map(|s| FlakeRef(s))
+        }).unwrap_or("./".into());
+
         let hm_config_name = match &self.configuration {
             Some(name) => {
-                if configuration_exists(&self.common.flakeref, name)? {
+                if configuration_exists(&flakeref, name)? {
                     name.to_owned()
                 } else {
                     return Err(HomeRebuildError::ConfigName(name.to_owned()).into());
                 }
             }
-            None => get_home_output(&self.common.flakeref, &username)?,
+            None => get_home_output(&flakeref, &username)?,
         };
 
         debug!("hm_config_name: {}", hm_config_name);
-
+        
         let flakeref = format!(
             "{}#homeConfigurations.\"{}\".config.home.activationPackage",
-            &self.common.flakeref.deref(),
+            flakeref.deref(),
             hm_config_name
         );
 
@@ -77,7 +82,7 @@ impl HomeRebuildArgs {
                 }
             }
 
-            update_args.push(&self.common.flakeref);
+            update_args.push(&flakeref);
 
             debug!("nix_version: {:?}", nix_version);
             debug!("update_args: {:?}", update_args);
