@@ -167,15 +167,12 @@ pub fn edit(flakeref: FlakeRef) -> Result<()> {
 }
 
 pub fn edit_with(flakeref: FlakeRef, editor: String) -> Result<()> {
-    let mut ref_pieces: Vec<&str> = flakeref.split('#').collect();
+    let mut pieces: Vec<&str> = flakeref.split('/').collect();
+    let mut final_piece: &str = pieces.remove(pieces.len() - 1);
+    final_piece = final_piece.split('#').next().unwrap();
+    pieces.push(final_piece);
 
-    let flakedir = match ref_pieces[..] {
-        [x] => x.into(),
-        _ => {
-            ref_pieces.truncate(ref_pieces.len() - 1);
-            ref_pieces.join("#")
-        }
-    };
+    let flakedir = pieces.join("");
 
     Exec::cmd(editor)
         .args(&vec!["."])
