@@ -5,7 +5,7 @@ use color_eyre::Result;
 use std::{ffi::OsString, ops::Deref, path::PathBuf};
 
 #[derive(Debug, Clone, Default)]
-pub struct FlakeRef(String);
+pub struct FlakeRef(pub String);
 impl From<&str> for FlakeRef {
     fn from(s: &str) -> Self {
         FlakeRef(s.to_string())
@@ -87,9 +87,17 @@ pub enum OsRebuildType {
     Test(OsRebuildArgs),
     /// Build the new configuration
     Build(OsRebuildArgs),
+    /// Open default editor in the flake directory
+    Edit(OsEditArgs),
     /// Show an overview of the system's info
     #[command(hide = true)]
     Info,
+}
+
+#[derive(Debug, Args)]
+pub struct OsEditArgs {
+    #[arg(env = "NH_OS_FLAKE", value_hint = clap::ValueHint::DirPath)]
+    pub flakeref: FlakeRef,
 }
 
 #[derive(Debug, Args)]
@@ -112,6 +120,9 @@ pub struct OsRebuildArgs {
     /// Extra arguments passed to nix build
     #[arg(last = true)]
     pub extra_args: Vec<String>,
+
+    #[arg(env = "NH_OS_FLAKE", value_hint = clap::ValueHint::DirPath)]
+    pub flakeref: Option<FlakeRef>,
 }
 
 #[derive(Debug, Args)]
@@ -123,10 +134,6 @@ pub struct CommonRebuildArgs {
     /// Ask for confirmation
     #[arg(long, short)]
     pub ask: bool,
-
-    /// Flake reference to build
-    #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
-    pub flakeref: FlakeRef,
 
     /// Update flake inputs before building specified configuration
     #[arg(long, short = 'u')]
@@ -246,6 +253,9 @@ pub enum HomeSubcommand {
     /// Will check the current $USER and $(hostname) to determine which output to build, unless -c is passed
     Build(HomeRebuildArgs),
 
+    /// Open default editor in flake directory
+    Edit(HomeEditArgs),
+
     /// Show an overview of the installation
     #[command(hide(true))]
     Info,
@@ -268,6 +278,15 @@ pub struct HomeRebuildArgs {
     /// Move existing files by backing up with the extension
     #[arg(long, short = 'b')]
     pub backup_extension: Option<String>,
+    
+    #[arg(env = "NH_HOME_FLAKE", value_hint = clap::ValueHint::DirPath)]
+    pub flakeref: Option<FlakeRef>,
+}
+
+#[derive(Debug, Args)]
+pub struct HomeEditArgs {
+    #[arg(env = "NH_HOME_FLAKE", value_hint = clap::ValueHint::DirPath)]
+    pub flakeref: FlakeRef,
 }
 
 #[derive(Debug, Parser)]
@@ -277,3 +296,4 @@ pub struct CompletionArgs {
     #[arg(long, short)]
     pub shell: clap_complete::Shell,
 }
+
