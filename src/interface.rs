@@ -97,7 +97,7 @@ pub enum OsRebuildType {
 #[derive(Debug, Args)]
 pub struct OsEditArgs {
     #[arg(env = "NH_OS_FLAKE", value_hint = clap::ValueHint::DirPath)]
-    pub flakeref: Option<FlakeRef>,
+    pub flakeref: FlakeRef,
 }
 
 #[derive(Debug, Args)]
@@ -286,7 +286,7 @@ pub struct HomeRebuildArgs {
 #[derive(Debug, Args)]
 pub struct HomeEditArgs {
     #[arg(env = "NH_HOME_FLAKE", value_hint = clap::ValueHint::DirPath)]
-    pub flakeref: Option<FlakeRef>,
+    pub flakeref: FlakeRef,
 }
 
 #[derive(Debug, Parser)]

@@ -37,9 +37,7 @@ impl NHRunnable for HomeArgs {
 
 impl HomeEditArgs {
     fn edit(&self) -> Result<()> {
-        let flakeref = self.flakeref.clone().expect("NH_HOME_FLAKE not set");
-
-        commands::edit(flakeref)
+        commands::edit(self.flakeref.clone())
     }
 }
 
