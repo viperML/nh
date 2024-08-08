@@ -6,8 +6,8 @@ use color_eyre::Result;
 use tracing::{debug, warn, info};
 
 use crate::interface::NHRunnable;
-use crate::interface::OsRebuildType::{self, Boot, Build, Switch, Test};
-use crate::interface::{self, OsRebuildArgs, FlakeRef};
+use crate::interface::OsRebuildType::{self, Boot, Build, Switch, Test, Edit};
+use crate::interface::{self, OsRebuildArgs, FlakeRef, OsEditArgs};
 use crate::util::{compare_semver, get_nix_version};
 use crate::*;
 
@@ -20,8 +20,16 @@ impl NHRunnable for interface::OsArgs {
     fn run(&self) -> Result<()> {
         match &self.action {
             Switch(args) | Boot(args) | Test(args) | Build(args) => args.rebuild(&self.action),
+            Edit(args) => args.edit(),
             s => bail!("Subcommand {:?} not yet implemented", s),
         }
+    }
+}
+
+impl OsEditArgs {
+    fn edit(&self) -> Result<()> {
+        let flakeref = self.flakeref.clone().expect("NH_HOME_FLAKE not set");
+        commands::edit(flakeref)
     }
 }
 

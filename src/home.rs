@@ -10,7 +10,7 @@ use tracing::{debug, warn, info, instrument};
 use crate::*;
 use crate::{
     interface::NHRunnable,
-    interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand},
+    interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand, HomeEditArgs},
     util::{compare_semver, get_nix_version},
 };
 
@@ -27,8 +27,19 @@ impl NHRunnable for HomeArgs {
             HomeSubcommand::Switch(args) | HomeSubcommand::Build(args) => {
                 args.rebuild(&self.subcommand)
             }
+            HomeSubcommand::Edit(args) => {
+                args.edit()
+            }
             s => bail!("Subcommand {:?} not yet implemented", s),
         }
+    }
+}
+
+impl HomeEditArgs {
+    fn edit(&self) -> Result<()> {
+        let flakeref = self.flakeref.clone().expect("NH_HOME_FLAKE not set");
+
+        commands::edit(flakeref)
     }
 }
 
@@ -154,7 +165,7 @@ impl HomeRebuildArgs {
         drop(out_dir);
 
         Ok(())
-    }
+    }   
 }
 
 fn get_home_output<S: AsRef<str> + std::fmt::Display>(

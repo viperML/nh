@@ -9,6 +9,8 @@ use thiserror::Error;
 use subprocess::{Exec, ExitStatus, Redirection};
 use tracing::{debug, info};
 
+use crate::interface::FlakeRef;
+
 #[derive(Debug, derive_builder::Builder)]
 #[builder(derive(Debug), setter(into))]
 pub struct Command {
@@ -158,3 +160,29 @@ impl BuildCommand {
 #[derive(Debug, Error)]
 #[error("Command exited with status {0:?}")]
 pub struct ExitError(ExitStatus);
+
+pub fn edit(flakeref: FlakeRef) -> Result<()> {
+    let editor = std::env::var("EDITOR").expect("EDITOR not set");
+    edit_with(flakeref, editor)
+}
+
+pub fn edit_with(flakeref: FlakeRef, editor: String) -> Result<()> {
+    let mut ref_pieces: Vec<&str> = flakeref.split('#').collect();
+
+    let flakedir = match ref_pieces[..] {
+        [x] => x.into(),
+        _ => {
+            ref_pieces.truncate(ref_pieces.len() - 1);
+            ref_pieces.join("#")
+        }
+    };
+
+    CommandBuilder::default()
+        .args(&vec![editor, flakedir])
+        .message("Editing flake")
+        .build()?
+        .exec()?;
+
+    Ok(())
+}
+

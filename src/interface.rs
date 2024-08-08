@@ -87,9 +87,17 @@ pub enum OsRebuildType {
     Test(OsRebuildArgs),
     /// Build the new configuration
     Build(OsRebuildArgs),
+    /// Open default editor in the flake directory
+    Edit(OsEditArgs),
     /// Show an overview of the system's info
     #[command(hide = true)]
     Info,
+}
+
+#[derive(Debug, Args)]
+pub struct OsEditArgs {
+    #[arg(env = "NH_OS_FLAKE", value_hint = clap::ValueHint::DirPath)]
+    pub flakeref: Option<FlakeRef>,
 }
 
 #[derive(Debug, Args)]
@@ -245,6 +253,9 @@ pub enum HomeSubcommand {
     /// Will check the current $USER and $(hostname) to determine which output to build, unless -c is passed
     Build(HomeRebuildArgs),
 
+    /// Open default editor in flake directory
+    Edit(HomeEditArgs),
+
     /// Show an overview of the installation
     #[command(hide(true))]
     Info,
@@ -268,6 +279,12 @@ pub struct HomeRebuildArgs {
     #[arg(long, short = 'b')]
     pub backup_extension: Option<String>,
     
+    #[arg(env = "NH_HOME_FLAKE", value_hint = clap::ValueHint::DirPath)]
+    pub flakeref: Option<FlakeRef>,
+}
+
+#[derive(Debug, Args)]
+pub struct HomeEditArgs {
     #[arg(env = "NH_HOME_FLAKE", value_hint = clap::ValueHint::DirPath)]
     pub flakeref: Option<FlakeRef>,
 }
