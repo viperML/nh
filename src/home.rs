@@ -11,7 +11,7 @@ use crate::*;
 use crate::{
     interface::NHRunnable,
     interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand},
-    util::{compare_semver, get_nix_version},
+    util::{check_perms, compare_semver, get_nix_version},
 };
 
 #[derive(Error, Debug)]
@@ -66,6 +66,8 @@ impl HomeRebuildArgs {
             let nix_version = get_nix_version().unwrap_or_else(|_| {
                 panic!("Failed to get Nix version. Custom Nix fork?");
             });
+
+            check_perms("flake.lock")?;
 
             // Default interface for updating flake inputs
             let mut update_args = vec!["nix", "flake", "update"];

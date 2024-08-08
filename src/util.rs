@@ -3,6 +3,8 @@ extern crate semver;
 use color_eyre::{eyre, Result};
 use semver::Version;
 
+use std::fs::OpenOptions;
+use std::io;
 use std::process::Command;
 use std::str;
 
@@ -55,4 +57,31 @@ pub fn get_nix_version() -> Result<String> {
     }
 
     Err(eyre::eyre!("Failed to extract version"))
+}
+
+/// Checks if the current user has permission to read, write, or create files at the specified path.
+///
+/// This function attempts to open a file at the given path with read, write permissions, but without
+/// creating it if it doesn't exist. It returns an error if the operation fails due to insufficient permissions.
+///
+/// # Parameters
+///
+/// * `path` - A string slice representing the path to the file or directory to check permissions for.
+///
+/// # Errors
+///
+/// Returns an `io::Error` if the operation fails. The specific error kind will be `PermissionDenied`, indicating
+/// that the current user lacks the necessary permissions to perform the requested operation.
+pub fn check_perms(path: &str) -> io::Result<()> {
+    let mut options = OpenOptions::new();
+    let file = options.read(true).write(true).create(false).open(path);
+
+    // Match on the result of opening the file
+    match file {
+        Ok(_) => Ok(()),
+        Err(e) => Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!("Cannot update flakes owned by root. Error: {:?}", e),
+        )),
+    }
 }
