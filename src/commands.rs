@@ -172,7 +172,7 @@ pub fn edit_with(flakeref: FlakeRef, editor: String) -> Result<()> {
     final_piece = final_piece.split('#').next().unwrap();
     pieces.push(final_piece);
 
-    let flakedir = pieces.join("");
+    let flakedir = pieces.join("/");
 
     Exec::cmd(editor)
         .args(&vec!["."])
