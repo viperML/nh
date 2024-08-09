@@ -58,7 +58,11 @@ or use the `programs.nh.flake` NixOS option.
 ### Specialisations support
 
 nh is capable of detecting which specialisation you are running, so it runs the proper activation script.
-To do so, you need to give nh some information of the spec that is currently running by writing its name to `/etc/specialisation`. The config would look like this:
+To do so, you need to give nh some information of the spec that is currently running.
+
+#### NixOS
+
+System specialisations are read from `/etc/specialisation`. The config would look like this:
 
 ```nix
 {config, pkgs, ...}: {
@@ -66,9 +70,17 @@ To do so, you need to give nh some information of the spec that is currently run
     environment.etc."specialisation".text = "foo";
     # ..rest of config
   };
+}
+```
 
+#### Home-Manager
+
+Home specialisations are read from `~/.local/share/home-manager/specialisation`. The config would look like this:
+
+```nix
+{config, pkgs, ...}: {
   specialisation."bar".configuration = {
-    environment.etc."specialisation".text = "bar";
+    xdg.dataFile."home-manager/specialisation".text = "bar";
     # ..rest of config
   };
 }
