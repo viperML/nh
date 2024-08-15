@@ -72,10 +72,10 @@ impl NHRunnable for interface::CleanMode {
                 }
                 let user = nix::unistd::User::from_uid(uid)?.unwrap();
                 profiles.extend(profiles_in_dir(
-                    &PathBuf::from(std::env::var("HOME")?).join(".local/state/nix/profiles"),
+                    PathBuf::from(std::env::var("HOME")?).join(".local/state/nix/profiles"),
                 ));
                 profiles.extend(profiles_in_dir(
-                    &PathBuf::from("/nix/var/nix/profiles/per-user").join(user.name),
+                    PathBuf::from("/nix/var/nix/profiles/per-user").join(user.name),
                 ));
                 args
             }

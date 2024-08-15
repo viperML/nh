@@ -1,4 +1,4 @@
-use std::{collections::HashMap, process::Stdio, time::Instant};
+use std::{process::Stdio, time::Instant};
 
 use color_eyre::eyre::{eyre, Context, ContextCompat};
 use elasticsearch_dsl::*;
@@ -219,21 +219,31 @@ fn my_nix_branch(flake: &FlakeRef) -> Result<String> {
         .arg(flake.as_str())
         .output()?;
 
-    let stdout = String::from_utf8(output.stdout)?;
-    let mut metadata: FlakeMetadata = serde_json::from_str(&stdout)?;
+    let metadata: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    let m = crate::json::Value::new(&metadata);
 
-    let branch = metadata
-        .locks
-        .nodes
-        .remove("nixpkgs")
-        .wrap_err(r#"Couldn't find input "nixpkgs" on the flake"#)?
-        .original
-        .wrap_err("Couldn't find original")?
-        .r#ref
-        .wrap_err("Couldn't find ref field")?;
+    let nixpkgs_input = m
+        .get("locks")?
+        .get("nodes")?
+        .get("root")?
+        .get("inputs")?
+        .get("nixpkgs")?
+        .inner
+        .as_str()
+        .wrap_err("Failed to read as string")?;
 
-    if supported_branch(&branch) {
-        Ok(branch)
+    let branch = m
+        .get("locks")?
+        .get("nodes")?
+        .get(nixpkgs_input)?
+        .get("original")?
+        .get("ref")?
+        .inner
+        .as_str()
+        .wrap_err("Failed to read as string")?;
+
+    if supported_branch(branch) {
+        Ok(branch.to_owned())
     } else {
         Err(eyre!("Branch {} is not supported", &branch))
     }
@@ -247,38 +257,15 @@ fn supported_branch<S: AsRef<str>>(branch: S) -> bool {
     }
 
     let re = Regex::new(r"nixos-[0-9]+\.[0-9]+").unwrap();
-    return re.is_match(branch);
+    re.is_match(branch)
 }
 
 #[test]
 fn test_supported_branch() {
-    assert_eq!(supported_branch("nixos-unstable"), true);
-    assert_eq!(supported_branch("nixos-unstable-small"), false);
-    assert_eq!(supported_branch("nixos-24.05"), true);
-    assert_eq!(supported_branch("24.05"), false);
-    assert_eq!(supported_branch("nixpkgs-darwin"), false);
-    assert_eq!(supported_branch("nixpks-21.11-darwin"), false);
-}
-
-#[derive(Debug, Deserialize, Clone)]
-struct FlakeMetadata {
-    locks: FlakeLocks,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-struct FlakeLocks {
-    nodes: HashMap<String, FlakeLockedNode>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-struct FlakeLockedNode {
-    original: Option<FlakeLockedOriginal>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-struct FlakeLockedOriginal {
-    r#ref: Option<String>,
-    // owner: String,
-    // repo: String,
-    // r#type: String,
+    assert!(supported_branch("nixos-unstable"));
+    assert!(!supported_branch("nixos-unstable-small"));
+    assert!(supported_branch("nixos-24.05"));
+    assert!(!supported_branch("24.05"));
+    assert!(!supported_branch("nixpkgs-darwin"));
+    assert!(!supported_branch("nixpks-21.11-darwin"));
 }

@@ -3,6 +3,7 @@ mod commands;
 mod completion;
 mod home;
 mod interface;
+mod json;
 mod logging;
 mod nixos;
 mod search;
