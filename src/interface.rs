@@ -101,14 +101,6 @@ pub struct OsRebuildArgs {
     #[arg(long, short = 'H', global = true)]
     pub hostname: Option<OsString>,
 
-    /// Name of the specialisation
-    #[arg(long, short)]
-    pub specialisation: Option<String>,
-
-    /// Don't use specialisations
-    #[arg(long, short = 'S')]
-    pub no_specialisation: bool,
-
     /// Extra arguments passed to nix build
     #[arg(last = true)]
     pub extra_args: Vec<String>,
@@ -131,6 +123,14 @@ pub struct CommonRebuildArgs {
     /// Update flake inputs before building specified configuration
     #[arg(long, short = 'u')]
     pub update: bool,
+
+    /// Name of the specialisation
+    #[arg(long, short)]
+    pub specialisation: Option<String>,
+
+    /// Don't use specialisations
+    #[arg(long, short = 'S')]
+    pub no_specialisation: bool,
 
     /// Don't use nix-output-monitor for the build process
     #[arg(long)]
