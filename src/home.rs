@@ -34,11 +34,15 @@ impl NHRunnable for HomeArgs {
 
 impl HomeRebuildArgs {
     fn rebuild(&self, action: &HomeSubcommand) -> Result<()> {
-        let out_dir = tempfile::Builder::new().prefix("nh-home-").tempdir()?;
-        let out_link = out_dir.path().join("result");
-        let out_link_str = out_link.to_str().unwrap();
-        debug!("out_dir: {:?}", out_dir);
-        debug!("out_link {:?}", out_link);
+        let out_path: Box<dyn crate::util::MaybeTempPath> = match self.common.out_link {
+            Some(ref p) => Box::new(p.clone()),
+            None => Box::new({
+                let dir = tempfile::Builder::new().prefix("nh-home").tempdir()?;
+                (dir.as_ref().join("result"), dir)
+            }),
+        };
+
+        debug!(?out_path);
 
         let username = std::env::var("USER").expect("Couldn't get username");
 
@@ -91,7 +95,8 @@ impl HomeRebuildArgs {
 
         commands::BuildCommandBuilder::default()
             .flakeref(&flakeref)
-            .extra_args(["--out-link", out_link_str])
+            .extra_args(["--out-link"])
+            .extra_args([out_path.get_path()])
             .extra_args(&self.extra_args)
             .message("Building home configuration")
             .nom(!self.common.no_nom)
@@ -115,7 +120,8 @@ impl HomeRebuildArgs {
         if let Some(prev_gen) = prev_generation {
             commands::CommandBuilder::default()
                 .args(self.common.diff_provider.split_ascii_whitespace())
-                .args([(prev_gen.to_str().unwrap()), out_link_str])
+                .args([(prev_gen.to_str().unwrap())])
+                .args([out_path.get_path()])
                 .message("Comparing changes")
                 .build()?
                 .exec()?;
@@ -140,13 +146,13 @@ impl HomeRebuildArgs {
         }
 
         commands::CommandBuilder::default()
-            .args([&format!("{}/activate", out_link_str)])
+            .args([out_path.get_path().join("activate")])
             .message("Activating configuration")
             .build()?
             .exec()?;
 
         // Drop the out dir *only* when we are finished
-        drop(out_dir);
+        drop(out_path);
 
         Ok(())
     }

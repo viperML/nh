@@ -36,11 +36,15 @@ impl OsRebuildArgs {
             None => hostname::get().context("Failed to get hostname")?,
         };
 
-        let out_dir = tempfile::Builder::new().prefix("nh-os-").tempdir()?;
-        let out_link = out_dir.path().join("result");
-        let out_link_str = out_link.to_str().unwrap();
-        debug!("out_dir: {:?}", out_dir);
-        debug!("out_link {:?}", out_link);
+        let out_path: Box<dyn crate::util::MaybeTempPath> = match self.common.out_link {
+            Some(ref p) => Box::new(p.clone()),
+            None => Box::new({
+                let dir = tempfile::Builder::new().prefix("nh-os").tempdir()?;
+                (dir.as_ref().join("result"), dir)
+            }),
+        };
+
+        debug!(?out_path);
 
         let flake_output = format!(
             "{}#nixosConfigurations.\"{:?}\".config.system.build.toplevel",
@@ -79,7 +83,8 @@ impl OsRebuildArgs {
         commands::BuildCommandBuilder::default()
             .flakeref(flake_output)
             .message("Building NixOS configuration")
-            .extra_args(["--out-link", out_link_str])
+            .extra_args(["--out-link"])
+            .extra_args([out_path.get_path()])
             .extra_args(&self.extra_args)
             .nom(!self.common.no_nom)
             .build()?
@@ -96,8 +101,8 @@ impl OsRebuildArgs {
         debug!("target_specialisation: {target_specialisation:?}");
 
         let target_profile = match &target_specialisation {
-            None => out_link.to_owned(),
-            Some(spec) => out_link.join("specialisation").join(spec),
+            None => out_path.get_path().to_owned(),
+            Some(spec) => out_path.get_path().join("specialisation").join(spec),
         };
 
         target_profile.try_exists().context("Doesn't exist")?;
@@ -143,13 +148,16 @@ impl OsRebuildArgs {
                     "--profile",
                     SYSTEM_PROFILE,
                     "--set",
-                    out_link_str,
                 ])
+                .args([out_path.get_path()])
                 .build()?
                 .exec()?;
 
             // !! Use the base profile aka no spec-namespace
-            let switch_to_configuration = out_link.join("bin").join("switch-to-configuration");
+            let switch_to_configuration = out_path
+                .get_path()
+                .join("bin")
+                .join("switch-to-configuration");
             let switch_to_configuration = switch_to_configuration.to_str().unwrap();
 
             commands::CommandBuilder::default()
@@ -160,7 +168,7 @@ impl OsRebuildArgs {
         }
 
         // Drop the out dir *only* when we are finished
-        drop(out_dir);
+        drop(out_path);
 
         Ok(())
     }

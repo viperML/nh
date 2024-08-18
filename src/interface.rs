@@ -146,6 +146,10 @@ pub struct CommonRebuildArgs {
         default_value = "nvd diff"
     )]
     pub diff_provider: String,
+
+    /// Path to save the result link. Defaults to using a temporary directory.
+    #[arg(long, short)]
+    pub out_link: Option<PathBuf>
 }
 
 #[derive(Args, Debug)]

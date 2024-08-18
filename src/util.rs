@@ -2,7 +2,9 @@ extern crate semver;
 
 use color_eyre::{eyre, Result};
 use semver::Version;
+use tempfile::TempDir;
 
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
 
@@ -55,4 +57,20 @@ pub fn get_nix_version() -> Result<String> {
     }
 
     Err(eyre::eyre!("Failed to extract version"))
+}
+
+pub trait MaybeTempPath: std::fmt::Debug {
+    fn get_path(&self) -> &Path;
+}
+
+impl MaybeTempPath for PathBuf {
+    fn get_path(&self) -> &Path {
+        self.as_ref()
+    }
+}
+
+impl MaybeTempPath for (PathBuf, TempDir) {
+    fn get_path(&self) -> &Path {
+        self.0.as_ref()
+    }
 }
