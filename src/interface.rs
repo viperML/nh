@@ -114,7 +114,7 @@ pub struct OsRebuildArgs {
     pub extra_args: Vec<String>,
 
     /// Bypass the check to call nh as root directly.
-    #[arg(short = 'R', long)]
+    #[arg(short = 'R', long, env = "NH_BYPASS_ROOT_CHECK")]
     pub bypass_root_check: bool,
 }
 
