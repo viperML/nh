@@ -1,9 +1,10 @@
 use std::ops::Deref;
+use std::{env, vec};
 
 use color_eyre::eyre::{bail, Context};
 use color_eyre::Result;
 
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::interface::NHRunnable;
 use crate::interface::OsRebuildType::{self, Boot, Build, Switch, Test};
@@ -27,9 +28,19 @@ impl NHRunnable for interface::OsArgs {
 
 impl OsRebuildArgs {
     pub fn rebuild(&self, rebuild_type: &OsRebuildType) -> Result<()> {
-        if nix::unistd::Uid::effective().is_root() {
-            bail!("Don't run nh os as root. I will call sudo internally as needed");
-        }
+        let use_sudo = if self.bypass_root_check {
+            warn!("Bypassing root check, now running nix as root");
+            false
+        } else {
+            if nix::unistd::Uid::effective().is_root() {
+                bail!("Don't run nh os as root. I will call sudo internally as needed");
+            }
+            true
+        };
+
+        // TODO: add a  .maybe_arg to CommandBuilder
+        // so that I can do .maybe_arg( Option<T> )
+        let sudo_args: &[_] = if use_sudo { &["sudo"] } else { &[] };
 
         let hostname = match &self.hostname {
             Some(h) => h.to_owned(),
@@ -134,7 +145,8 @@ impl OsRebuildArgs {
             let switch_to_configuration = switch_to_configuration.to_str().unwrap();
 
             commands::CommandBuilder::default()
-                .args(["sudo", switch_to_configuration, "test"])
+                .args(sudo_args)
+                .args([switch_to_configuration, "test"])
                 .message("Activating configuration")
                 .build()?
                 .exec()?;
@@ -142,13 +154,8 @@ impl OsRebuildArgs {
 
         if let Boot(_) | Switch(_) = rebuild_type {
             commands::CommandBuilder::default()
-                .args([
-                    "sudo",
-                    "nix-env",
-                    "--profile",
-                    SYSTEM_PROFILE,
-                    "--set",
-                ])
+                .args(sudo_args)
+                .args(["nix-env", "--profile", SYSTEM_PROFILE, "--set"])
                 .args([out_path.get_path()])
                 .build()?
                 .exec()?;
@@ -161,7 +168,8 @@ impl OsRebuildArgs {
             let switch_to_configuration = switch_to_configuration.to_str().unwrap();
 
             commands::CommandBuilder::default()
-                .args(["sudo", switch_to_configuration, "boot"])
+                .args(sudo_args)
+                .args([switch_to_configuration, "boot"])
                 .message("Adding configuration to bootloader")
                 .build()?
                 .exec()?;

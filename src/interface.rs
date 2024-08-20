@@ -112,6 +112,10 @@ pub struct OsRebuildArgs {
     /// Extra arguments passed to nix build
     #[arg(last = true)]
     pub extra_args: Vec<String>,
+
+    /// Bypass the check to call nh as root directly.
+    #[arg(short = 'R', long)]
+    pub bypass_root_check: bool,
 }
 
 #[derive(Debug, Args)]
