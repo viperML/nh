@@ -136,7 +136,7 @@ impl HomeRebuildArgs {
             let confirmation = dialoguer::Confirm::new().default(false).interact()?;
 
             if !confirmation {
-                return Ok(());
+                bail!("User rejected the new config");
             }
         }
 

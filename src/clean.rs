@@ -201,7 +201,7 @@ impl NHRunnable for interface::CleanMode {
         if args.ask {
             info!("Confirm the cleanup plan?");
             if !dialoguer::Confirm::new().default(false).interact()? {
-                return Ok(());
+                bail!("User rejected the cleanup plan");
             }
         }
 
