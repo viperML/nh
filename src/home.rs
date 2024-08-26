@@ -151,7 +151,8 @@ impl HomeRebuildArgs {
             .build()?
             .exec()?;
 
-        // Drop the out dir *only* when we are finished
+        // Make sure out_path is not accidentally dropped
+        // https://docs.rs/tempfile/3.12.0/tempfile/index.html#early-drop-pitfall
         drop(out_path);
 
         Ok(())
