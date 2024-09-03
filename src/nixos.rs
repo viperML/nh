@@ -12,7 +12,7 @@ use crate::interface::{self, OsRebuildArgs};
 use crate::util::{compare_semver, get_nix_version};
 use crate::*;
 
-const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
+const NIX_PROFILES: &str = "/nix/var/nix/profiles";
 const CURRENT_PROFILE: &str = "/run/current-system";
 
 const SPEC_LOCATION: &str = "/etc/specialisation";
@@ -151,11 +151,16 @@ impl OsRebuildArgs {
                 .build()?
                 .exec()?;
         }
-
         if let Boot(_) | Switch(_) = rebuild_type {
+            let profile_name: String;
+            if self.common.profile_name.is_some() && self.common.profile_name.as_ref().unwrap() != "system" {
+                profile_name = format!("{NIX_PROFILES}/system-profiles/{}", self.common.profile_name.as_ref().unwrap());
+            } else {
+                profile_name = format!("{NIX_PROFILES}/system");
+            }
             commands::CommandBuilder::default()
                 .args(sudo_args)
-                .args(["nix-env", "--profile", SYSTEM_PROFILE, "--set"])
+                .args(["nix-env", "-p", &profile_name, "--set"])
                 .args([out_path.get_path()])
                 .build()?
                 .exec()?;

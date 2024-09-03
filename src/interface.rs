@@ -128,6 +128,10 @@ pub struct CommonRebuildArgs {
     #[arg(long, short)]
     pub ask: bool,
 
+    /// Name of the new system profile in the bootloader
+    #[arg(long, short)]
+    pub profile_name: Option<String>,
+
     /// Flake reference to build
     #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
     pub flakeref: FlakeRef,
