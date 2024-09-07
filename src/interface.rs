@@ -40,8 +40,15 @@ fn make_style() -> Styles {
     long_about = None,
     styles=make_style(),
     propagate_version = false,
+    help_template = "
+{name} {version}
+{about-with-newline}
+{usage-heading} {usage}
+
+{all-args}{after-help}
+"
 )]
-/// nh is yet another nix helper
+/// Yet another nix helper
 pub struct NHParser {
     #[arg(short, long, global = true)]
     /// Show debug logs

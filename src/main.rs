@@ -20,6 +20,7 @@ fn main() -> Result<()> {
     let args = <NHParser as clap::Parser>::parse();
     crate::logging::setup_logging(args.verbose)?;
     tracing::debug!(?args);
+    tracing::debug!(%NH_VERSION);
 
     args.command.run()
 }
