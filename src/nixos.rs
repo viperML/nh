@@ -6,6 +6,7 @@ use color_eyre::Result;
 
 use tracing::{debug, info, warn};
 
+use crate::installables::Installable;
 use crate::interface::NHRunnable;
 use crate::interface::OsRebuildType::{self, Boot, Build, Switch, Test};
 use crate::interface::{self, OsRebuildArgs};
@@ -57,128 +58,112 @@ impl OsRebuildArgs {
 
         debug!(?out_path);
 
-        let flake_output = format!(
-            "{}#nixosConfigurations.\"{:?}\".config.system.build.toplevel",
-            &self.common.flakeref.deref(),
-            hostname
-        );
-
-        if self.common.update {
-            // Get the Nix version
-            let nix_version = get_nix_version().unwrap_or_else(|_| {
-                panic!("Failed to get Nix version. Custom Nix fork?");
-            });
-
-            // Default interface for updating flake inputs
-            let mut update_args = vec!["nix", "flake", "update"];
-
-            // If user is on Nix 2.19.0 or above, --flake must be passed
-            if let Ok(ordering) = compare_semver(&nix_version, "2.19.0") {
-                if ordering == std::cmp::Ordering::Greater {
-                    update_args.push("--flake");
-                }
-            }
-
-            update_args.push(&self.common.flakeref);
-
-            debug!("nix_version: {:?}", nix_version);
-            debug!("update_args: {:?}", update_args);
-
-            commands::CommandBuilder::default()
-                .args(&update_args)
-                .message("Updating flake")
-                .build()?
-                .exec()?;
-        }
-
-        commands::BuildCommandBuilder::default()
-            .flakeref(flake_output)
-            .message("Building NixOS configuration")
-            .extra_args(["--out-link"])
-            .extra_args([out_path.get_path()])
-            .extra_args(&self.extra_args)
-            .nom(!self.common.no_nom)
-            .build()?
-            .exec()?;
-
-        let current_specialisation = std::fs::read_to_string(SPEC_LOCATION).ok();
-
-        let target_specialisation = if self.no_specialisation {
-            None
-        } else {
-            current_specialisation.or_else(|| self.specialisation.to_owned())
-        };
-
-        debug!("target_specialisation: {target_specialisation:?}");
-
-        let target_profile = match &target_specialisation {
-            None => out_path.get_path().to_owned(),
-            Some(spec) => out_path.get_path().join("specialisation").join(spec),
-        };
-
-        target_profile.try_exists().context("Doesn't exist")?;
-
-        commands::CommandBuilder::default()
-            .args(self.common.diff_provider.split_ascii_whitespace())
-            .args([CURRENT_PROFILE, target_profile.to_str().unwrap()])
-            .message("Comparing changes")
-            .build()?
-            .exec()?;
-
-        if self.common.dry || matches!(rebuild_type, OsRebuildType::Build(_)) {
-            return Ok(());
-        }
-
-        if self.common.ask {
-            info!("Apply the config?");
-            let confirmation = dialoguer::Confirm::new().default(false).interact()?;
-
-            if !confirmation {
-                bail!("User rejected the new config");
-            }
-        }
-
-        if let Test(_) | Switch(_) = rebuild_type {
-            // !! Use the target profile aka spec-namespaced
-            let switch_to_configuration =
-                target_profile.join("bin").join("switch-to-configuration");
-            let switch_to_configuration = switch_to_configuration.to_str().unwrap();
-
-            commands::CommandBuilder::default()
-                .args(sudo_args)
-                .args([switch_to_configuration, "test"])
-                .message("Activating configuration")
-                .build()?
-                .exec()?;
-        }
-
-        if let Boot(_) | Switch(_) = rebuild_type {
-            commands::CommandBuilder::default()
-                .args(sudo_args)
-                .args(["nix-env", "--profile", SYSTEM_PROFILE, "--set"])
-                .args([out_path.get_path()])
-                .build()?
-                .exec()?;
-
-            // !! Use the base profile aka no spec-namespace
-            let switch_to_configuration = out_path
-                .get_path()
-                .join("bin")
-                .join("switch-to-configuration");
-            let switch_to_configuration = switch_to_configuration.to_str().unwrap();
-
-            commands::CommandBuilder::default()
-                .args(sudo_args)
-                .args([switch_to_configuration, "boot"])
-                .message("Adding configuration to bootloader")
-                .build()?
-                .exec()?;
-        }
-
-        // Make sure out_path is not accidentally dropped
-        // https://docs.rs/tempfile/3.12.0/tempfile/index.html#early-drop-pitfall
-        drop(out_path);
-
+        // let target_installable = match self.common.installable {
+        //     installables::Installable::Flake(flake) => {
+        //         // FIXME
+        //         let mut flake = flake.clone();
+        //         flake.attribute = vec![];
+        //         flake.attribute.push(String::from("nixosConfigurations"));
+        //         flake.attribute.push(hostname.into_string().unwrap());
+        //
+        //         flake.attribute.push(String::from("config"));
+        //         flake.attribute.push(String::from("build"));
+        //         flake.attribute.push(String::from("system"));
+        //         flake.attribute.push(String::from("toplevel"));
+        //
+        //         Installable::Flake(flake)
+        //     }
+        // };
+        //
+        // commands::BuildCommandBuilder::default()
+        //     .flakeref(format!("{}", target_installable)) // FIXME
+        //     // .flakeref(flake_output)
+        //     .message("Building NixOS configuration")
+        //     .extra_args(["--out-link"])
+        //     .extra_args([out_path.get_path()])
+        //     .extra_args(&self.extra_args)
+        //     .nom(!self.common.no_nom)
+        //     .build()?
+        //     .exec()?;
+        //
+        // let current_specialisation = std::fs::read_to_string(SPEC_LOCATION).ok();
+        //
+        // let target_specialisation = if self.no_specialisation {
+        //     None
+        // } else {
+        //     current_specialisation.or_else(|| self.specialisation.to_owned())
+        // };
+        //
+        // debug!("target_specialisation: {target_specialisation:?}");
+        //
+        // let target_profile = match &target_specialisation {
+        //     None => out_path.get_path().to_owned(),
+        //     Some(spec) => out_path.get_path().join("specialisation").join(spec),
+        // };
+        //
+        // target_profile.try_exists().context("Doesn't exist")?;
+        //
+        // commands::CommandBuilder::default()
+        //     .args(self.common.diff_provider.split_ascii_whitespace())
+        //     .args([CURRENT_PROFILE, target_profile.to_str().unwrap()])
+        //     .message("Comparing changes")
+        //     .build()?
+        //     .exec()?;
+        //
+        // if self.common.dry || matches!(rebuild_type, OsRebuildType::Build(_)) {
+        //     return Ok(());
+        // }
+        //
+        // if self.common.ask {
+        //     info!("Apply the config?");
+        //     let confirmation = dialoguer::Confirm::new().default(false).interact()?;
+        //
+        //     if !confirmation {
+        //         bail!("User rejected the new config");
+        //     }
+        // }
+        //
+        // if let Test(_) | Switch(_) = rebuild_type {
+        //     // !! Use the target profile aka spec-namespaced
+        //     let switch_to_configuration =
+        //         target_profile.join("bin").join("switch-to-configuration");
+        //     let switch_to_configuration = switch_to_configuration.to_str().unwrap();
+        //
+        //     commands::CommandBuilder::default()
+        //         .args(sudo_args)
+        //         .args([switch_to_configuration, "test"])
+        //         .message("Activating configuration")
+        //         .build()?
+        //         .exec()?;
+        // }
+        //
+        // if let Boot(_) | Switch(_) = rebuild_type {
+        //     commands::CommandBuilder::default()
+        //         .args(sudo_args)
+        //         .args(["nix-env", "--profile", SYSTEM_PROFILE, "--set"])
+        //         .args([out_path.get_path()])
+        //         .build()?
+        //         .exec()?;
+        //
+        //     // !! Use the base profile aka no spec-namespace
+        //     let switch_to_configuration = out_path
+        //         .get_path()
+        //         .join("bin")
+        //         .join("switch-to-configuration");
+        //     let switch_to_configuration = switch_to_configuration.to_str().unwrap();
+        //
+        //     commands::CommandBuilder::default()
+        //         .args(sudo_args)
+        //         .args([switch_to_configuration, "boot"])
+        //         .message("Adding configuration to bootloader")
+        //         .build()?
+        //         .exec()?;
+        // }
+        //
+        // // Make sure out_path is not accidentally dropped
+        // // https://docs.rs/tempfile/3.12.0/tempfile/index.html#early-drop-pitfall
+        // drop(out_path);
+        //
         Ok(())
     }
 }
