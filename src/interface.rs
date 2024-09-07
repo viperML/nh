@@ -4,6 +4,8 @@ use clap::{builder::Styles, Args, Parser, Subcommand};
 use color_eyre::Result;
 use std::{ffi::OsString, ops::Deref, path::PathBuf};
 
+use crate::installables::Installable;
+
 #[derive(Debug, Clone, Default)]
 pub struct FlakeRef(String);
 impl From<&str> for FlakeRef {
@@ -68,7 +70,6 @@ pub trait NHRunnable {
 #[command(disable_help_subcommand = true)]
 pub enum NHCommand {
     Os(OsArgs),
-    Home(HomeArgs),
     Search(SearchArgs),
     Clean(CleanProxy),
     Completions(CompletionArgs),
@@ -137,7 +138,7 @@ pub struct CommonRebuildArgs {
 
     /// Flake reference to build
     #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
-    pub flakeref: FlakeRef,
+    pub installable: Installable,
 
     /// Update flake inputs before building specified configuration
     #[arg(long, short = 'u')]
