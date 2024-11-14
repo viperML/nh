@@ -9,8 +9,8 @@ use tracing::{debug, info, warn};
 use crate::interface::NHRunnable;
 use crate::interface::OsRebuildType::{self, Boot, Build, Switch, Test};
 use crate::interface::{self, OsRebuildArgs};
-use crate::util::{compare_semver, get_nix_version};
 use crate::*;
+use nh_lib::{compare_semver, get_nix_version};
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";
@@ -47,7 +47,7 @@ impl OsRebuildArgs {
             None => hostname::get().context("Failed to get hostname")?,
         };
 
-        let out_path: Box<dyn crate::util::MaybeTempPath> = match self.common.out_link {
+        let out_path: Box<dyn nh_lib::MaybeTempPath> = match self.common.out_link {
             Some(ref p) => Box::new(p.clone()),
             None => Box::new({
                 let dir = tempfile::Builder::new().prefix("nh-os").tempdir()?;

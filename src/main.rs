@@ -7,7 +7,6 @@ mod json;
 mod logging;
 mod nixos;
 mod search;
-mod util;
 
 use crate::interface::NHParser;
 use crate::interface::NHRunnable;

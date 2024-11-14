@@ -11,8 +11,9 @@ use crate::*;
 use crate::{
     interface::NHRunnable,
     interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand},
-    util::{compare_semver, get_nix_version},
 };
+
+use nh_lib::{compare_semver, get_nix_version};
 
 #[derive(Error, Debug)]
 enum HomeRebuildError {
@@ -34,7 +35,7 @@ impl NHRunnable for HomeArgs {
 
 impl HomeRebuildArgs {
     fn rebuild(&self, action: &HomeSubcommand) -> Result<()> {
-        let out_path: Box<dyn crate::util::MaybeTempPath> = match self.common.out_link {
+        let out_path: Box<dyn nh_lib::MaybeTempPath> = match self.common.out_link {
             Some(ref p) => Box::new(p.clone()),
             None => Box::new({
                 let dir = tempfile::Builder::new().prefix("nh-home").tempdir()?;
