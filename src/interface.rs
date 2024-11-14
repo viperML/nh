@@ -93,7 +93,7 @@ pub struct CommonReplArgs {
 #[clap(verbatim_doc_comment)]
 /// NixOS functionality
 ///
-/// Implements mostly around but not exclusively nixos-rebuild
+/// Implements functionality mostly around but not exclusive to nixos-rebuild
 pub struct OsArgs {
     #[command(subcommand)]
     pub action: OsCommandType,
@@ -113,7 +113,9 @@ pub enum OsCommandType {
     /// Build the new configuration
     Build(OsSubcommandArgs),
 
-    /// Enter a Nix REPL with the target
+    /// Enter a Nix REPL with the target installable
+    ///
+    /// For now, this only supports NixOS configurations via `nh os repl`
     Repl(CommonReplArgs),
 
     /// Show an overview of the system's info
