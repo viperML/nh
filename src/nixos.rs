@@ -10,7 +10,7 @@ use crate::interface::NHRunnable;
 use crate::interface::OsRebuildType::{self, Boot, Build, Switch, Test};
 use crate::interface::{self, OsRebuildArgs};
 use crate::*;
-use nh_lib::{compare_semver, get_nix_version};
+use nh_lib::version::{compare_semver, get_nix_version};
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";

@@ -13,7 +13,7 @@ use crate::{
     interface::{FlakeRef, HomeArgs, HomeRebuildArgs, HomeSubcommand},
 };
 
-use nh_lib::{compare_semver, get_nix_version};
+use nh_lib::version::{compare_semver, get_nix_version};
 
 #[derive(Error, Debug)]
 enum HomeRebuildError {
