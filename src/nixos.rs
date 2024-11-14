@@ -1,5 +1,5 @@
 use std::ops::Deref;
-use std::{env, vec};
+use std::vec;
 
 use color_eyre::eyre::{bail, Context};
 use color_eyre::Result;
@@ -7,8 +7,8 @@ use color_eyre::Result;
 use tracing::{debug, info, warn};
 
 use crate::interface::NHRunnable;
-use crate::interface::OsRebuildType::{self, Boot, Build, Switch, Test};
-use crate::interface::{self, OsRebuildArgs};
+use crate::interface::OsCommandType::{self, Boot, Build, Repl, Switch, Test};
+use crate::interface::{self, CommonReplArgs, OsSubcommandArgs};
 use crate::util::{compare_semver, get_nix_version};
 use crate::*;
 
@@ -21,13 +21,47 @@ impl NHRunnable for interface::OsArgs {
     fn run(&self) -> Result<()> {
         match &self.action {
             Switch(args) | Boot(args) | Test(args) | Build(args) => args.rebuild(&self.action),
+            Repl(args) => args.repl(),
             s => bail!("Subcommand {:?} not yet implemented", s),
         }
     }
 }
 
-impl OsRebuildArgs {
-    pub fn rebuild(&self, rebuild_type: &OsRebuildType) -> Result<()> {
+impl CommonReplArgs {
+    pub fn repl(&self) -> Result<()> {
+        let mut repl_command = vec!["nix", "repl"];
+
+        let flakeref = format!(
+            "{}#nixosConfigurations.{}",
+            self.flakeref.as_str(),
+            hostname::get()
+                .context("Failed to get hostname")?
+                .to_string_lossy()
+        );
+
+        repl_command.push(&flakeref);
+
+        if !&self.extra_args.is_empty() {
+            for arg in &self.extra_args {
+                repl_command.push(arg);
+            }
+        };
+
+        debug!("repl_command: {:?}", repl_command);
+
+        commands::CommandBuilder::default()
+            .args(repl_command)
+            .message("Entering Nix REPL")
+            .build()?
+            .exec()
+            .unwrap();
+
+        Ok(())
+    }
+}
+
+impl OsSubcommandArgs {
+    pub fn rebuild(&self, rebuild_type: &OsCommandType) -> Result<()> {
         let use_sudo = if self.bypass_root_check {
             warn!("Bypassing root check, now running nix as root");
             false
@@ -125,7 +159,7 @@ impl OsRebuildArgs {
             .build()?
             .exec()?;
 
-        if self.common.dry || matches!(rebuild_type, OsRebuildType::Build(_)) {
+        if self.common.dry || matches!(rebuild_type, OsCommandType::Build(_)) {
             return Ok(());
         }
 

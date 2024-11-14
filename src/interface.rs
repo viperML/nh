@@ -74,33 +74,55 @@ pub enum NHCommand {
     Completions(CompletionArgs),
 }
 
+#[derive(Debug, Args)]
+pub struct CommonReplArgs {
+    /// Flake reference to build
+    #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
+    pub flakeref: FlakeRef,
+
+    /// Output to choose from the flakeref. Hostname is used by default
+    #[arg(long, short = 'H', global = true)]
+    pub hostname: Option<OsString>,
+
+    /// Extra arguments passed verbatim to nix repl.
+    #[arg(last = true)]
+    pub extra_args: Vec<String>,
+}
+
 #[derive(Args, Debug)]
 #[clap(verbatim_doc_comment)]
 /// NixOS functionality
 ///
-/// Reimplementations of nixos-rebuild
+/// Implements mostly around but not exclusively nixos-rebuild
 pub struct OsArgs {
     #[command(subcommand)]
-    pub action: OsRebuildType,
+    pub action: OsCommandType,
 }
 
 #[derive(Debug, Subcommand)]
-pub enum OsRebuildType {
+pub enum OsCommandType {
     /// Build and activate the new configuration, and make it the boot default
-    Switch(OsRebuildArgs),
+    Switch(OsSubcommandArgs),
+
     /// Build the new configuration and make it the boot default
-    Boot(OsRebuildArgs),
+    Boot(OsSubcommandArgs),
+
     /// Build and activate the new configuration
-    Test(OsRebuildArgs),
+    Test(OsSubcommandArgs),
+
     /// Build the new configuration
-    Build(OsRebuildArgs),
+    Build(OsSubcommandArgs),
+
+    /// Enter a Nix REPL with the target
+    Repl(CommonReplArgs),
+
     /// Show an overview of the system's info
     #[command(hide = true)]
     Info,
 }
 
 #[derive(Debug, Args)]
-pub struct OsRebuildArgs {
+pub struct OsSubcommandArgs {
     #[command(flatten)]
     pub common: CommonRebuildArgs,
 
@@ -160,7 +182,7 @@ pub struct CommonRebuildArgs {
 
     /// Path to save the result link. Defaults to using a temporary directory.
     #[arg(long, short)]
-    pub out_link: Option<PathBuf>
+    pub out_link: Option<PathBuf>,
 }
 
 #[derive(Args, Debug)]
