@@ -6,6 +6,7 @@ mod interface;
 mod json;
 mod logging;
 mod nixos;
+mod repl;
 mod search;
 mod util;
 
