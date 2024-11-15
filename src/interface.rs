@@ -84,6 +84,10 @@ pub struct CommonReplArgs {
     #[arg(long, short = 'H', global = true)]
     pub hostname: Option<OsString>,
 
+    /// Name of the flake homeConfigurations attribute, like username@hostname
+    #[arg(long, short, conflicts_with = "flakeref")]
+    pub configuration: Option<String>,
+
     /// Extra arguments passed verbatim to nix repl.
     #[arg(last = true)]
     pub extra_args: Vec<String>,

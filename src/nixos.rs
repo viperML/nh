@@ -8,7 +8,8 @@ use tracing::{debug, info, warn};
 
 use crate::interface::NHRunnable;
 use crate::interface::OsCommandType::{self, Boot, Build, Repl, Switch, Test};
-use crate::interface::{self, CommonReplArgs, OsSubcommandArgs};
+use crate::interface::{self, OsSubcommandArgs};
+use crate::repl::ReplVariant;
 use crate::util::{compare_semver, get_nix_version};
 use crate::*;
 
@@ -21,42 +22,9 @@ impl NHRunnable for interface::OsArgs {
     fn run(&self) -> Result<()> {
         match &self.action {
             Switch(args) | Boot(args) | Test(args) | Build(args) => args.rebuild(&self.action),
-            Repl(args) => args.repl(),
+            Repl(args) => args.repl(ReplVariant::OsRepl),
             s => bail!("Subcommand {:?} not yet implemented", s),
         }
-    }
-}
-
-impl CommonReplArgs {
-    pub fn repl(&self) -> Result<()> {
-        let mut repl_command = vec!["nix", "repl"];
-
-        let flakeref = format!(
-            "{}#nixosConfigurations.{}",
-            self.flakeref.as_str(),
-            hostname::get()
-                .context("Failed to get hostname")?
-                .to_string_lossy()
-        );
-
-        repl_command.push(&flakeref);
-
-        if !&self.extra_args.is_empty() {
-            for arg in &self.extra_args {
-                repl_command.push(arg);
-            }
-        };
-
-        debug!("repl_command: {:?}", repl_command);
-
-        commands::CommandBuilder::default()
-            .args(repl_command)
-            .message("Entering Nix REPL")
-            .build()?
-            .exec()
-            .unwrap();
-
-        Ok(())
     }
 }
 
