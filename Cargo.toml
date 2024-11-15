@@ -1,6 +1,6 @@
 [package]
 name = "nh"
-version = "3.5.27"
+version = "3.6.0"
 edition = "2021"
 license = "EUPL-1.2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -43,7 +43,7 @@ subprocess = "0.2"
 supports-hyperlinks = "3.0.0"
 tempfile = "3.5.0"
 textwrap = { version = "0.16.0", features = ["terminal_size"] }
-thiserror = "1.0"
+thiserror = "2.0"
 timeago = { version = "0.4.1", default-features = false }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = [
