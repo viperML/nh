@@ -29,16 +29,20 @@ impl CommonReplArgs {
             }
         };
 
+        let hostname = match &self.hostname {
+            Some(h) => h.to_owned(),
+            None => hostname::get().context("Failed to get hostname")?,
+        };
+
         // When (or if) HomeRepl is implemented, this can be changed to a more generic value
         // and made mutable, so that the value is set in the match based on the variant of
         // the REPL. For the time being, I am setting it here to ensure it lives long enough
         // to be borrowed later.
+        // P.S. "flakeref" is an incredibly vague name, make sure to change it.
         let flakeref = format!(
             "{}#nixosConfigurations.{}",
             self.flakeref.as_str(),
-            hostname::get()
-                .context("Failed to get hostname")?
-                .to_string_lossy()
+            hostname.to_string_lossy()
         );
 
         // TODO: Implement match case for HomeRepl.
