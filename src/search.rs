@@ -2,7 +2,7 @@ use std::{process::Stdio, time::Instant};
 
 use color_eyre::eyre::{eyre, Context, ContextCompat};
 use elasticsearch_dsl::*;
-use interface::{FlakeRef, SearchArgs};
+use interface::SearchArgs;
 use regex::Regex;
 use serde::Deserialize;
 use tracing::{debug, trace, warn};
@@ -40,8 +40,8 @@ macro_rules! print_hyperlink {
     };
 }
 
-impl NHRunnable for SearchArgs {
-    fn run(&self) -> Result<()> {
+impl SearchArgs {
+    pub fn run(&self) -> Result<()> {
         trace!("args: {self:?}");
 
         let nixpkgs_path = std::thread::spawn(|| {

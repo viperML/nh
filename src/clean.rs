@@ -5,7 +5,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::*;
+use crate::{commands::Command, *};
 use color_eyre::eyre::{bail, eyre, Context, ContextCompat};
 use nix::errno::Errno;
 use nix::{
@@ -31,8 +31,8 @@ type ToBeRemoved = bool;
 type GenerationsTagged = BTreeMap<Generation, ToBeRemoved>;
 type ProfilesTagged = HashMap<PathBuf, GenerationsTagged>;
 
-impl NHRunnable for interface::CleanMode {
-    fn run(&self) -> Result<()> {
+impl interface::CleanMode {
+    pub fn run(&self) -> Result<()> {
         let mut profiles = Vec::new();
         let mut gcroots_tagged: HashMap<PathBuf, ToBeRemoved> = HashMap::new();
         let now = SystemTime::now();
@@ -221,12 +221,11 @@ impl NHRunnable for interface::CleanMode {
             }
         }
 
-        commands::CommandBuilder::default()
-            .args(["nix", "store", "gc"])
+        Command::new("nix")
+            .args(["store", "gc"])
             .dry(args.dry)
             .message("Performing garbage collection on the nix store")
-            .build()?
-            .exec()?;
+            .run()?;
 
         Ok(())
     }

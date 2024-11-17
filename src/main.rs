@@ -1,27 +1,38 @@
 mod clean;
 mod commands;
 mod completion;
-mod home;
+mod installable;
 mod interface;
 mod json;
 mod logging;
 mod nixos;
-mod repl;
-mod search;
+// mod search;
 mod util;
 
-use crate::interface::NHParser;
-use crate::interface::NHRunnable;
 use color_eyre::Result;
 use tracing::debug;
 
 const NH_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<()> {
-    let args = <NHParser as clap::Parser>::parse();
+    let mut do_warn = false;
+    if let Ok(f) = std::env::var("FLAKE") {
+        do_warn = true;
+        if let Err(_) = std::env::var("NH_FLAKE") {
+            std::env::set_var("NH_FLAKE", f);
+        }
+    }
+
+    let args = <crate::interface::Main as clap::Parser>::parse();
     crate::logging::setup_logging(args.verbose)?;
-    tracing::debug!(?args);
+    tracing::debug!("{args:#?}");
     tracing::debug!(%NH_VERSION);
+
+    if do_warn {
+        tracing::warn!(
+            "nh {NH_VERSION} now uses NH_FLAKE instead of FLAKE, please modify your configuration"
+        );
+    }
 
     args.command.run()
 }

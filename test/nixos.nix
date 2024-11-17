@@ -1,0 +1,4 @@
+import <nixpkgs/nixos> {
+  configuration = {};
+}
+

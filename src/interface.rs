@@ -1,29 +1,10 @@
-use ambassador::{delegatable_trait, Delegate};
+use crate::Result;
 use anstyle::Style;
+use clap::ValueEnum;
 use clap::{builder::Styles, Args, Parser, Subcommand};
-use color_eyre::Result;
 use std::{ffi::OsString, ops::Deref, path::PathBuf};
 
-#[derive(Debug, Clone, Default)]
-pub struct FlakeRef(String);
-impl From<&str> for FlakeRef {
-    fn from(s: &str) -> Self {
-        FlakeRef(s.to_string())
-    }
-}
-// impl std::fmt::Display for FlakeRef {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "{}", self.0)
-//     }
-// }
-
-impl Deref for FlakeRef {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+use crate::installable::Installable;
 
 fn make_style() -> Styles {
     Styles::plain().header(Style::new().bold()).literal(
@@ -49,7 +30,7 @@ fn make_style() -> Styles {
 "
 )]
 /// Yet another nix helper
-pub struct NHParser {
+pub struct Main {
     #[arg(short, long, global = true)]
     /// Show debug logs
     pub verbose: bool,
@@ -58,39 +39,25 @@ pub struct NHParser {
     pub command: NHCommand,
 }
 
-#[delegatable_trait]
-pub trait NHRunnable {
-    fn run(&self) -> Result<()>;
-}
-
-#[derive(Subcommand, Debug, Delegate)]
-#[delegate(NHRunnable)]
+#[derive(Subcommand, Debug)]
 #[command(disable_help_subcommand = true)]
 pub enum NHCommand {
     Os(OsArgs),
-    Home(HomeArgs),
     Search(SearchArgs),
     Clean(CleanProxy),
+    #[command(hide = true)]
     Completions(CompletionArgs),
 }
 
-#[derive(Debug, Args)]
-pub struct CommonReplArgs {
-    /// Flake reference to build
-    #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
-    pub flakeref: FlakeRef,
-
-    /// Output to choose from the flakeref. Hostname is used by default
-    #[arg(long, short = 'H', global = true)]
-    pub hostname: Option<OsString>,
-
-    /// Name of the flake homeConfigurations attribute, like username@hostname
-    #[arg(long, short, conflicts_with = "flakeref")]
-    pub configuration: Option<String>,
-
-    /// Extra arguments passed verbatim to nix repl.
-    #[arg(last = true)]
-    pub extra_args: Vec<String>,
+impl NHCommand {
+    pub fn run(self) -> Result<()> {
+        match self {
+            NHCommand::Os(args) => args.run(),
+            NHCommand::Search(args) => todo!(),
+            NHCommand::Clean(proxy) => proxy.command.run(),
+            NHCommand::Completions(args) => args.run(),
+        }
+    }
 }
 
 #[derive(Args, Debug)]
@@ -100,41 +67,32 @@ pub struct CommonReplArgs {
 /// Implements functionality mostly around but not exclusive to nixos-rebuild
 pub struct OsArgs {
     #[command(subcommand)]
-    pub action: OsCommandType,
+    pub subcommand: OsSubcommand,
 }
 
 #[derive(Debug, Subcommand)]
-pub enum OsCommandType {
+pub enum OsSubcommand {
     /// Build and activate the new configuration, and make it the boot default
-    Switch(OsSubcommandArgs),
+    Switch(OsRebuildArgs),
 
     /// Build the new configuration and make it the boot default
-    Boot(OsSubcommandArgs),
+    Boot(OsRebuildArgs),
 
     /// Build and activate the new configuration
-    Test(OsSubcommandArgs),
+    Test(OsRebuildArgs),
 
     /// Build the new configuration
-    Build(OsSubcommandArgs),
-
-    /// Enter a Nix REPL with the target installable
-    ///
-    /// For now, this only supports NixOS configurations via `nh os repl`
-    Repl(CommonReplArgs),
-
-    /// Show an overview of the system's info
-    #[command(hide = true)]
-    Info,
+    Build(OsRebuildArgs),
 }
 
 #[derive(Debug, Args)]
-pub struct OsSubcommandArgs {
+pub struct OsRebuildArgs {
     #[command(flatten)]
     pub common: CommonRebuildArgs,
 
-    /// Output to choose from the flakeref. Hostname is used by default
+    /// Output to choose from the installable
     #[arg(long, short = 'H', global = true)]
-    pub hostname: Option<OsString>,
+    pub hostname: Option<String>,
 
     /// Name of the specialisation
     #[arg(long, short)]
@@ -164,27 +122,12 @@ pub struct CommonRebuildArgs {
     pub ask: bool,
 
     /// Flake reference to build
-    #[arg(env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
-    pub flakeref: FlakeRef,
-
-    /// Update flake inputs before building specified configuration
-    #[arg(long, short = 'u')]
-    pub update: bool,
+    #[command(flatten)]
+    pub installable: Installable,
 
     /// Don't use nix-output-monitor for the build process
     #[arg(long)]
     pub no_nom: bool,
-
-    /// Closure diff provider
-    ///
-    /// Default is "nvd diff", but "nix store diff-closures" is also supported
-    #[arg(
-        long,
-        short = 'D',
-        env = "NH_DIFF_PROVIDER",
-        default_value = "nvd diff"
-    )]
-    pub diff_provider: String,
 
     /// Path to save the result link. Defaults to using a temporary directory.
     #[arg(long, short)]
@@ -205,14 +148,12 @@ pub struct SearchArgs {
     /// Name of the package to search
     pub query: String,
 
-    #[arg(short, long, env = "FLAKE", value_hint = clap::ValueHint::DirPath)]
-    /// Flake to read what nixpkgs channels to search for
-    pub flake: Option<FlakeRef>,
+    #[command(flatten)]
+    pub installable: Installable,
 }
 
 // Needed a struct to have multiple sub-subcommands
-#[derive(Debug, Clone, Args, Delegate)]
-#[delegate(NHRunnable)]
+#[derive(Debug, Clone, Args)]
 pub struct CleanProxy {
     #[clap(subcommand)]
     command: CleanMode,
@@ -317,6 +258,5 @@ pub struct HomeRebuildArgs {
 /// Generate shell completion files into stdout
 pub struct CompletionArgs {
     /// Name of the shell
-    #[arg(long, short)]
     pub shell: clap_complete::Shell,
 }
