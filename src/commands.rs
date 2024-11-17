@@ -1,6 +1,6 @@
 use color_eyre::{
     eyre::{bail, Context},
-    Result,
+    install, Result,
 };
 
 use std::ffi::{OsStr, OsString};
@@ -9,47 +9,72 @@ use thiserror::Error;
 use subprocess::{Exec, ExitStatus, Redirection};
 use tracing::{debug, info};
 
-#[derive(Debug, derive_builder::Builder)]
-#[builder(derive(Debug), setter(into))]
-pub struct Command {
-    /// Whether to actually run the command or just log it
-    #[builder(default = "false")]
-    dry: bool,
-    /// Human-readable message regarding what the command does
-    #[builder(setter(strip_option), default = "None")]
-    message: Option<String>,
-    /// Arguments 0..N
-    #[builder(setter(custom))]
-    args: Vec<OsString>,
-}
+use crate::installable::Installable;
 
-impl CommandBuilder {
-    pub fn args<S, I>(&mut self, input: I) -> &mut Self
-    where
-        S: AsRef<OsStr>,
-        I: IntoIterator<Item = S>,
-    {
-        self.args
-            .get_or_insert_with(Default::default)
-            .extend(input.into_iter().map(|s| s.as_ref().to_owned()));
-        self
-    }
+#[derive(Debug)]
+pub struct Command {
+    dry: bool,
+    message: Option<String>,
+    command: OsString,
+    args: Vec<OsString>,
+    elevate: bool,
 }
 
 impl Command {
-    pub fn exec(&self) -> Result<()> {
-        let [head, tail @ ..] = &*self.args else {
-            bail!("Args was length 0");
-        };
+    pub fn new<S: AsRef<OsStr>>(command: S) -> Self {
+        Self {
+            dry: false,
+            message: None,
+            command: command.as_ref().to_os_string(),
+            args: vec![],
+            elevate: false,
+        }
+    }
 
-        let cmd = Exec::cmd(head)
-            .args(tail)
-            .stderr(Redirection::None)
-            .stdout(Redirection::None);
+    pub fn elevate(mut self, elevate: bool) -> Self {
+        self.elevate = elevate;
+        self
+    }
+
+    pub fn dry(mut self, dry: bool) -> Self {
+        self.dry = dry;
+        self
+    }
+
+    pub fn arg<S: AsRef<OsStr>>(mut self, arg: S) -> Self {
+        self.args.push(arg.as_ref().to_os_string());
+        self
+    }
+
+    pub fn args<I>(mut self, args: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: AsRef<OsStr>,
+    {
+        for elem in args {
+            self.args.push(elem.as_ref().to_os_string());
+        }
+        self
+    }
+
+    pub fn message<S: AsRef<str>>(mut self, message: S) -> Self {
+        self.message = Some(message.as_ref().to_string());
+        self
+    }
+
+    pub fn run(&self) -> Result<()> {
+        let cmd = if self.elevate {
+            Exec::cmd("sudo").arg(&self.command).args(&self.args)
+        } else {
+            Exec::cmd(&self.command).args(&self.args)
+        }
+        .stderr(Redirection::None)
+        .stdout(Redirection::None);
 
         if let Some(m) = &self.message {
             info!("{}", m);
         }
+
         debug!(?cmd);
 
         if !self.dry {
@@ -63,19 +88,16 @@ impl Command {
         Ok(())
     }
 
-    pub fn exec_capture(&self) -> Result<Option<String>> {
-        let [head, tail @ ..] = &*self.args else {
-            bail!("Args was length 0");
-        };
-
-        let cmd = Exec::cmd(head)
-            .args(tail)
+    pub fn run_capture(&self) -> Result<Option<String>> {
+        let cmd = Exec::cmd(&self.command)
+            .args(&self.args)
             .stderr(Redirection::None)
             .stdout(Redirection::Pipe);
 
         if let Some(m) = &self.message {
             info!("{}", m);
         }
+
         debug!(?cmd);
 
         if !self.dry {
@@ -86,47 +108,63 @@ impl Command {
     }
 }
 
-#[derive(Debug, derive_builder::Builder)]
-#[builder(setter(into))]
-pub struct BuildCommand {
-    /// Human-readable message regarding what the command does
-    message: String,
-    // Flakeref to build
-    flakeref: String,
-    // Extra arguments passed to nix build
-    #[builder(setter(custom))]
+#[derive(Debug)]
+pub struct Build {
+    message: Option<String>,
+    installable: Installable,
     extra_args: Vec<OsString>,
-    /// Use nom for the nix build
     nom: bool,
 }
 
-impl BuildCommandBuilder {
-    pub fn extra_args<S, I>(&mut self, input: I) -> &mut Self
-    where
-        S: AsRef<OsStr>,
-        I: IntoIterator<Item = S>,
-    {
-        self.extra_args
-            .get_or_insert_with(Default::default)
-            .extend(input.into_iter().map(|s| s.as_ref().to_owned()));
+impl Build {
+    pub fn new(installable: Installable) -> Self {
+        Self {
+            message: None,
+            installable,
+            extra_args: vec![],
+            nom: false,
+        }
+    }
+
+    pub fn message<S: AsRef<str>>(mut self, message: S) -> Self {
+        self.message = Some(message.as_ref().to_string());
         self
     }
-}
 
-impl BuildCommand {
-    pub fn exec(&self) -> Result<()> {
-        info!("{}", self.message);
+    pub fn extra_arg<S: AsRef<OsStr>>(mut self, arg: S) -> Self {
+        self.extra_args.push(arg.as_ref().to_os_string());
+        self
+    }
+
+    pub fn nom(mut self, yes: bool) -> Self {
+        self.nom = yes;
+        self
+    }
+
+    pub fn extra_args<I>(mut self, args: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: AsRef<OsStr>,
+    {
+        for elem in args {
+            self.extra_args.push(elem.as_ref().to_os_string());
+        }
+        self
+    }
+
+    pub fn run(&self) -> Result<()> {
+        if let Some(m) = &self.message {
+            info!("{}", m);
+        }
+
+        let installable_args = self.installable.to_args();
 
         let exit = if self.nom {
             let cmd = {
                 Exec::cmd("nix")
-                    .args(&[
-                        "build",
-                        &self.flakeref,
-                        "--log-format",
-                        "internal-json",
-                        "--verbose",
-                    ])
+                    .arg("build")
+                    .args(&installable_args)
+                    .args(&["--log-format", "internal-json", "--verbose"])
                     .args(&self.extra_args)
                     .stdout(Redirection::Pipe)
                     .stderr(Redirection::Merge)
@@ -137,7 +175,8 @@ impl BuildCommand {
             cmd.join()
         } else {
             let cmd = Exec::cmd("nix")
-                .args(&["build", &self.flakeref])
+                .arg("build")
+                .args(&installable_args)
                 .args(&self.extra_args)
                 .stdout(Redirection::None)
                 .stderr(Redirection::Merge);
@@ -146,7 +185,7 @@ impl BuildCommand {
             cmd.join()
         };
 
-        match exit.wrap_err(self.message.clone())? {
+        match exit? {
             ExitStatus::Exited(0) => (),
             other => bail!(ExitError(other)),
         }

@@ -43,9 +43,9 @@ in
 
     preFixup = ''
       mkdir completions
-      $out/bin/nh completions --shell bash > completions/nh.bash
-      $out/bin/nh completions --shell zsh > completions/nh.zsh
-      $out/bin/nh completions --shell fish > completions/nh.fish
+      $out/bin/nh completions bash > completions/nh.bash
+      $out/bin/nh completions zsh > completions/nh.zsh
+      $out/bin/nh completions fish > completions/nh.fish
 
       installShellCompletion completions/*
     '';

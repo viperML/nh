@@ -1,12 +1,11 @@
 [package]
 name = "nh"
-version = "3.6.0"
+version = "4.0.0-alpha.1"
 edition = "2021"
 license = "EUPL-1.2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ambassador = "0.4.0"
 anstyle = "1.0.0"
 clap = { version = "4.0", features = [
     "cargo",
@@ -21,7 +20,6 @@ clean-path = "0.2"
 color-eyre = { version = "0.6.2", default-features = false, features = [
     "track-caller",
 ] }
-derive_builder = "0.20.0"
 dialoguer = { version = "0.11.0", default-features = false }
 elasticsearch-dsl = "0.4.19"
 hostname = "0.4"

@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-
-
 #[derive(Debug, Clone)]
 pub struct Value<'v> {
     pub inner: &'v serde_json::Value,
