@@ -28,10 +28,9 @@ jobs:
       - name: Tag
         run: |
           set -x
-          set +e
           git show-ref --tags $nh_version --quiet
 
           if [[ $? -ne 0 ]]; then
             git tag $nh_version
-            git push --tags
+            git push --tags || :
           fi

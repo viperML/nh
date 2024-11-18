@@ -25,7 +25,7 @@ jobs:
           eval "$(nix print-dev-env)"
 
           cargo fix --allow-dirty
-          cargo clippy --fix --allow-dirt
+          cargo clippy --fix --allow-dirty
           cargo fmt
 
           git diff-index --quiet HEAD
