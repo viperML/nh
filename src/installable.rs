@@ -64,7 +64,7 @@ impl FromArgMatches for Installable {
         // env var fallacks
 
         if let Ok(f) = env::var("NH_FLAKE") {
-            let mut elems = f.splitn(2, "#");
+            let mut elems = f.splitn(2, '#');
             return Ok(Self::Flake {
                 reference: elems.next().unwrap().to_owned(),
                 attribute: parse_attribute(elems.next().map(|s| s.to_string()).unwrap_or_default()),
@@ -78,10 +78,10 @@ impl FromArgMatches for Installable {
             });
         }
 
-        return Err(clap::Error::new(ErrorKind::TooFewValues));
+        Err(clap::Error::new(ErrorKind::TooFewValues))
     }
 
-    fn update_from_arg_matches(&mut self, matches: &clap::ArgMatches) -> Result<(), clap::Error> {
+    fn update_from_arg_matches(&mut self, _matches: &clap::ArgMatches) -> Result<(), clap::Error> {
         todo!()
     }
 }
@@ -150,12 +150,12 @@ where
     let mut res = Vec::new();
 
     if !s.is_empty() {
-        for elem in s.split(".") {
+        for elem in s.split('.') {
             res.push(elem.to_string())
         }
     }
 
-    return res;
+    res
 }
 
 impl Installable {
@@ -183,7 +183,7 @@ impl Installable {
             }
         }
 
-        return res;
+        res
     }
 }
 
@@ -219,19 +219,19 @@ where
         if first {
             first = false;
         } else {
-            res.push_str(".");
+            res.push('.');
         }
 
         let s = elem.as_ref();
 
-        if s.contains(".") {
+        if s.contains('.') {
             res.push_str(&format!(r#""{}""#, s));
         } else {
             res.push_str(s);
         }
     }
 
-    return res;
+    res
 }
 
 #[test]

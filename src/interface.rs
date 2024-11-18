@@ -1,7 +1,6 @@
-use std::{ffi::OsString, ops::Deref, path::PathBuf};
+use std::path::PathBuf;
 
 use anstyle::Style;
-use clap::ValueEnum;
 use clap::{builder::Styles, Args, Parser, Subcommand};
 
 use crate::installable::Installable;
@@ -54,7 +53,7 @@ impl NHCommand {
     pub fn run(self) -> Result<()> {
         match self {
             NHCommand::Os(args) => args.run(),
-            NHCommand::Search(args) => todo!(),
+            NHCommand::Search(_args) => todo!(),
             NHCommand::Clean(proxy) => proxy.command.run(),
             NHCommand::Completions(args) => args.run(),
         }

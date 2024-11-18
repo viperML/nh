@@ -2,7 +2,7 @@ use std::ffi::{OsStr, OsString};
 
 use color_eyre::{
     eyre::{bail, Context},
-    install, Result,
+    Result,
 };
 use subprocess::{Exec, ExitStatus, Redirection};
 use thiserror::Error;

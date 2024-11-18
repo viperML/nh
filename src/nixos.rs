@@ -1,16 +1,12 @@
-use std::ops::Deref;
-use std::vec;
-
 use color_eyre::eyre::{bail, Context};
 use color_eyre::Result;
 use tracing::{debug, info, warn};
 
 use self::installable::Installable;
-use crate::commands::{Build, Command};
+use crate::commands::Command;
 use crate::interface::OsSubcommand::{self};
 use crate::interface::{self, OsRebuildArgs, OsReplArgs};
 // use crate::repl::ReplVariant;
-use crate::util::{compare_semver, get_nix_version};
 use crate::*;
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
@@ -191,7 +187,7 @@ fn toplevel_for<S: AsRef<str>>(hostname: S, installable: Installable) -> Install
         }
     }
 
-    return res;
+    res
 }
 
 impl OsReplArgs {
