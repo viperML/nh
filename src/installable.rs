@@ -1,5 +1,5 @@
-use std::env;
 use std::path::PathBuf;
+use std::{env, fs};
 
 use clap::error::ErrorKind;
 use clap::{Arg, ArgAction, Args, FromArgMatches};
@@ -17,10 +17,9 @@ pub enum Installable {
         path: PathBuf,
         attribute: Vec<String>,
     },
-    // TODO:
-    // Store {
-    //     path: PathBuf,
-    // },
+    Store {
+        path: PathBuf,
+    },
     Expression {
         expression: String,
         attribute: Vec<String>,
@@ -37,6 +36,16 @@ impl FromArgMatches for Installable {
         let installable = matches.get_one::<String>("installable");
         let file = matches.get_one::<String>("file");
         let expr = matches.get_one::<String>("expr");
+
+        if let Some(i) = installable {
+            let canonincal = fs::canonicalize(i);
+
+            if let Ok(p) = canonincal {
+                if p.starts_with("/nix/store") {
+                    return Ok(Self::Store { path: p });
+                }
+            }
+        }
 
         if let Some(f) = file {
             return Ok(Self::File {
@@ -123,6 +132,9 @@ Nix accepts various kinds of installables:
 
 {}, {} <EXPR> [ATTRPATH]
     Nix expression with an optional attribute path.
+
+[PATH]
+    Path or symlink to a /nix/store path
 "#,
                     env::var("NH_FLAKE").unwrap_or_default(),
                     "-f".yellow(),
@@ -181,6 +193,7 @@ impl Installable {
                 res.push(expression.to_string());
                 res.push(join_attribute(attribute));
             }
+            Installable::Store { path } => res.push(path.to_str().unwrap().to_string()),
         }
 
         res

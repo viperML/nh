@@ -185,6 +185,7 @@ fn toplevel_for<S: AsRef<str>>(hostname: S, installable: Installable) -> Install
         } => {
             attribute.extend(toplevel);
         }
+        Installable::Store { .. } => {}
     }
 
     res
@@ -193,6 +194,10 @@ fn toplevel_for<S: AsRef<str>>(hostname: S, installable: Installable) -> Install
 impl OsReplArgs {
     fn run(self) -> Result<()> {
         let mut target_installable = self.installable;
+
+        if matches!(target_installable, Installable::Store { .. }) {
+            bail!("Nix doesn't support nix store installables.");
+        }
 
         let hostname = self
             .hostname
