@@ -10,23 +10,22 @@ jobs:
   main:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+      - uses: cachix/install-nix-action@master
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/checkout@v3
         name: Checkout
 
       - run: |
           echo -n "nh_version=v" >> "$GITHUB_ENV"
-          nix shell nixpkgs#nushell -c \
-            nu -c "open Cargo.toml | get package | get version" \
-            >> "$GITHUB_ENV"
+          nix run nixpkgs#fq -- -r ".package.version" Cargo.toml >> "$GITHUB_ENV"
+          cat "$GITHUB_ENV"
         name: Read version
 
       - name: Tag
         run: |
           set -x
-          set +e
           git show-ref --tags $nh_version --quiet
 
           if [[ $? -ne 0 ]]; then
