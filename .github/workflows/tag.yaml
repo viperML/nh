@@ -19,7 +19,7 @@ jobs:
 
       - run: |
           echo -n "nh_version=v" >> "$GITHUB_ENV"
-          nix run -f '<nixpkgs>' fq -- -r ".package.version" Cargo.toml
+          nix run nixpkgs#fq -- -r ".package.version" Cargo.toml
           cat "$GITHUB_ENV"
         name: Read version
 
