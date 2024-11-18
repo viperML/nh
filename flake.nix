@@ -32,9 +32,7 @@
     });
 
     devShells = forAllSystems (pkgs: {
-      default = pkgs.callPackage ./devshell.nix {
-        rustfmt = pkgs.rustfmt.override {asNightly = true;};
-      };
+      default = import ./shell.nix {inherit pkgs;};
     });
   };
 }
