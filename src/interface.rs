@@ -45,6 +45,7 @@ pub enum NHCommand {
     Os(OsArgs),
     Search(SearchArgs),
     Clean(CleanProxy),
+    Home(HomeArgs),
     #[command(hide = true)]
     Completions(CompletionArgs),
 }
@@ -56,6 +57,7 @@ impl NHCommand {
             NHCommand::Search(_args) => todo!(),
             NHCommand::Clean(proxy) => proxy.command.run(),
             NHCommand::Completions(args) => args.run(),
+            NHCommand::Home(args) => args.run(),
         }
     }
 }
@@ -241,10 +243,6 @@ pub enum HomeSubcommand {
     ///
     /// Will check the current $USER and $(hostname) to determine which output to build, unless -c is passed
     Build(HomeRebuildArgs),
-
-    /// Show an overview of the installation
-    #[command(hide(true))]
-    Info,
 }
 
 #[derive(Debug, Args)]

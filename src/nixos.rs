@@ -2,12 +2,11 @@ use color_eyre::eyre::{bail, Context};
 use color_eyre::Result;
 use tracing::{debug, info, warn};
 
-use self::installable::Installable;
+use crate::commands;
 use crate::commands::Command;
+use crate::installable::Installable;
 use crate::interface::OsSubcommand::{self};
 use crate::interface::{self, OsRebuildArgs, OsReplArgs};
-// use crate::repl::ReplVariant;
-use crate::*;
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";

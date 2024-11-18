@@ -7,6 +7,7 @@ mod json;
 mod logging;
 mod nixos;
 // mod search;
+mod home;
 mod util;
 
 use color_eyre::Result;
