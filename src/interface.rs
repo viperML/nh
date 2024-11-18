@@ -83,6 +83,9 @@ pub enum OsSubcommand {
 
     /// Build the new configuration
     Build(OsRebuildArgs),
+
+    /// Load system in a repl
+    Repl(OsReplArgs),
 }
 
 #[derive(Debug, Args)]
@@ -90,7 +93,7 @@ pub struct OsRebuildArgs {
     #[command(flatten)]
     pub common: CommonRebuildArgs,
 
-    /// Output to choose from the installable
+    /// When using a flake installable, select this hostname from nixosConfigurations
     #[arg(long, short = 'H', global = true)]
     pub hostname: Option<String>,
 
@@ -121,7 +124,6 @@ pub struct CommonRebuildArgs {
     #[arg(long, short)]
     pub ask: bool,
 
-    /// Flake reference to build
     #[command(flatten)]
     pub installable: Installable,
 
@@ -132,6 +134,16 @@ pub struct CommonRebuildArgs {
     /// Path to save the result link. Defaults to using a temporary directory.
     #[arg(long, short)]
     pub out_link: Option<PathBuf>,
+}
+
+#[derive(Debug, Args)]
+pub struct OsReplArgs {
+    #[command(flatten)]
+    pub installable: Installable,
+
+    /// When using a flake installable, select this hostname from nixosConfigurations
+    #[arg(long, short = 'H', global = true)]
+    pub hostname: Option<String>,
 }
 
 #[derive(Args, Debug)]

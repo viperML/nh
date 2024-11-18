@@ -8,7 +8,7 @@ use tracing::{debug, info, warn};
 
 use crate::commands::{Build, Command};
 use crate::interface::OsSubcommand::{self};
-use crate::interface::{self, OsRebuildArgs};
+use crate::interface::{self, OsRebuildArgs, OsReplArgs};
 // use crate::repl::ReplVariant;
 use crate::util::{compare_semver, get_nix_version};
 use crate::*;
@@ -28,6 +28,7 @@ impl interface::OsArgs {
             OsSubcommand::Test(args) => args.rebuild(Test),
             OsSubcommand::Switch(args) => args.rebuild(Switch),
             OsSubcommand::Build(args) => args.rebuild(Build),
+            OsSubcommand::Repl(args) => args.run(),
         }
     }
 }
@@ -173,8 +174,11 @@ fn toplevel_for<S: AsRef<str>>(hostname: S, installable: Installable) -> Install
         Installable::Flake {
             ref mut attribute, ..
         } => {
-            attribute.push(String::from("nixosConfigurations"));
-            attribute.push(hostname);
+            // If user explicitely selects some other attribute, don't push nixosConfigurations
+            if attribute.is_empty() {
+                attribute.push(String::from("nixosConfigurations"));
+                attribute.push(hostname);
+            }
             attribute.extend(toplevel);
         }
         Installable::File {
@@ -190,4 +194,31 @@ fn toplevel_for<S: AsRef<str>>(hostname: S, installable: Installable) -> Install
     }
 
     return res;
+}
+
+impl OsReplArgs {
+    fn run(self) -> Result<()> {
+        let mut target_installable = self.installable;
+
+        let hostname = self
+            .hostname
+            .unwrap_or_else(|| hostname::get().unwrap().to_str().unwrap().to_string());
+
+        if let Installable::Flake {
+            ref mut attribute, ..
+        } = target_installable
+        {
+            if attribute.is_empty() {
+                attribute.push(String::from("nixosConfigurations"));
+                attribute.push(hostname);
+            }
+        }
+
+        Command::new("nix")
+            .arg("repl")
+            .args(target_installable.to_args())
+            .run()?;
+
+        Ok(())
+    }
 }
