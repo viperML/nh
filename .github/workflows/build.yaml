@@ -8,32 +8,25 @@ on:
   workflow_dispatch:
 
 jobs:
-  main:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+      - uses: cachix/install-nix-action@master
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: actions/checkout@v4
 
-      - run: nix build github:$GITHUB_REPOSITORY/$GITHUB_SHA -L
+      - run: nix build -L
+        name: Build
 
-      # TODO: use the nixpkgs NixOS module or move test to nixpkgs
-      # TODO: use unshare instead of sudo to mount
-      # - name: NixOS check
-      #   env:
-      #     out: /nixos
-      #   run: |
-      #     sudo /bin/bash <<EOF
-      #     source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-      #     mkdir -pv $out
-      #     mount -t tmpfs none $out
-      #     nix profile install nixpkgs#nixos-install-tools
-      #     nixos-install \
-      #       --flake github:$GITHUB_REPOSITORY/$GITHUB_SHA#check \
-      #       --root $out \
-      #       --no-root-passwd \
-      #       --no-bootloader
-      #     EOF
+      - run: |
+          eval "$(nix print-dev-env)"
+
+          cargo fix --allow-dirty
+          cargo clippy --fix --allow-dirt
+          cargo fmt
+
+          git diff-index --quiet HEAD
+        name: Check clippy and formatting

@@ -1,5 +1,7 @@
 name: Tag version
 
+concurrency: tag
+
 on:
   workflow_dispatch:
   push:

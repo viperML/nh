@@ -8,7 +8,7 @@ with pkgs;
       rustc
 
       rust-analyzer-unwrapped
-      rustfmt
+      (rustfmt.override {asNightly = true;})
       clippy
       nvd
       nix-output-monitor
