@@ -8,6 +8,7 @@
   cargo,
   rustc,
   rustPlatform,
+  taplo,
 }:
 mkShell {
   strictDeps = true;
@@ -21,6 +22,7 @@ mkShell {
     clippy
     nvd
     nix-output-monitor
+    taplo
   ];
 
   buildInputs = [];

@@ -1,10 +1,11 @@
-use crate::Result;
+use std::{ffi::OsString, ops::Deref, path::PathBuf};
+
 use anstyle::Style;
 use clap::ValueEnum;
 use clap::{builder::Styles, Args, Parser, Subcommand};
-use std::{ffi::OsString, ops::Deref, path::PathBuf};
 
 use crate::installable::Installable;
+use crate::Result;
 
 fn make_style() -> Styles {
     Styles::plain().header(Style::new().bold()).literal(

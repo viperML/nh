@@ -1,12 +1,12 @@
 extern crate semver;
 
-use color_eyre::{eyre, Result};
-use semver::Version;
-use tempfile::TempDir;
-
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
+
+use color_eyre::{eyre, Result};
+use semver::Version;
+use tempfile::TempDir;
 
 /// Compares two semantic versions and returns their order.
 ///

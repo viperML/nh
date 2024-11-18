@@ -5,7 +5,6 @@ use std::{
     time::SystemTime,
 };
 
-use crate::{commands::Command, *};
 use color_eyre::eyre::{bail, eyre, Context, ContextCompat};
 use nix::errno::Errno;
 use nix::{
@@ -15,6 +14,8 @@ use nix::{
 use regex::Regex;
 use tracing::{debug, info, instrument, span, warn, Level};
 use uzers::os::unix::UserExt;
+
+use crate::{commands::Command, *};
 
 // Nix impl:
 // https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc

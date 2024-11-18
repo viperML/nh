@@ -1,12 +1,11 @@
+use std::ffi::{OsStr, OsString};
+
 use color_eyre::{
     eyre::{bail, Context},
     install, Result,
 };
-
-use std::ffi::{OsStr, OsString};
-use thiserror::Error;
-
 use subprocess::{Exec, ExitStatus, Redirection};
+use thiserror::Error;
 use tracing::{debug, info};
 
 use crate::installable::Installable;
