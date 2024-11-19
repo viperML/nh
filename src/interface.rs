@@ -282,6 +282,9 @@ pub struct CompletionArgs {
     pub shell: clap_complete::Shell,
 }
 
+/// Nix-darwin functionality
+///
+/// Implements functionality mostly around but not exclusive to darwin-rebuild
 #[derive(Debug, Args)]
 pub struct DarwinArgs {
     #[command(subcommand)]
@@ -299,10 +302,22 @@ pub enum DarwinSubcommand {
 pub struct DarwinRebuildArgs {
     #[command(flatten)]
     pub common: CommonRebuildArgs,
+
+    /// When using a flake installable, select this hostname from darwinConfigurations
+    #[arg(long, short = 'H', global = true)]
+    pub hostname: Option<String>,
+
+    /// Extra arguments passed to nix build
+    #[arg(last = true)]
+    pub extra_args: Vec<String>,
 }
 
 #[derive(Debug, Args)]
 pub struct DarwinReplArgs {
     #[command(flatten)]
     pub installable: Installable,
+
+    /// When using a flake installable, select this hostname from darwinConfigurations
+    #[arg(long, short = 'H', global = true)]
+    pub hostname: Option<String>,
 }
