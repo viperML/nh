@@ -1,21 +1,30 @@
-[![dependency status](https://deps.rs/repo/github/viperML/nh/status.svg)](https://deps.rs/repo/github/viperML/nh)
-
 <h1 align="center">nh</h1>
 
 <h6 align="center">Because the name "yet-another-<u>n</u>ix-<u>h</u>elper" was too long to type...</h1>
 
 ## What does it do?
 
-NH reimplements some basic nix commands. Adding functionality on top of the existing solutions, like nixos-rebuild, home-manager cli or nix itself.
+Nh is my own take at reimplementing some commands from the NixOS ecosystem. I aim
+to provide more feature and better ergonomics than the existing commands.
 
-As the main features:
-- Tree of builds with [nix-output-monitor](https://github.com/maralorn/nix-output-monitor)
-- Visualization of the upgrade diff with [nvd](https://gitlab.com/khumba/nvd)
-- Asking for confirmation before performing activation
+Nh has serveral subcommands, such as:
+
+- `os`, which reimplements `nixos-rebuild`, with a tree of builds, diff and
+confirmation.
+- `home`, which reimplements `home-manager`.
+- `search`, a super-fast package searching tool (powered by a ElasticSearch
+client).
+- `clean`, my own take at cleaning GC roots from a NixOS system.
+
+This wouldn't be possible with the programs that nh runs under the hood:
+
+- Tree of builds with [nix-output-monitor](https://github.com/maralorn/nix-output-monitor).
+- Visualization of the upgrade diff with [nvd](https://khumba.net/projects/nvd).
+- And of course, all the [crates](./Cargo.toml) we depend on.
 
 <p align="center">
   <img
-    alt="build: passing"
+    alt="nh feature showcase"
     src="./.github/screenshot.png"
     width="800px"
   >
@@ -24,19 +33,17 @@ As the main features:
 
 ## Installation
 
-### Nixpkgs
+The latest stable version is available in Nixpkgs. You can try nh in a shell:
 
-nh is available in nixpkgs:
-
-- https://search.nixos.org/packages?channel=unstable&query=nh
-- Hydra status:
-  - x86_64-linux: https://hydra.nixos.org/job/nixos/trunk-combined/nixpkgs.nh.x86_64-linux
-  - aarch64-linux: https://hydra.nixos.org/job/nixos/trunk-combined/nixpkgs.nh.aarch64-linux
+```
+nix shell nixpkgs#nh
+```
 
 
-### NixOS module
+### NixOS
 
-The NixOS module has some niceties, like an alternative to `nix.gc.automatic` which also cleans XDG profiles, result and direnv GC roots.
+We provide a NixOS module that integrates `nh clean` as a service. To enable it,
+set the following configuration:
 
 ```nix
 { config, pkgs, ... }:
@@ -50,14 +57,19 @@ The NixOS module has some niceties, like an alternative to `nix.gc.automatic` wh
 }
 ```
 
-### FLAKE environment variable
+Nh supports both Flakes and classical NixOS configurations:
 
-nh uses the `FLAKE` environment variable as the default flake to use for its operations. This can be configured by whichever method you want,
-or use the `programs.nh.flake` NixOS option.
+- For flakes, the command is `nh os switch /path/to/flake`
+- For a classical configuration, you must use `nh os switch -f <nixpkgs/nixos>
+/etc/nixos/configuration.nix`
 
-### Specialisations support
+You might want to check `nh os --help` for other values and the defaults from
+environment variables.
 
-nh is capable of detecting which specialisation you are running, so it runs the proper activation script.
+
+#### Specialisations support
+
+Nh is capable of detecting which specialisation you are running, so it runs the proper activation script.
 To do so, you need to give nh some information of the spec that is currently running by writing its name to `/etc/specialisation`. The config would look like this:
 
 ```nix
@@ -75,6 +87,12 @@ To do so, you need to give nh some information of the spec that is currently run
 ```
 
 
+# Status
+
+[![Dependency status](https://deps.rs/repo/github/viperML/nh/status.svg)](https://deps.rs/repo/github/viperML/nh)
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/nh.svg)](https://repology.org/project/unit/versions)
+
 ## Hacking
 
-Just `nix develop`. We also provide an `.envrc` for direnv.
+Just clone and `nix develop`. We also provide a `.envrc` for Direnv.
