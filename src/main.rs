@@ -1,6 +1,7 @@
 mod clean;
 mod commands;
 mod completion;
+mod darwin;
 mod home;
 mod installable;
 mod interface;

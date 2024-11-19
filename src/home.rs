@@ -10,11 +10,6 @@ use crate::commands::Command;
 use crate::installable::Installable;
 use crate::interface::{self, HomeRebuildArgs};
 
-const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
-const CURRENT_PROFILE: &str = "/run/current-system";
-
-const SPEC_LOCATION: &str = "/etc/specialisation";
-
 impl interface::HomeArgs {
     pub fn run(self) -> Result<()> {
         use HomeRebuildVariant::*;

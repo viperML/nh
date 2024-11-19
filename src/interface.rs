@@ -44,9 +44,10 @@ pub struct Main {
 #[command(disable_help_subcommand = true)]
 pub enum NHCommand {
     Os(OsArgs),
+    Home(HomeArgs),
+    Darwin(DarwinArgs),
     Search(SearchArgs),
     Clean(CleanProxy),
-    Home(HomeArgs),
     #[command(hide = true)]
     Completions(CompletionArgs),
 }
@@ -59,6 +60,7 @@ impl NHCommand {
             NHCommand::Clean(proxy) => proxy.command.run(),
             NHCommand::Completions(args) => args.run(),
             NHCommand::Home(args) => args.run(),
+            NHCommand::Darwin(args) => args.run(),
         }
     }
 }
@@ -278,4 +280,29 @@ pub struct HomeRebuildArgs {
 pub struct CompletionArgs {
     /// Name of the shell
     pub shell: clap_complete::Shell,
+}
+
+#[derive(Debug, Args)]
+pub struct DarwinArgs {
+    #[command(subcommand)]
+    pub subcommand: DarwinSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum DarwinSubcommand {
+    Switch(DarwinRebuildArgs),
+    Build(DarwinRebuildArgs),
+    Repl(DarwinReplArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct DarwinRebuildArgs {
+    #[command(flatten)]
+    pub common: CommonRebuildArgs,
+}
+
+#[derive(Debug, Args)]
+pub struct DarwinReplArgs {
+    #[command(flatten)]
+    pub installable: Installable,
 }
