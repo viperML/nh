@@ -155,7 +155,7 @@ impl OsRebuildArgs {
     }
 }
 
-fn toplevel_for<S: AsRef<str>>(hostname: S, installable: Installable) -> Installable {
+pub fn toplevel_for<S: AsRef<str>>(hostname: S, installable: Installable) -> Installable {
     let mut res = installable.clone();
     let hostname = hostname.as_ref().to_owned();
 

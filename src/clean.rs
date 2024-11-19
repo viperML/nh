@@ -56,9 +56,17 @@ impl interface::CleanMode {
                     let path = read_dir?.path();
                     profiles.extend(profiles_in_dir(path));
                 }
-                debug!("Scanning XDG profiles for users 0, 1000-1100");
+
+                // Most unix systems start regular users at uid 1000+, but macos is special at 501+
+                // https://en.wikipedia.org/wiki/User_identifier
+                #[cfg(target_os = "linux")]
+                let uid_min = 1000;
+                #[cfg(target_os = "macos")]
+                let uid_min = 501;
+                let uid_max = uid_min + 100;
+                debug!("Scanning XDG profiles for users 0, ${uid_min}-${uid_max}");
                 for user in unsafe { uzers::all_users() } {
-                    if user.uid() >= 1000 && user.uid() < 1100 || user.uid() == 0 {
+                    if user.uid() >= uid_min && user.uid() < uid_max || user.uid() == 0 {
                         debug!(?user, "Adding XDG profiles for user");
                         profiles.extend(profiles_in_dir(
                             user.home_dir().join(".local/state/nix/profiles"),
