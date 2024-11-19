@@ -1,11 +1,12 @@
-use std::{process::Stdio, time::Instant};
+use std::process::Stdio;
+use std::time::Instant;
 
-use color_eyre::eyre::{eyre, Context, ContextCompat};
+use color_eyre::eyre::{bail, Context, ContextCompat};
 use elasticsearch_dsl::*;
 use interface::SearchArgs;
 use regex::Regex;
 use serde::Deserialize;
-use tracing::{debug, trace, warn};
+use tracing::{debug, trace};
 
 use crate::*;
 
@@ -44,15 +45,16 @@ impl SearchArgs {
     pub fn run(&self) -> Result<()> {
         trace!("args: {self:?}");
 
+        if !supported_branch(&self.channel) {
+            bail!("Channel {} is not supported!", self.channel);
+        }
+
         let nixpkgs_path = std::thread::spawn(|| {
             std::process::Command::new("nix")
                 .stderr(Stdio::inherit())
-                .args(["eval", "nixpkgs#path"])
+                .args(["eval", "-f", "<nixpkgs>", "path"])
                 .output()
         });
-
-        // let mut nixpkgs_path = std::process::Command::new("nix")
-        // .context("Evaluating the nixpkgs path for results positions")?;
 
         let query = Search::new().from(0).size(self.limit).query(
             Query::bool().filter(Query::term("type", "package")).must(
@@ -88,32 +90,10 @@ impl SearchArgs {
             ),
         );
 
-        let channel: String = match (&self.channel, &self.flake) {
-            (Some(c), _) => c.clone(),
-            (None, Some(f)) => {
-                let c = my_nix_branch(f);
-                match c {
-                    Ok(s) => s,
-                    Err(err) => {
-                        warn!(
-                            "Failed to read the nixpkgs input for the flake {}",
-                            f.as_str()
-                        );
-                        for e in err.chain() {
-                            warn!("{}", e);
-                        }
-                        String::from("nixos-unstable")
-                    }
-                }
-            }
-            (None, None) => {
-                debug!("Using default search channel");
-                String::from("nixos-unstable")
-            }
-        };
-        debug!(?channel);
-
-        println!("Querying search.nixos.org, with channel {}...", channel);
+        println!(
+            "Querying search.nixos.org, with channel {}...",
+            self.channel
+        );
         let then = Instant::now();
 
         let client = reqwest::blocking::Client::new();
@@ -122,7 +102,7 @@ impl SearchArgs {
             // TODO: have a GH action or something check if they updated this thing
             .post(format!(
                 "https://search.nixos.org/backend/latest-42-{}/_search",
-                channel
+                self.channel
             ))
             .json(&query)
             .header("User-Agent", format!("nh/{}", crate::NH_VERSION))
@@ -195,7 +175,8 @@ impl SearchArgs {
             }
 
             if let Some(position) = &elem.package_position {
-                print!("  Position: ");
+                let position = position.split(':').next().unwrap();
+                print!("  Defined at: ");
                 if hyperlinks {
                     let postion_trimmed = position
                         .split(':')
@@ -210,42 +191,6 @@ impl SearchArgs {
         }
 
         Ok(())
-    }
-}
-
-fn my_nix_branch(flake: &FlakeRef) -> Result<String> {
-    let output = std::process::Command::new("nix")
-        .args(["flake", "metadata", "--json"])
-        .arg(flake.as_str())
-        .output()?;
-
-    let metadata: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    let m = crate::json::Value::new(&metadata);
-
-    let nixpkgs_input = m
-        .get("locks")?
-        .get("nodes")?
-        .get("root")?
-        .get("inputs")?
-        .get("nixpkgs")?
-        .inner
-        .as_str()
-        .wrap_err("Failed to read as string")?;
-
-    let branch = m
-        .get("locks")?
-        .get("nodes")?
-        .get(nixpkgs_input)?
-        .get("original")?
-        .get("ref")?
-        .inner
-        .as_str()
-        .wrap_err("Failed to read as string")?;
-
-    if supported_branch(branch) {
-        Ok(branch.to_owned())
-    } else {
-        Err(eyre!("Branch {} is not supported", &branch))
     }
 }
 

@@ -1,15 +1,14 @@
 use std::env;
 use std::path::PathBuf;
 
-use color_eyre::eyre::{bail, Context};
+use color_eyre::eyre::bail;
 use color_eyre::Result;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use crate::commands;
 use crate::commands::Command;
 use crate::installable::Installable;
-use crate::interface::OsSubcommand::{self};
-use crate::interface::{self, HomeRebuildArgs, OsRebuildArgs, OsReplArgs};
+use crate::interface::{self, HomeRebuildArgs};
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";
@@ -138,7 +137,7 @@ fn toplevel_for(installable: Installable) -> Result<Installable> {
 
             let mut tried = vec![];
 
-            for attr in [format!("{username}@{hostname}"), format!("{username}")] {
+            for attr in [format!("{username}@{hostname}"), username.to_string()] {
                 let func = format!(r#" x: x ? "{}" "#, attr);
                 let res = commands::Command::new("nix")
                     .args(["eval", "--apply"])

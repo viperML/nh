@@ -1,13 +1,13 @@
 mod clean;
 mod commands;
 mod completion;
+mod home;
 mod installable;
 mod interface;
 mod json;
 mod logging;
 mod nixos;
-// mod search;
-mod home;
+mod search;
 mod util;
 
 use color_eyre::Result;

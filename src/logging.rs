@@ -64,7 +64,7 @@ pub(crate) fn setup_logging(verbose: bool) -> Result<()> {
         .without_time()
         .compact()
         .with_line_number(true)
-        .with_filter(EnvFilter::from_default_env().or(filter_fn(move |_| verbose)))
+        .with_filter(EnvFilter::from_env("NH_LOG").or(filter_fn(move |_| verbose)))
         .with_filter(filter_fn(|meta| *meta.level() > Level::INFO));
 
     let layer_info = fmt::layer()

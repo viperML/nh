@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anstyle::Style;
+use clap::ValueEnum;
 use clap::{builder::Styles, Args, Parser, Subcommand};
 
 use crate::installable::Installable;
@@ -54,7 +55,7 @@ impl NHCommand {
     pub fn run(self) -> Result<()> {
         match self {
             NHCommand::Os(args) => args.run(),
-            NHCommand::Search(_args) => todo!(),
+            NHCommand::Search(args) => args.run(),
             NHCommand::Clean(proxy) => proxy.command.run(),
             NHCommand::Completions(args) => args.run(),
             NHCommand::Home(args) => args.run(),
@@ -155,15 +156,23 @@ pub struct SearchArgs {
     /// Number of search results to display
     pub limit: u64,
 
-    #[arg(long, short)]
-    /// Name of the channel to query (e.g nixos-23.11, nixos-unstable)
-    pub channel: Option<String>,
+    #[arg(
+        long,
+        short,
+        env = "NH_SEARCH_CHANNEL",
+        default_value = "nixos-unstable"
+    )]
+    /// Name of the channel to query (e.g nixos-23.11, nixos-unstable, ...)
+    pub channel: String,
 
     /// Name of the package to search
     pub query: String,
+}
 
-    #[command(flatten)]
-    pub installable: Installable,
+#[derive(Debug, Clone, ValueEnum)]
+pub enum SearchNixpkgsFrom {
+    Flake,
+    Path,
 }
 
 // Needed a struct to have multiple sub-subcommands
