@@ -1,7 +1,7 @@
 use std::process::Stdio;
 use std::time::Instant;
 
-use color_eyre::eyre::{bail, Context, ContextCompat};
+use color_eyre::eyre::{bail, Context};
 use elasticsearch_dsl::*;
 use interface::SearchArgs;
 use regex::Regex;

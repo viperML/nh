@@ -252,7 +252,7 @@ fn profiles_in_dir<P: AsRef<Path> + fmt::Debug>(dir: P) -> Vec<PathBuf> {
 
                             let generation_regex = Regex::new(r"^(.*)-(\d+)-link$").unwrap();
 
-                            if let Some(_) = generation_regex.captures(&name) {
+                            if generation_regex.captures(&name).is_some() {
                                 res.push(path);
                             }
                         }
