@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::path::PathBuf;
 use std::{env, fs};
 
@@ -251,4 +252,67 @@ where
 fn test_join_attribute() {
     assert_eq!(join_attribute(vec!["foo", "bar"]), "foo.bar");
     assert_eq!(join_attribute(vec!["foo", "bar.baz"]), r#"foo."bar.baz""#);
+}
+
+#[derive(Debug)]
+pub struct Installable2<C: Installable2Context> {
+    pub data: Installable2Data,
+    _marker: PhantomData<C>,
+}
+
+#[derive(Debug)]
+pub enum Installable2Data {
+    Flake,
+    File,
+}
+
+pub trait Installable2Context {
+    fn context() -> Installable2ContextValue;
+}
+
+pub enum Installable2ContextValue {
+    Home,
+    Os,
+}
+
+pub struct Installable2ContextHome;
+impl Installable2Context for Installable2ContextHome {
+    fn context() -> Installable2ContextValue {
+        Installable2ContextValue::Home
+    }
+}
+
+#[derive(Debug)]
+pub struct Installable2ContextOs;
+impl Installable2Context for Installable2ContextOs {
+    fn context() -> Installable2ContextValue {
+        Installable2ContextValue::Os
+    }
+}
+
+impl<C: Installable2Context> FromArgMatches for Installable2<C> {
+    fn from_arg_matches(matches: &clap::ArgMatches) -> Result<Self, clap::Error> {
+        let mut matches = matches.clone();
+        Self::from_arg_matches_mut(&mut matches)
+    }
+
+    fn from_arg_matches_mut(matches: &mut clap::ArgMatches) -> Result<Self, clap::Error> {
+        todo!();
+    }
+
+    fn update_from_arg_matches(&mut self, matches: &clap::ArgMatches) -> Result<(), clap::Error> {
+        todo!()
+    }
+}
+
+impl<C: Installable2Context> Args for Installable2<C> {
+    fn augment_args(cmd: clap::Command) -> clap::Command {
+        let context = C::context();
+
+        cmd.arg(Arg::new("installable"))
+    }
+
+    fn augment_args_for_update(cmd: clap::Command) -> clap::Command {
+        Self::augment_args(cmd)
+    }
 }

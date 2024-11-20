@@ -4,7 +4,7 @@ use tracing::{debug, info, warn};
 
 use crate::commands;
 use crate::commands::Command;
-use crate::installable::Installable;
+use crate::installable::{Installable, Installable2Context};
 use crate::interface::OsSubcommand::{self};
 use crate::interface::{self, OsRebuildArgs, OsReplArgs};
 
@@ -13,7 +13,7 @@ const CURRENT_PROFILE: &str = "/run/current-system";
 
 const SPEC_LOCATION: &str = "/etc/specialisation";
 
-impl interface::OsArgs {
+impl<C: Installable2Context> interface::OsArgs<C> {
     pub fn run(self) -> Result<()> {
         use OsRebuildVariant::*;
         match self.subcommand {
@@ -190,32 +190,9 @@ pub fn toplevel_for<S: AsRef<str>>(hostname: S, installable: Installable) -> Ins
     res
 }
 
-impl OsReplArgs {
+impl<C: Installable2Context> OsReplArgs<C> {
     fn run(self) -> Result<()> {
-        let mut target_installable = self.installable;
-
-        if matches!(target_installable, Installable::Store { .. }) {
-            bail!("Nix doesn't support nix store installables.");
-        }
-
-        let hostname = self
-            .hostname
-            .unwrap_or_else(|| hostname::get().unwrap().to_str().unwrap().to_string());
-
-        if let Installable::Flake {
-            ref mut attribute, ..
-        } = target_installable
-        {
-            if attribute.is_empty() {
-                attribute.push(String::from("nixosConfigurations"));
-                attribute.push(hostname);
-            }
-        }
-
-        Command::new("nix")
-            .arg("repl")
-            .args(target_installable.to_args())
-            .run()?;
+        todo!();
 
         Ok(())
     }

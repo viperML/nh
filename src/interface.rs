@@ -4,7 +4,7 @@ use anstyle::Style;
 use clap::ValueEnum;
 use clap::{builder::Styles, Args, Parser, Subcommand};
 
-use crate::installable::Installable;
+use crate::installable::{Installable, Installable2, Installable2Context};
 use crate::Result;
 
 fn make_style() -> Styles {
@@ -31,19 +31,19 @@ fn make_style() -> Styles {
 "
 )]
 /// Yet another nix helper
-pub struct Main {
+pub struct Main<C: Installable2Context> {
     #[arg(short, long, global = true)]
     /// Show debug logs
     pub verbose: bool,
 
     #[command(subcommand)]
-    pub command: NHCommand,
+    pub command: NHCommand<C>,
 }
 
 #[derive(Subcommand, Debug)]
 #[command(disable_help_subcommand = true)]
-pub enum NHCommand {
-    Os(OsArgs),
+pub enum NHCommand<C: Installable2Context> {
+    Os(OsArgs<C>),
     Home(HomeArgs),
     Darwin(DarwinArgs),
     Search(SearchArgs),
@@ -52,7 +52,7 @@ pub enum NHCommand {
     Completions(CompletionArgs),
 }
 
-impl NHCommand {
+impl<C: Installable2Context> NHCommand<C> {
     pub fn run(self) -> Result<()> {
         match self {
             NHCommand::Os(args) => args.run(),
@@ -70,13 +70,13 @@ impl NHCommand {
 /// NixOS functionality
 ///
 /// Implements functionality mostly around but not exclusive to nixos-rebuild
-pub struct OsArgs {
+pub struct OsArgs<C: Installable2Context> {
     #[command(subcommand)]
-    pub subcommand: OsSubcommand,
+    pub subcommand: OsSubcommand<C>,
 }
 
 #[derive(Debug, Subcommand)]
-pub enum OsSubcommand {
+pub enum OsSubcommand<C: Installable2Context> {
     /// Build and activate the new configuration, and make it the boot default
     Switch(OsRebuildArgs),
 
@@ -90,7 +90,7 @@ pub enum OsSubcommand {
     Build(OsRebuildArgs),
 
     /// Load system in a repl
-    Repl(OsReplArgs),
+    Repl(OsReplArgs<C>),
 }
 
 #[derive(Debug, Args)]
@@ -142,9 +142,9 @@ pub struct CommonRebuildArgs {
 }
 
 #[derive(Debug, Args)]
-pub struct OsReplArgs {
+pub struct OsReplArgs<C: Installable2Context> {
     #[command(flatten)]
-    pub installable: Installable,
+    pub installable: Installable2<C>,
 
     /// When using a flake installable, select this hostname from nixosConfigurations
     #[arg(long, short = 'H', global = true)]

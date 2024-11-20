@@ -14,6 +14,8 @@ mod util;
 use color_eyre::Result;
 use tracing::debug;
 
+use crate::installable::Installable2ContextOs;
+
 const NH_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<()> {
@@ -25,7 +27,7 @@ fn main() -> Result<()> {
         }
     }
 
-    let args = <crate::interface::Main as clap::Parser>::parse();
+    let args = <crate::interface::Main<Installable2ContextOs> as clap::Parser>::parse();
     crate::logging::setup_logging(args.verbose)?;
     tracing::debug!("{args:#?}");
     tracing::debug!(%NH_VERSION);
