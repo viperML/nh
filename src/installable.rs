@@ -161,6 +161,10 @@ where
     let s = s.as_ref();
     let mut res = Vec::new();
 
+    if s.is_empty() {
+        return res;
+    }
+
     let mut in_quote = false;
 
     let mut elem = String::new();
@@ -198,6 +202,8 @@ where
 fn test_parse_attribute() {
     assert_eq!(parse_attribute(r#"foo.bar"#), vec!["foo", "bar"]);
     assert_eq!(parse_attribute(r#"foo."bar.baz""#), vec!["foo", "bar.baz"]);
+    let v: Vec<String> = vec![];
+    assert_eq!(parse_attribute(""), v)
 }
 
 impl Installable {
