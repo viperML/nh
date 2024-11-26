@@ -102,11 +102,11 @@ pub struct OsRebuildArgs {
     #[arg(long, short = 'H', global = true)]
     pub hostname: Option<String>,
 
-    /// Name of the specialisation
+    /// Explicitely select some specialisation
     #[arg(long, short)]
     pub specialisation: Option<String>,
 
-    /// Don't use specialisations
+    /// Ignore specialisations
     #[arg(long, short = 'S')]
     pub no_specialisation: bool,
 
@@ -114,7 +114,7 @@ pub struct OsRebuildArgs {
     #[arg(last = true)]
     pub extra_args: Vec<String>,
 
-    /// Bypass the check to call nh as root directly.
+    /// Don't panic if calling nh as root
     #[arg(short = 'R', long, env = "NH_BYPASS_ROOT_CHECK")]
     pub bypass_root_check: bool,
 }
@@ -136,7 +136,7 @@ pub struct CommonRebuildArgs {
     #[arg(long)]
     pub no_nom: bool,
 
-    /// Path to save the result link. Defaults to using a temporary directory.
+    /// Path to save the result link, defaults to using a temporary directory
     #[arg(long, short)]
     pub out_link: Option<PathBuf>,
 }
@@ -164,7 +164,7 @@ pub struct SearchArgs {
         env = "NH_SEARCH_CHANNEL",
         default_value = "nixos-unstable"
     )]
-    /// Name of the channel to query (e.g nixos-23.11, nixos-unstable, ...)
+    /// Name of the channel to query (e.g nixos-23.11, nixos-unstable, etc)
     pub channel: String,
 
     /// Name of the package to search
@@ -187,11 +187,11 @@ pub struct CleanProxy {
 #[derive(Debug, Clone, Subcommand)]
 /// Enhanced nix cleanup
 pub enum CleanMode {
-    /// Cleans root profiles and calls a store gc
+    /// Clean all profiles
     All(CleanArgs),
-    /// Cleans the current user's profiles and calls a store gc
+    /// Clean the current user's profiles
     User(CleanArgs),
-    /// Cleans a specific profile
+    /// Clean a specific profile
     Profile(CleanProfileArgs),
 }
 
@@ -231,6 +231,7 @@ pub struct CleanProfileArgs {
     #[command(flatten)]
     pub common: CleanArgs,
 
+    /// Which profile to clean
     pub profile: PathBuf,
 }
 
@@ -243,26 +244,21 @@ pub struct HomeArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum HomeSubcommand {
-    #[clap(verbatim_doc_comment)]
     /// Build and activate a home-manager configuration
-    ///
-    /// Will check the current $USER and $(hostname) to determine which output to build, unless -c is passed
     Switch(HomeRebuildArgs),
 
-    #[clap(verbatim_doc_comment)]
     /// Build a home-manager configuration
-    ///
-    /// Will check the current $USER and $(hostname) to determine which output to build, unless -c is passed
     Build(HomeRebuildArgs),
 }
 
 #[derive(Debug, Args)]
-#[clap(verbatim_doc_comment)]
 pub struct HomeRebuildArgs {
     #[command(flatten)]
     pub common: CommonRebuildArgs,
 
     /// Name of the flake homeConfigurations attribute, like username@hostname
+    ///
+    /// If unspecified, will try <username>@<hostname> and <username>
     #[arg(long, short)]
     pub configuration: Option<String>,
 
@@ -270,7 +266,7 @@ pub struct HomeRebuildArgs {
     #[arg(last = true)]
     pub extra_args: Vec<String>,
 
-    /// Move existing files by backing up with the extension
+    /// Move existing files by backing up with this file extension
     #[arg(long, short = 'b')]
     pub backup_extension: Option<String>,
 }
@@ -293,8 +289,11 @@ pub struct DarwinArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum DarwinSubcommand {
+    /// Build and activate a nix-darwin configuration
     Switch(DarwinRebuildArgs),
+    /// Build a nix-darwin configuration
     Build(DarwinRebuildArgs),
+    /// Load a nix-darwin configuration in a Nix REPL
     Repl(DarwinReplArgs),
 }
 
