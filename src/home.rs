@@ -113,7 +113,6 @@ fn toplevel_for(installable: Installable) -> Result<Installable> {
         Installable::Flake {
             ref reference,
             ref mut attribute,
-            ..
         } => 'flake: {
             // If user explicitely selects some other attribute, don't push homeConfigurations
             if !attribute.is_empty() {
@@ -137,6 +136,13 @@ fn toplevel_for(installable: Installable) -> Result<Installable> {
                 let res = commands::Command::new("nix")
                     .args(["eval", "--apply"])
                     .arg(func)
+                    .args(
+                        (Installable::Flake {
+                            reference: reference.clone(),
+                            attribute: attribute.clone(),
+                        })
+                        .to_args(),
+                    )
                     .run_capture()
                     .expect("Checking home-manager output");
 
