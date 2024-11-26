@@ -249,6 +249,9 @@ pub enum HomeSubcommand {
 
     /// Build a home-manager configuration
     Build(HomeRebuildArgs),
+
+    /// Load a home-manager configuration in a Nix REPL
+    Repl(HomeReplArgs),
 }
 
 #[derive(Debug, Args)]
@@ -269,6 +272,18 @@ pub struct HomeRebuildArgs {
     /// Move existing files by backing up with this file extension
     #[arg(long, short = 'b')]
     pub backup_extension: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct HomeReplArgs {
+    #[command(flatten)]
+    pub installable: Installable,
+
+    /// Name of the flake homeConfigurations attribute, like username@hostname
+    ///
+    /// If unspecified, will try <username>@<hostname> and <username>
+    #[arg(long, short)]
+    pub configuration: Option<String>,
 }
 
 #[derive(Debug, Parser)]

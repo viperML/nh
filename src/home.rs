@@ -8,14 +8,15 @@ use tracing::{debug, info};
 use crate::commands;
 use crate::commands::Command;
 use crate::installable::Installable;
-use crate::interface::{self, HomeRebuildArgs};
+use crate::interface::{self, HomeRebuildArgs, HomeReplArgs, HomeSubcommand};
 
 impl interface::HomeArgs {
     pub fn run(self) -> Result<()> {
         use HomeRebuildVariant::*;
         match self.subcommand {
-            interface::HomeSubcommand::Switch(args) => args.rebuild(Switch),
-            interface::HomeSubcommand::Build(args) => args.rebuild(Build),
+            HomeSubcommand::Switch(args) => args.rebuild(Switch),
+            HomeSubcommand::Build(args) => args.rebuild(Build),
+            HomeSubcommand::Repl(args) => args.run(),
         }
     }
 }
@@ -40,7 +41,7 @@ impl HomeRebuildArgs {
 
         debug!(?out_path);
 
-        let toplevel = toplevel_for(self.common.installable.clone())?;
+        let toplevel = toplevel_for(self.common.installable.clone(), true)?;
 
         commands::Build::new(toplevel)
             .extra_arg("--out-link")
@@ -102,7 +103,7 @@ impl HomeRebuildArgs {
     }
 }
 
-fn toplevel_for(installable: Installable) -> Result<Installable> {
+fn toplevel_for(installable: Installable, push_drv: bool) -> Result<Installable> {
     let mut res = installable.clone();
 
     let toplevel = ["config", "home", "activationPackage"]
@@ -155,7 +156,9 @@ fn toplevel_for(installable: Installable) -> Result<Installable> {
                 match res.as_deref() {
                     Some("true") => {
                         attribute.push(attr.clone());
-                        attribute.extend(toplevel);
+                        if push_drv {
+                            attribute.extend(toplevel);
+                        }
                         break 'flake;
                     }
                     _ => {
@@ -181,15 +184,32 @@ fn toplevel_for(installable: Installable) -> Result<Installable> {
         Installable::File {
             ref mut attribute, ..
         } => {
-            attribute.extend(toplevel);
+            if push_drv {
+                attribute.extend(toplevel);
+            }
         }
         Installable::Expression {
             ref mut attribute, ..
         } => {
-            attribute.extend(toplevel);
+            if push_drv {
+                attribute.extend(toplevel);
+            }
         }
         Installable::Store { .. } => {}
     }
 
     Ok(res)
+}
+
+impl HomeReplArgs {
+    fn run(self) -> Result<()> {
+        let toplevel = toplevel_for(self.installable, false)?;
+
+        Command::new("nix")
+            .arg("repl")
+            .args(toplevel.to_args())
+            .run()?;
+
+        Ok(())
+    }
 }
