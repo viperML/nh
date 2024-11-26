@@ -39,8 +39,6 @@ in
 
     buildInputs = lib.optionals stdenv.isDarwin [darwin.apple_sdk.frameworks.SystemConfiguration];
 
-    doCheck = false; # faster builds
-
     preFixup = ''
       mkdir completions
       $out/bin/nh completions bash > completions/nh.bash

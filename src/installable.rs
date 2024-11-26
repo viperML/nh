@@ -161,13 +161,43 @@ where
     let s = s.as_ref();
     let mut res = Vec::new();
 
-    if !s.is_empty() {
-        for elem in s.split('.') {
-            res.push(elem.to_string())
+    let mut in_quote = false;
+
+    let mut elem = String::new();
+    for char in s.chars() {
+        match char {
+            '.' => {
+                if !in_quote {
+                    res.push(elem.clone());
+                    elem = String::new();
+                } else {
+                    elem.push(char);
+                }
+            }
+            '"' => {
+                if !in_quote {
+                    in_quote = true;
+                } else {
+                    in_quote = false;
+                }
+            }
+            _ => elem.push(char),
         }
     }
 
+    res.push(elem);
+
+    if in_quote {
+        panic!("Failed to parse attribute: {}", s);
+    }
+
     res
+}
+
+#[test]
+fn test_parse_attribute() {
+    assert_eq!(parse_attribute(r#"foo.bar"#), vec!["foo", "bar"]);
+    assert_eq!(parse_attribute(r#"foo."bar.baz""#), vec!["foo", "bar.baz"]);
 }
 
 impl Installable {
