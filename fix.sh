@@ -4,4 +4,4 @@ set -eux
 cargo fix --allow-dirty
 cargo clippy --fix --allow-dirty
 cargo fmt
-nix fmt
+# nix fmt # FIXME
