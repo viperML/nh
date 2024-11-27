@@ -1,1 +1,1 @@
-import <nixpkgs/nixos> { configuration = { }; }
+import <nixpkgs/nixos> { configuration = ./configuration.nix; }
