@@ -8,7 +8,7 @@ use crate::*;
 impl interface::CompletionArgs {
     #[instrument(ret, level = "trace")]
     pub fn run(&self) -> Result<()> {
-        let mut cmd = <Main as clap::CommandFactory>::command();
+        let mut cmd = <Main<Installable2ContextOs> as clap::CommandFactory>::command();
         generate(self.shell, &mut cmd, "nh", &mut std::io::stdout());
         Ok(())
     }
