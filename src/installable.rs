@@ -179,11 +179,7 @@ where
                 }
             }
             '"' => {
-                if !in_quote {
-                    in_quote = true;
-                } else {
-                    in_quote = false;
-                }
+                in_quote = !in_quote;
             }
             _ => elem.push(char),
         }

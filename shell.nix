@@ -1,26 +1,28 @@
-{pkgs ? import <nixpkgs> {}}:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 with pkgs;
-  mkShell {
-    strictDeps = true;
+mkShell {
+  strictDeps = true;
 
-    nativeBuildInputs = [
-      cargo
-      rustc
+  nativeBuildInputs = [
+    cargo
+    rustc
 
-      rust-analyzer-unwrapped
-      (rustfmt.override {asNightly = true;})
-      clippy
-      nvd
-      nix-output-monitor
-      taplo
-      yaml-language-server
-    ];
+    rust-analyzer-unwrapped
+    (rustfmt.override { asNightly = true; })
+    clippy
+    nvd
+    nix-output-monitor
+    taplo
+    yaml-language-server
+  ];
 
-    buildInputs = [];
+  buildInputs = [ ];
 
-    env = {
-      NH_NOM = "1";
-      NH_LOG = "nh=trace";
-      RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
-    };
-  }
+  env = {
+    NH_NOM = "1";
+    NH_LOG = "nh=trace";
+    RUST_SRC_PATH = "${rustPlatform.rustLibSrc}";
+  };
+}

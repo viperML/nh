@@ -23,10 +23,6 @@ jobs:
 
       - run: |
           eval "$(nix print-dev-env)"
-
-          cargo fix --allow-dirty
-          cargo clippy --fix --allow-dirty
-          cargo fmt
-
+          ./fix.sh
           git diff-index --quiet HEAD
-        name: Check clippy and formatting
+        name: Check formatting
