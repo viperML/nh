@@ -15,6 +15,7 @@ use color_eyre::Result;
 use tracing::debug;
 
 const NH_VERSION: &str = env!("CARGO_PKG_VERSION");
+const NH_REV: Option<&str> = option_env!("NH_REV");
 
 fn main() -> Result<()> {
     let mut do_warn = false;
@@ -28,7 +29,7 @@ fn main() -> Result<()> {
     let args = <crate::interface::Main as clap::Parser>::parse();
     crate::logging::setup_logging(args.verbose)?;
     tracing::debug!("{args:#?}");
-    tracing::debug!(%NH_VERSION);
+    tracing::debug!(%NH_VERSION, ?NH_REV);
 
     if do_warn {
         tracing::warn!(

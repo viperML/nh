@@ -55,6 +55,10 @@ rustPlatform.buildRustPackage {
 
   cargoLock.lockFile = ./Cargo.lock;
 
+  env = {
+    NH_REV = rev;
+  };
+
   meta = {
     description = "Yet another nix cli helper";
     homepage = "https://github.com/viperML/nh";
