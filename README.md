@@ -33,10 +33,12 @@ This wouldn't be possible with the programs that nh runs under the hood:
 
 ## Installation
 
-The latest stable version is available in Nixpkgs. You can try nh in a shell:
+The latest stable version is available in Nixpkgs. This repository provides the
+latest development version of nh.
 
 ```
-nix shell nixpkgs#nh
+nix shell nixpkgs#nh # stable
+nix shell github:viperML/nh # dev
 ```
 
 
