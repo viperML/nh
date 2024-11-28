@@ -284,3 +284,14 @@ fn test_join_attribute() {
     assert_eq!(join_attribute(vec!["foo", "bar"]), "foo.bar");
     assert_eq!(join_attribute(vec!["foo", "bar.baz"]), r#"foo."bar.baz""#);
 }
+
+impl Installable {
+    pub fn str_kind(&self) -> &str {
+        match self {
+            Installable::Flake { .. } => "flake",
+            Installable::File { .. } => "file",
+            Installable::Store { .. } => "store path",
+            Installable::Expression { .. } => "expression",
+        }
+    }
+}

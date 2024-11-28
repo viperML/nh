@@ -7,6 +7,7 @@ use crate::commands::Command;
 use crate::installable::Installable;
 use crate::interface::OsSubcommand::{self};
 use crate::interface::{self, OsRebuildArgs, OsReplArgs};
+use crate::update::update;
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
 const CURRENT_PROFILE: &str = "/run/current-system";
@@ -47,6 +48,10 @@ impl OsRebuildArgs {
             }
             true
         };
+
+        if self.update_args.update {
+            update(&self.common.installable, self.update_args.update_input)?;
+        }
 
         let hostname = match &self.hostname {
             Some(h) => h.to_owned(),

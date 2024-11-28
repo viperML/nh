@@ -98,6 +98,9 @@ pub struct OsRebuildArgs {
     #[command(flatten)]
     pub common: CommonRebuildArgs,
 
+    #[command(flatten)]
+    pub update_args: UpdateArgs,
+
     /// When using a flake installable, select this hostname from nixosConfigurations
     #[arg(long, short = 'H', global = true)]
     pub hostname: Option<String>,
@@ -259,6 +262,9 @@ pub struct HomeRebuildArgs {
     #[command(flatten)]
     pub common: CommonRebuildArgs,
 
+    #[command(flatten)]
+    pub update_args: UpdateArgs,
+
     /// Name of the flake homeConfigurations attribute, like username@hostname
     ///
     /// If unspecified, will try <username>@<hostname> and <username>
@@ -317,6 +323,9 @@ pub struct DarwinRebuildArgs {
     #[command(flatten)]
     pub common: CommonRebuildArgs,
 
+    #[command(flatten)]
+    pub update_args: UpdateArgs,
+
     /// When using a flake installable, select this hostname from darwinConfigurations
     #[arg(long, short = 'H', global = true)]
     pub hostname: Option<String>,
@@ -334,4 +343,15 @@ pub struct DarwinReplArgs {
     /// When using a flake installable, select this hostname from darwinConfigurations
     #[arg(long, short = 'H', global = true)]
     pub hostname: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct UpdateArgs {
+    #[arg(short = 'u', long = "update")]
+    /// Update all flake inputs
+    pub update: bool,
+
+    #[arg(short = 'U', long = "update-input")]
+    /// Update a single flake input
+    pub update_input: Option<String>,
 }
