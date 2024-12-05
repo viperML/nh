@@ -158,16 +158,18 @@ fn toplevel_for(installable: Installable, push_drv: bool) -> Result<Installable>
                     attribute
                 });
 
-                match res.as_deref() {
-                    Some("true") => {
-                        attribute.push(attr.clone());
-                        if push_drv {
-                            attribute.extend(toplevel);
+                if let Some(res) = res.as_deref() {
+                    match res.trim() {
+                        "true" => {
+                            attribute.push(attr.clone());
+                            if push_drv {
+                                attribute.extend(toplevel);
+                            }
+                            break 'flake;
                         }
-                        break 'flake;
-                    }
-                    _ => {
-                        continue;
+                        _ => {
+                            continue;
+                        }
                     }
                 }
             }
