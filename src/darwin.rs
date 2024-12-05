@@ -88,7 +88,7 @@ impl DarwinRebuildArgs {
             ref mut attribute, ..
         } = installable
         {
-            // If user explicitely selects some other attribute, don't push darwinConfigurations
+            // If user explicitly selects some other attribute, don't push darwinConfigurations
             if attribute.is_empty() {
                 attribute.push(String::from("darwinConfigurations"));
                 attribute.push(hostname.clone());
@@ -116,11 +116,7 @@ impl DarwinRebuildArgs {
             .message("Comparing changes")
             .run()?;
 
-        if self.common.dry || matches!(variant, Build) {
-            return Ok(());
-        }
-
-        if self.common.ask {
+        if self.common.ask && !self.common.dry && !matches!(variant, Build) {
             info!("Apply the config?");
             let confirmation = dialoguer::Confirm::new().default(false).interact()?;
 
@@ -134,12 +130,14 @@ impl DarwinRebuildArgs {
                 .args(["build", "--profile", SYSTEM_PROFILE])
                 .arg(out_path.get_path())
                 .elevate(true)
+                .dry(self.common.dry)
                 .run()?;
 
             let switch_to_configuration = out_path.get_path().join("activate-user");
 
             Command::new(switch_to_configuration)
                 .message("Activating configuration for user")
+                .dry(self.common.dry)
                 .run()?;
 
             let switch_to_configuration = out_path.get_path().join("activate");
@@ -147,6 +145,7 @@ impl DarwinRebuildArgs {
             Command::new(switch_to_configuration)
                 .elevate(true)
                 .message("Activating configuration")
+                .dry(self.common.dry)
                 .run()?;
         }
 
