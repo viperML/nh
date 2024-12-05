@@ -18,7 +18,10 @@ mkShell {
     yaml-language-server
   ];
 
-  buildInputs = [ ];
+  buildInputs = lib.optionals stdenv.isDarwin [
+    darwin.apple_sdk.frameworks.SystemConfiguration
+    libiconv
+  ];
 
   env = {
     NH_NOM = "1";
