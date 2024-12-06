@@ -158,7 +158,7 @@ fn toplevel_for(installable: Installable, push_drv: bool) -> Result<Installable>
                     attribute
                 });
 
-                match res.as_deref() {
+                match res.map(|s| s.trim().to_owned()).as_deref() {
                     Some("true") => {
                         attribute.push(attr.clone());
                         if push_drv {
