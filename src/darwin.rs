@@ -127,7 +127,7 @@ impl DarwinRebuildArgs {
 
         if let Switch = variant {
             Command::new("nix")
-                .args(["build", "--profile", SYSTEM_PROFILE])
+                .args(["build", "--no-link", "--profile", SYSTEM_PROFILE])
                 .arg(out_path.get_path())
                 .elevate(true)
                 .dry(self.common.dry)

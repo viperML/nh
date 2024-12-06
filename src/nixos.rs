@@ -135,7 +135,7 @@ impl OsRebuildArgs {
         if let Boot | Switch = variant {
             Command::new("nix")
                 .elevate(elevate)
-                .args(["build", "--profile", SYSTEM_PROFILE])
+                .args(["build", "--no-link", "--profile", SYSTEM_PROFILE])
                 .arg(out_path.get_path())
                 .run()?;
 
