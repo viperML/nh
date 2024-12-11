@@ -1,9 +1,18 @@
 use chrono::{DateTime, Local, TimeZone, Utc};
-use serde_json::json;
-use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process;
+
+#[derive(Debug)]
+pub struct GenerationInfo {
+    pub generation: String,
+    pub date: String,
+    pub nixos_version: String,
+    pub kernel_version: String,
+    pub configuration_revision: String,
+    pub specialisations: Vec<String>,
+    pub current: bool,
+}
 
 pub fn generation_from_dir(generation_dir: &Path) -> Option<String> {
     generation_dir
@@ -18,10 +27,7 @@ pub fn generation_from_dir(generation_dir: &Path) -> Option<String> {
         })
 }
 
-pub fn describe_generation(
-    generation_dir: &Path,
-    current_profile: &Path,
-) -> HashMap<String, serde_json::Value> {
+pub fn describe_generation(generation_dir: &Path, current_profile: &Path) -> GenerationInfo {
     let generation_number = generation_from_dir(generation_dir).unwrap_or_default();
     let nixos_version = fs::read_to_string(generation_dir.join("nixos-version"))
         .unwrap_or_else(|_| "Unknown".to_string());
@@ -31,6 +37,7 @@ pub fn describe_generation(
         .ok()
         .and_then(|path| path.parent().map(|p| p.to_path_buf()))
         .unwrap_or_else(|| PathBuf::from("Unknown"));
+
     let kernel_version = fs::read_dir(kernel_dir.join("lib/modules"))
         .and_then(|entries| {
             let mut versions = vec![];
@@ -44,6 +51,7 @@ pub fn describe_generation(
             Ok(versions.join(", "))
         })
         .unwrap_or_else(|_| "Unknown".to_string());
+
     let configuration_revision = {
         let nixos_version_path = generation_dir.join("sw/bin/nixos-version");
         if nixos_version_path.exists() {
@@ -59,6 +67,7 @@ pub fn describe_generation(
             String::new()
         }
     };
+
     let build_date = fs::metadata(generation_dir)
         .and_then(|metadata| metadata.created().or_else(|_| metadata.modified()))
         .map(|system_time| {
@@ -68,6 +77,7 @@ pub fn describe_generation(
             DateTime::<Utc>::from(std::time::UNIX_EPOCH + duration).to_rfc3339()
         })
         .unwrap_or_else(|_| "Unknown".to_string());
+
     let specialisations = {
         let specialisation_path = generation_dir.join("specialisation");
         if specialisation_path.exists() {
@@ -86,27 +96,26 @@ pub fn describe_generation(
             vec![]
         }
     };
+
     let current = generation_dir
         .file_name()
         .map(|name| name == current_profile.file_name().unwrap_or_default())
         .unwrap_or(false);
-    let mut result = HashMap::new();
-    result.insert("generation".to_string(), json!(generation_number));
-    result.insert("date".to_string(), json!(build_date));
-    result.insert("nixosVersion".to_string(), json!(nixos_version));
-    result.insert("kernelVersion".to_string(), json!(kernel_version));
-    result.insert(
-        "configurationRevision".to_string(),
-        json!(configuration_revision),
-    );
-    result.insert("specialisations".to_string(), json!(specialisations));
-    result.insert("current".to_string(), json!(current));
-    result
+
+    GenerationInfo {
+        generation: generation_number,
+        date: build_date,
+        nixos_version,
+        kernel_version,
+        configuration_revision,
+        specialisations,
+        current,
+    }
 }
 
-pub fn print_generations(generations: Vec<HashMap<String, serde_json::Value>>) {
+pub fn print_generations(generations: Vec<GenerationInfo>) {
     for generation in generations {
-        let date_str = generation["date"].as_str().unwrap_or_default();
+        let date_str = &generation.date;
         let date = DateTime::parse_from_rfc3339(date_str)
             .map(|dt| dt.with_timezone(&Local))
             .unwrap_or_else(|err| {
@@ -117,31 +126,16 @@ pub fn print_generations(generations: Vec<HashMap<String, serde_json::Value>>) {
                 Local.timestamp_opt(0, 0).unwrap() // default to Unix epoch
             });
         let formatted_date = date.format("%Y-%m-%d %H:%M:%S").to_string();
-        let current_str = if generation["current"].as_bool().unwrap_or(false) {
-            "current"
-        } else {
-            ""
-        };
-        let specialisations = generation["specialisations"]
-            .as_array()
-            .unwrap_or(&vec![])
-            .iter()
-            .map(|s| s.as_str().unwrap_or_default())
-            .collect::<Vec<_>>()
-            .join(" ");
+        let current_str = if generation.current { "current" } else { "" };
+        let specialisations = generation.specialisations.to_vec().join(" ");
+
         let tsv_line = format!(
             "{}\t{}\t{}\t{}\t{}\t{}",
-            format!(
-                "{} {}",
-                generation["generation"].as_str().unwrap_or_default(),
-                current_str
-            ),
+            format!("{} {}", generation.generation, current_str),
             formatted_date,
-            generation["nixosVersion"].as_str().unwrap_or_default(),
-            generation["kernelVersion"].as_str().unwrap_or_default(),
-            generation["configurationRevision"]
-                .as_str()
-                .unwrap_or_default(),
+            generation.nixos_version,
+            generation.kernel_version,
+            generation.configuration_revision,
             specialisations
         );
         println!("{}", tsv_line);

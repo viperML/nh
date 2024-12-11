@@ -271,13 +271,7 @@ impl OsGenerationsArgs {
             .map(|gen_dir| describe_generation(gen_dir, &profile))
             .collect();
 
-        descriptions.sort_by_key(|desc| {
-            desc["generation"]
-                .as_str()
-                .unwrap_or_default()
-                .parse::<u64>()
-                .unwrap_or(0)
-        });
+        descriptions.sort_by_key(|desc| desc.generation.as_str().parse::<u64>().unwrap_or(0));
 
         print_generations(descriptions);
 
