@@ -1,12 +1,18 @@
+use chrono::TimeZone;
 use color_eyre::eyre::{bail, Context};
-use color_eyre::Result;
+use color_eyre::eyre::{eyre, Result};
+use std::collections::HashMap;
+use std::fs;
+use std::path::{Path, PathBuf};
 use tracing::{debug, info, warn};
 
 use crate::commands;
 use crate::commands::Command;
+use crate::generations::{describe_generation, print_generations};
+
 use crate::installable::Installable;
 use crate::interface::OsSubcommand::{self};
-use crate::interface::{self, OsRebuildArgs, OsReplArgs};
+use crate::interface::{self, OsGenerationsArgs, OsRebuildArgs, OsReplArgs};
 use crate::update::update;
 
 const SYSTEM_PROFILE: &str = "/nix/var/nix/profiles/system";
@@ -23,6 +29,7 @@ impl interface::OsArgs {
             OsSubcommand::Switch(args) => args.rebuild(Switch),
             OsSubcommand::Build(args) => args.rebuild(Build),
             OsSubcommand::Repl(args) => args.run(),
+            OsSubcommand::Generations(args) => args.list_generations(),
         }
     }
 }
@@ -172,7 +179,7 @@ pub fn toplevel_for<S: AsRef<str>>(hostname: S, installable: Installable) -> Ins
         Installable::Flake {
             ref mut attribute, ..
         } => {
-            // If user explicitely selects some other attribute, don't push nixosConfigurations
+            // If user explicitly selects some other attribute, don't push nixosConfigurations
             if attribute.is_empty() {
                 attribute.push(String::from("nixosConfigurations"));
                 attribute.push(hostname);
@@ -221,6 +228,58 @@ impl OsReplArgs {
             .arg("repl")
             .args(target_installable.to_args())
             .run()?;
+
+        Ok(())
+    }
+}
+
+impl OsGenerationsArgs {
+    fn list_generations(&self) -> Result<()> {
+        let profile = match self.profile {
+            Some(ref p) => PathBuf::from(p),
+            None => bail!("Profile path is required"),
+        };
+
+        if !profile.is_symlink() {
+            return Err(eyre!(
+                "No profile `{:?}` found",
+                profile.file_name().unwrap_or_default()
+            ));
+        }
+
+        let profile_dir = profile.parent().unwrap_or_else(|| Path::new("."));
+
+        let generations: Vec<_> = fs::read_dir(profile_dir)?
+            .filter_map(|entry| {
+                entry.ok().and_then(|e| {
+                    let path = e.path();
+                    if path
+                        .file_name()?
+                        .to_str()?
+                        .starts_with(profile.file_name()?.to_str()?)
+                    {
+                        Some(path)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
+
+        let mut descriptions: Vec<_> = generations
+            .iter()
+            .map(|gen_dir| describe_generation(gen_dir, &profile))
+            .collect();
+
+        descriptions.sort_by_key(|desc| {
+            desc["generation"]
+                .as_str()
+                .unwrap_or_default()
+                .parse::<u64>()
+                .unwrap_or(0)
+        });
+
+        print_generations(descriptions);
 
         Ok(())
     }
