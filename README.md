@@ -62,8 +62,11 @@ set the following configuration:
 Nh supports both Flakes and classical NixOS configurations:
 
 - For flakes, the command is `nh os switch /path/to/flake`
-- For a classical configuration, you must use `nh os switch -f <nixpkgs/nixos>
-/etc/nixos/configuration.nix`
+- For a classical configuration:
+  - `nh os switch -f '<nixpkgs/nixos>'`, or
+  - `nh os switch -f '<nixpkgs/nixos>' -- -I
+  nixos-config=/path/to/configuration.nix` if using a different location than
+  the default.
 
 You might want to check `nh os --help` for other values and the defaults from
 environment variables.
