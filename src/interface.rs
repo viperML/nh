@@ -91,6 +91,9 @@ pub enum OsSubcommand {
 
     /// Load system in a repl
     Repl(OsReplArgs),
+
+    /// List available generations from profile path
+    Generations(OsGenerationsArgs),
 }
 
 #[derive(Debug, Args)]
@@ -152,6 +155,13 @@ pub struct OsReplArgs {
     /// When using a flake installable, select this hostname from nixosConfigurations
     #[arg(long, short = 'H', global = true)]
     pub hostname: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct OsGenerationsArgs {
+    /// Path to Nix' profiles directory
+    #[arg(long, short = 'P', default_value = "/nix/var/nix/profiles/system")]
+    pub profile: Option<String>,
 }
 
 #[derive(Args, Debug)]
