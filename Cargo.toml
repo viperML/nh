@@ -7,6 +7,7 @@ license = "EUPL-1.2"
 
 [dependencies]
 anstyle = "1.0.0"
+chrono = "0.4.39"
 clap = { version = "4.0", features = [
     "cargo",
     "color",
