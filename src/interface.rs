@@ -290,6 +290,10 @@ pub struct HomeReplArgs {
     /// If unspecified, will try <username>@<hostname> and <username>
     #[arg(long, short)]
     pub configuration: Option<String>,
+
+    /// Extra arguments passed to nix repl
+    #[arg(last = true)]
+    pub extra_args: Vec<String>,
 }
 
 #[derive(Debug, Parser)]

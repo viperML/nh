@@ -1,6 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
+use clap::builder::OsStr;
 use color_eyre::eyre::bail;
 use color_eyre::Result;
 use tracing::{debug, info};
@@ -46,7 +47,7 @@ impl HomeRebuildArgs {
 
         debug!(?out_path);
 
-        let toplevel = toplevel_for(self.common.installable.clone(), true)?;
+        let toplevel = toplevel_for(self.common.installable.clone(), true, &self.extra_args)?;
 
         commands::Build::new(toplevel)
             .extra_arg("--out-link")
@@ -108,8 +109,23 @@ impl HomeRebuildArgs {
     }
 }
 
-fn toplevel_for(installable: Installable, push_drv: bool) -> Result<Installable> {
+fn toplevel_for<I, S>(
+    installable: Installable,
+    push_drv: bool,
+    extra_args: I,
+) -> Result<Installable>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<std::ffi::OsStr>,
+{
     let mut res = installable.clone();
+    let extra_args = {
+        let mut vec = Vec::new();
+        for elem in extra_args.into_iter() {
+            vec.push(elem.as_ref().to_owned());
+        }
+        vec
+    };
 
     let toplevel = ["config", "home", "activationPackage"]
         .into_iter()
@@ -140,7 +156,9 @@ fn toplevel_for(installable: Installable, push_drv: bool) -> Result<Installable>
             for attr in [format!("{username}@{hostname}"), username.to_string()] {
                 let func = format!(r#" x: x ? "{}" "#, attr);
                 let res = commands::Command::new("nix")
-                    .args(["eval", "--apply"])
+                    .arg("eval")
+                    .args(&extra_args)
+                    .arg("--apply")
                     .arg(func)
                     .args(
                         (Installable::Flake {
@@ -208,7 +226,7 @@ fn toplevel_for(installable: Installable, push_drv: bool) -> Result<Installable>
 
 impl HomeReplArgs {
     fn run(self) -> Result<()> {
-        let toplevel = toplevel_for(self.installable, false)?;
+        let toplevel = toplevel_for(self.installable, false, &self.extra_args)?;
 
         Command::new("nix")
             .arg("repl")
