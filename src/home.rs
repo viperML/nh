@@ -1,7 +1,6 @@
 use std::env;
 use std::path::PathBuf;
 
-use clap::builder::OsStr;
 use color_eyre::eyre::bail;
 use color_eyre::Result;
 use tracing::{debug, info};
