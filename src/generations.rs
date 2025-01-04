@@ -14,7 +14,7 @@ pub struct GenerationInfo {
     pub current: bool,
 }
 
-pub fn generation_from_dir(generation_dir: &Path) -> Option<String> {
+pub fn from_dir(generation_dir: &Path) -> Option<String> {
     generation_dir
         .file_name()
         .and_then(|os_str| os_str.to_str())
@@ -27,8 +27,8 @@ pub fn generation_from_dir(generation_dir: &Path) -> Option<String> {
         })
 }
 
-pub fn describe_generation(generation_dir: &Path, current_profile: &Path) -> GenerationInfo {
-    let generation_number = generation_from_dir(generation_dir).unwrap_or_default();
+pub fn describe(generation_dir: &Path, current_profile: &Path) -> GenerationInfo {
+    let generation_number = from_dir(generation_dir).unwrap_or_default();
     let nixos_version = fs::read_to_string(generation_dir.join("nixos-version"))
         .unwrap_or_else(|_| "Unknown".to_string());
     let kernel_dir = generation_dir
@@ -113,7 +113,7 @@ pub fn describe_generation(generation_dir: &Path, current_profile: &Path) -> Gen
     }
 }
 
-pub fn print_generations(generations: Vec<GenerationInfo>) {
+pub fn print_info(generations: Vec<GenerationInfo>) {
     for generation in generations {
         let date_str = &generation.date;
         let date = DateTime::parse_from_rfc3339(date_str)

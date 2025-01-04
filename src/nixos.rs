@@ -8,7 +8,7 @@ use tracing::{debug, info, warn};
 
 use crate::commands;
 use crate::commands::Command;
-use crate::generations::{describe_generation, print_generations};
+use crate::generations;
 
 use crate::installable::Installable;
 use crate::interface::OsSubcommand::{self};
@@ -29,7 +29,7 @@ impl interface::OsArgs {
             OsSubcommand::Switch(args) => args.rebuild(Switch),
             OsSubcommand::Build(args) => args.rebuild(Build),
             OsSubcommand::Repl(args) => args.run(),
-            OsSubcommand::Generations(args) => args.list_generations(),
+            OsSubcommand::Info(args) => args.Info(),
         }
     }
 }
@@ -234,7 +234,7 @@ impl OsReplArgs {
 }
 
 impl OsGenerationsArgs {
-    fn list_generations(&self) -> Result<()> {
+    fn Info(&self) -> Result<()> {
         let profile = match self.profile {
             Some(ref p) => PathBuf::from(p),
             None => bail!("Profile path is required"),
@@ -268,12 +268,12 @@ impl OsGenerationsArgs {
 
         let mut descriptions: Vec<_> = generations
             .iter()
-            .map(|gen_dir| describe_generation(gen_dir, &profile))
+            .map(|gen_dir| generations::describe(gen_dir, &profile))
             .collect();
 
         descriptions.sort_by_key(|desc| desc.generation.as_str().parse::<u64>().unwrap_or(0));
 
-        print_generations(descriptions);
+        generations::print_info(descriptions);
 
         Ok(())
     }

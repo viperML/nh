@@ -93,7 +93,7 @@ pub enum OsSubcommand {
     Repl(OsReplArgs),
 
     /// List available generations from profile path
-    Generations(OsGenerationsArgs),
+    Info(OsGenerationsArgs),
 }
 
 #[derive(Debug, Args)]
