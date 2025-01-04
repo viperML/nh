@@ -29,7 +29,7 @@ impl interface::OsArgs {
             OsSubcommand::Switch(args) => args.rebuild(Switch),
             OsSubcommand::Build(args) => args.rebuild(Build),
             OsSubcommand::Repl(args) => args.run(),
-            OsSubcommand::Info(args) => args.Info(),
+            OsSubcommand::Info(args) => args.info(),
         }
     }
 }
@@ -234,7 +234,7 @@ impl OsReplArgs {
 }
 
 impl OsGenerationsArgs {
-    fn Info(&self) -> Result<()> {
+    fn info(&self) -> Result<()> {
         let profile = match self.profile {
             Some(ref p) => PathBuf::from(p),
             None => bail!("Profile path is required"),
@@ -266,12 +266,10 @@ impl OsGenerationsArgs {
             })
             .collect();
 
-        let mut descriptions: Vec<_> = generations
+        let descriptions: Vec<generations::GenerationInfo> = generations
             .iter()
-            .map(|gen_dir| generations::describe(gen_dir, &profile))
+            .filter_map(|gen_dir| generations::describe(gen_dir, &profile))
             .collect();
-
-        descriptions.sort_by_key(|desc| desc.generation.as_str().parse::<u64>().unwrap_or(0));
 
         generations::print_info(descriptions);
 

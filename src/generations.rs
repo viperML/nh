@@ -14,21 +14,20 @@ pub struct GenerationInfo {
     pub current: bool,
 }
 
-pub fn from_dir(generation_dir: &Path) -> Option<String> {
+pub fn from_dir(generation_dir: &Path) -> Option<u64> {
     generation_dir
         .file_name()
         .and_then(|os_str| os_str.to_str())
-        .map(|generation_base| {
+        .and_then(|generation_base| {
             let no_link_gen = generation_base.trim_end_matches("-link");
             no_link_gen
                 .rsplit_once('-')
-                .map(|(_, gen)| gen.to_string())
-                .unwrap_or_default()
+                .and_then(|(_, gen)| gen.parse::<u64>().ok())
         })
 }
 
-pub fn describe(generation_dir: &Path, current_profile: &Path) -> GenerationInfo {
-    let generation_number = from_dir(generation_dir).unwrap_or_default();
+pub fn describe(generation_dir: &Path, current_profile: &Path) -> Option<GenerationInfo> {
+    let generation_number = from_dir(generation_dir)?;
     let nixos_version = fs::read_to_string(generation_dir.join("nixos-version"))
         .unwrap_or_else(|_| "Unknown".to_string());
     let kernel_dir = generation_dir
@@ -37,7 +36,6 @@ pub fn describe(generation_dir: &Path, current_profile: &Path) -> GenerationInfo
         .ok()
         .and_then(|path| path.parent().map(|p| p.to_path_buf()))
         .unwrap_or_else(|| PathBuf::from("Unknown"));
-
     let kernel_version = fs::read_dir(kernel_dir.join("lib/modules"))
         .and_then(|entries| {
             let mut versions = vec![];
@@ -51,7 +49,6 @@ pub fn describe(generation_dir: &Path, current_profile: &Path) -> GenerationInfo
             Ok(versions.join(", "))
         })
         .unwrap_or_else(|_| "Unknown".to_string());
-
     let configuration_revision = {
         let nixos_version_path = generation_dir.join("sw/bin/nixos-version");
         if nixos_version_path.exists() {
@@ -67,7 +64,6 @@ pub fn describe(generation_dir: &Path, current_profile: &Path) -> GenerationInfo
             String::new()
         }
     };
-
     let build_date = fs::metadata(generation_dir)
         .and_then(|metadata| metadata.created().or_else(|_| metadata.modified()))
         .map(|system_time| {
@@ -77,7 +73,6 @@ pub fn describe(generation_dir: &Path, current_profile: &Path) -> GenerationInfo
             DateTime::<Utc>::from(std::time::UNIX_EPOCH + duration).to_rfc3339()
         })
         .unwrap_or_else(|_| "Unknown".to_string());
-
     let specialisations = {
         let specialisation_path = generation_dir.join("specialisation");
         if specialisation_path.exists() {
@@ -96,21 +91,19 @@ pub fn describe(generation_dir: &Path, current_profile: &Path) -> GenerationInfo
             vec![]
         }
     };
-
     let current = generation_dir
         .file_name()
         .map(|name| name == current_profile.file_name().unwrap_or_default())
         .unwrap_or(false);
-
-    GenerationInfo {
-        generation: generation_number,
+    Some(GenerationInfo {
+        generation: generation_number.to_string(),
         date: build_date,
         nixos_version,
         kernel_version,
         configuration_revision,
         specialisations,
         current,
-    }
+    })
 }
 
 pub fn print_info(generations: Vec<GenerationInfo>) {
@@ -128,7 +121,6 @@ pub fn print_info(generations: Vec<GenerationInfo>) {
         let formatted_date = date.format("%Y-%m-%d %H:%M:%S").to_string();
         let current_str = if generation.current { "current" } else { "" };
         let specialisations = generation.specialisations.to_vec().join(" ");
-
         let tsv_line = format!(
             "{}\t{}\t{}\t{}\t{}\t{}",
             format!("{} {}", generation.generation, current_str),
