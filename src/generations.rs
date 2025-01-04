@@ -8,7 +8,7 @@ use tracing::debug;
 #[derive(Debug)]
 pub struct GenerationInfo {
     /// Number of a generation
-    pub generation: String,
+    pub number: String,
 
     /// Date on switch a generation was built
     pub date: String,
@@ -46,6 +46,7 @@ pub fn describe(generation_dir: &Path, current_profile: &Path) -> Option<Generat
     let generation_number = from_dir(generation_dir)?;
     let nixos_version = fs::read_to_string(generation_dir.join("nixos-version"))
         .unwrap_or_else(|_| "Unknown".to_string());
+
     let kernel_dir = generation_dir
         .join("kernel")
         .canonicalize()
@@ -111,12 +112,19 @@ pub fn describe(generation_dir: &Path, current_profile: &Path) -> Option<Generat
     };
 
     let current = generation_dir
-        .file_name()
-        .map(|name| name == current_profile.file_name().unwrap_or_default())
+        .canonicalize()
+        .ok()
+        .map(|canonical_gen_dir| {
+            current_profile
+                .canonicalize()
+                .ok()
+                .map(|canonical_current| canonical_gen_dir == canonical_current)
+                .unwrap_or(false)
+        })
         .unwrap_or(false);
 
     Some(GenerationInfo {
-        generation: generation_number.to_string(),
+        number: generation_number.to_string(),
         date: build_date,
         nixos_version,
         kernel_version,
@@ -129,7 +137,7 @@ pub fn describe(generation_dir: &Path, current_profile: &Path) -> Option<Generat
 pub fn print_info(generations: Vec<GenerationInfo>) {
     // Get path information for the *current generation* from /run/current-system
     // and split it by whitespace to get the size (second part). This should be
-    // safe enough.
+    // safe enough, in theory.
     let path_info = process::Command::new("nix")
         .arg("path-info")
         .arg("-Sh")
@@ -146,18 +154,42 @@ pub fn print_info(generations: Vec<GenerationInfo>) {
 
     let current_generation = generations
         .iter()
-        .max_by_key(|gen| gen.generation.parse::<u64>().unwrap_or(0));
+        .max_by_key(|gen| gen.number.parse::<u64>().unwrap_or(0));
 
+    debug!(?current_generation);
     if let Some(current) = current_generation {
         println!("NixOS {}", current.nixos_version);
     } else {
-        println!("No generations found!");
+        println!("Error getting current generation!");
     }
 
     println!("Closure Size: {}", closure);
-    println!("List of Generations");
+    println!();
 
-    for generation in generations.iter() {
+    let max_nixos_version_len = generations
+        .iter()
+        .map(|g| g.nixos_version.len())
+        .max()
+        .unwrap_or(22); // length of version + date + rev, assumes no tags
+
+    let max_kernel_len = generations
+        .iter()
+        .map(|g| g.kernel_version.len())
+        .max()
+        .unwrap_or(12); // arbitrary value
+
+    println!(
+        "{:<13} {:<20} {:<width_nixos$} {:<width_kernel$} {:<22} Specialisations",
+        "Generation No",
+        "Build Date",
+        "NixOS Version",
+        "Kernel",
+        "Configuration Revision",
+        width_nixos = max_nixos_version_len,
+        width_kernel = max_kernel_len
+    );
+
+    for generation in generations.iter().rev() {
         let date_str = &generation.date;
         let date = DateTime::parse_from_rfc3339(date_str)
             .map(|dt| dt.with_timezone(&Local))
@@ -169,16 +201,27 @@ pub fn print_info(generations: Vec<GenerationInfo>) {
                 Local.timestamp_opt(0, 0).unwrap() // default to Unix epoch
             });
         let formatted_date = date.format("%Y-%m-%d %H:%M:%S").to_string();
-        let specialisations = generation.specialisations.join(" ");
+        let specialisations = generation
+            .specialisations
+            .iter()
+            .map(|s| format!("*{}", s))
+            .collect::<Vec<String>>()
+            .join(" ");
 
         println!(
-            "{} {} {} {} {} {}",
-            generation.generation,
+            "{:<13} {:<20} {:<width_nixos$} {:<width_kernel$} {:<25} {}",
+            format!(
+                "{}{}",
+                generation.number,
+                if generation.current { " (current)" } else { "" }
+            ),
             formatted_date,
             generation.nixos_version,
             generation.kernel_version,
             generation.configuration_revision,
-            specialisations
+            specialisations,
+            width_nixos = max_nixos_version_len,
+            width_kernel = max_kernel_len
         );
     }
 }
