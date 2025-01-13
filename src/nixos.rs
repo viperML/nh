@@ -1,15 +1,13 @@
-use chrono::TimeZone;
-use color_eyre::eyre::{bail, Context};
-use color_eyre::eyre::{eyre, Result};
-use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+use color_eyre::eyre::{bail, Context};
+use color_eyre::eyre::{eyre, Result};
 use tracing::{debug, info, warn};
 
 use crate::commands;
 use crate::commands::Command;
 use crate::generations;
-
 use crate::installable::Installable;
 use crate::interface::OsSubcommand::{self};
 use crate::interface::{self, OsGenerationsArgs, OsRebuildArgs, OsReplArgs};
