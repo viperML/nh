@@ -76,13 +76,18 @@ impl OsRebuildArgs {
             update(&self.common.installable, self.update_args.update_input)?;
         }
 
-        let hostname = match &self.hostname {
+        let system_hostname = hostname::get()
+            .context("Failed to get hostname")?
+            .to_str()
+            .unwrap()
+            .to_owned();
+
+        let target_hostname = match &self.hostname {
             Some(h) => h.to_owned(),
-            None => hostname::get()
-                .context("Failed to get hostname")?
-                .to_str()
-                .unwrap()
-                .to_owned(),
+            None => {
+                tracing::warn!("Guessing system is {system_hostname} for a VM image. If this isn't intended, use --hostname to change.");
+                system_hostname.clone()
+            }
         };
 
         let out_path: Box<dyn crate::util::MaybeTempPath> = match self.common.out_link {
@@ -96,9 +101,9 @@ impl OsRebuildArgs {
         debug!(?out_path);
 
         let toplevel = toplevel_for(
-            hostname,
+            &target_hostname,
             self.common.installable.clone(),
-            final_attr.unwrap_or(String::from("toplevel"))
+            final_attr.unwrap_or(String::from("toplevel")),
         );
 
         let message = match variant {
@@ -131,14 +136,18 @@ impl OsRebuildArgs {
 
         target_profile.try_exists().context("Doesn't exist")?;
 
-        Command::new("nvd")
-            .arg("diff")
-            .arg(CURRENT_PROFILE)
-            .arg(&target_profile)
-            .message("Comparing changes")
-            .run()?;
+        if target_hostname == system_hostname {
+            Command::new("nvd")
+                .arg("diff")
+                .arg(CURRENT_PROFILE)
+                .arg(&target_profile)
+                .message("Comparing changes")
+                .run()?;
+        } else {
+            debug!("Not running nvd as the target hostname is different from the system hostname.")
+        }
 
-        if self.common.dry || matches!(variant, Build) {
+        if self.common.dry || matches!(variant, Build | BuildVm) {
             if self.common.ask {
                 warn!("--ask has no effect as dry run was requested");
             }
