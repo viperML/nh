@@ -117,13 +117,14 @@ pub struct OsRebuildArgs {
     pub no_specialisation: bool,
 
     /// Extra arguments passed to nix build
-    #[arg(last = true)]
+    #[arg(last = true, env = "NH_EXTRA_ARGS", num_args = 1.., value_delimiter = ' ')]
     pub extra_args: Vec<String>,
 
     /// Don't panic if calling nh as root
     #[arg(short = 'R', long, env = "NH_BYPASS_ROOT_CHECK")]
     pub bypass_root_check: bool,
 }
+
 
 #[derive(Debug, Args)]
 pub struct CommonRebuildArgs {
@@ -282,7 +283,7 @@ pub struct HomeRebuildArgs {
     pub configuration: Option<String>,
 
     /// Extra arguments passed to nix build
-    #[arg(last = true)]
+    #[arg(last = true, env = "NH_EXTRA_ARGS", num_args = 1.., value_delimiter = ' ')]
     pub extra_args: Vec<String>,
 
     /// Move existing files by backing up with this file extension
@@ -302,7 +303,7 @@ pub struct HomeReplArgs {
     pub configuration: Option<String>,
 
     /// Extra arguments passed to nix repl
-    #[arg(last = true)]
+    #[arg(last = true, env = "NH_EXTRA_ARGS", num_args = 1.., value_delimiter = ' ')]
     pub extra_args: Vec<String>,
 }
 
@@ -345,7 +346,7 @@ pub struct DarwinRebuildArgs {
     pub hostname: Option<String>,
 
     /// Extra arguments passed to nix build
-    #[arg(last = true)]
+    #[arg(last = true, env = "NH_EXTRA_ARGS", num_args = 1.., value_delimiter = ' ')]
     pub extra_args: Vec<String>,
 }
 
