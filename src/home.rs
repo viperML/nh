@@ -69,8 +69,7 @@ impl HomeRebuildArgs {
                 .join(".local/state/nix/profiles/home-manager"),
         ]
         .into_iter()
-        .take_while(|next| next.exists())
-        .next();
+        .find(|next| next.exists());
 
         debug!(?prev_generation);
 
