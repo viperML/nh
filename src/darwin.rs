@@ -1,5 +1,5 @@
 use color_eyre::eyre::{bail, Context};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::commands;
 use crate::commands::Command;
@@ -17,7 +17,12 @@ impl DarwinArgs {
         use DarwinRebuildVariant::*;
         match self.subcommand {
             DarwinSubcommand::Switch(args) => args.rebuild(Switch),
-            DarwinSubcommand::Build(args) => args.rebuild(Build),
+            DarwinSubcommand::Build(args) => {
+                if args.common.ask || args.common.dry {
+                    warn!("`--ask` and `--dry` have no effect for `nh darwin build`");
+                }
+                args.rebuild(Build)
+            }
             DarwinSubcommand::Repl(args) => args.run(),
         }
     }
