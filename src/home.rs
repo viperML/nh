@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::bail;
 use color_eyre::Result;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::commands;
 use crate::commands::Command;
@@ -16,7 +16,12 @@ impl interface::HomeArgs {
         use HomeRebuildVariant::*;
         match self.subcommand {
             HomeSubcommand::Switch(args) => args.rebuild(Switch),
-            HomeSubcommand::Build(args) => args.rebuild(Build),
+            HomeSubcommand::Build(args) => {
+                if args.common.ask || args.common.dry {
+                    warn!("`--ask` and `--dry` have no effect for `nh home build`");
+                }
+                args.rebuild(Build)
+            }
             HomeSubcommand::Repl(args) => args.run(),
         }
     }
@@ -79,6 +84,9 @@ impl HomeRebuildArgs {
         }
 
         if self.common.dry || matches!(variant, Build) {
+            if self.common.ask {
+                warn!("--ask has no effect as dry run was requested");
+            }
             return Ok(());
         }
 

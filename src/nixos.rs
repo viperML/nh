@@ -25,7 +25,12 @@ impl interface::OsArgs {
             OsSubcommand::Boot(args) => args.rebuild(Boot),
             OsSubcommand::Test(args) => args.rebuild(Test),
             OsSubcommand::Switch(args) => args.rebuild(Switch),
-            OsSubcommand::Build(args) => args.rebuild(Build),
+            OsSubcommand::Build(args) => {
+                if args.common.ask || args.common.dry {
+                    warn!("`--ask` and `--dry` have no effect for `nh os build`");
+                }
+                args.rebuild(Build)
+            }
             OsSubcommand::Repl(args) => args.run(),
             OsSubcommand::Info(args) => args.info(),
         }
@@ -112,6 +117,9 @@ impl OsRebuildArgs {
             .run()?;
 
         if self.common.dry || matches!(variant, Build) {
+            if self.common.ask {
+                warn!("--ask has no effect as dry run was requested");
+            }
             return Ok(());
         }
 
