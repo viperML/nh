@@ -134,7 +134,7 @@ pub fn describe(generation_dir: &Path, current_profile: &Path) -> Option<Generat
     })
 }
 
-pub fn print_info(generations: Vec<GenerationInfo>) {
+pub fn print_info(mut generations: Vec<GenerationInfo>) {
     // Get path information for the *current generation* from /run/current-system
     // and split it by whitespace to get the size (second part). This should be
     // safe enough, in theory.
@@ -152,11 +152,15 @@ pub fn print_info(generations: Vec<GenerationInfo>) {
         "Unknown".to_string()
     };
 
+    // Sort generations by numeric value of the generation number
+    generations.sort_by_key(|gen| gen.number.parse::<u64>().unwrap_or(0));
+
+    // Retrieve the current generation
     let current_generation = generations
         .iter()
         .max_by_key(|gen| gen.number.parse::<u64>().unwrap_or(0));
-
     debug!(?current_generation);
+
     if let Some(current) = current_generation {
         println!("NixOS {}", current.nixos_version);
     } else {
@@ -166,6 +170,7 @@ pub fn print_info(generations: Vec<GenerationInfo>) {
     println!("Closure Size: {}", closure);
     println!();
 
+    // Determine column widths for pretty printing
     let max_nixos_version_len = generations
         .iter()
         .map(|g| g.nixos_version.len())
@@ -189,6 +194,7 @@ pub fn print_info(generations: Vec<GenerationInfo>) {
         width_kernel = max_kernel_len
     );
 
+    // Print generations in descending order
     for generation in generations.iter().rev() {
         let date_str = &generation.date;
         let date = DateTime::parse_from_rfc3339(date_str)
