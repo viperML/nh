@@ -227,11 +227,13 @@ impl interface::CleanMode {
             }
         }
 
-        Command::new("nix")
-            .args(["store", "gc"])
-            .dry(args.dry)
-            .message("Performing garbage collection on the nix store")
-            .run()?;
+        if !args.nogc {
+            Command::new("nix")
+                .args(["store", "gc"])
+                .dry(args.dry)
+                .message("Performing garbage collection on the nix store")
+                .run()?;
+        }
 
         Ok(())
     }
