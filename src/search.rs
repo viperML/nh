@@ -56,6 +56,9 @@ impl SearchArgs {
                 .output()
         });
 
+        let query_s = self.query.join(" ");
+        debug!(?query_s);
+
         let query = Search::new().from(0).size(self.limit).query(
             Query::bool().filter(Query::term("type", "package")).must(
                 Query::dis_max()
@@ -76,7 +79,7 @@ impl SearchArgs {
                                 "flake_name^0.5",
                                 "flake_name.*^0.3",
                             ],
-                            self.query.as_str(),
+                            query_s.clone(),
                         )
                         .r#type(TextQueryType::CrossFields)
                         .analyzer("whitespace")
@@ -84,7 +87,7 @@ impl SearchArgs {
                         .operator(Operator::And),
                     )
                     .query(
-                        Query::wildcard("package_attr_name", format!("*{}*", self.query))
+                        Query::wildcard("package_attr_name", format!("*{}*", &query_s))
                             .case_insensitive(true),
                     ),
             ),

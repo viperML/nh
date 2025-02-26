@@ -181,7 +181,7 @@ pub struct SearchArgs {
     pub channel: String,
 
     /// Name of the package to search
-    pub query: String,
+    pub query: Vec<String>,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
