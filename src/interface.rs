@@ -94,6 +94,19 @@ pub enum OsSubcommand {
 
     /// List available generations from profile path
     Info(OsGenerationsArgs),
+
+    /// Build a NixOS VM image
+    BuildVm(OsBuildVmArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct OsBuildVmArgs {
+    #[command(flatten)]
+    pub common: OsRebuildArgs,
+
+    /// Build with bootloader. Bootloader is bypassed by default.
+    #[arg(long, short = 'B')]
+    pub with_bootloader: bool,
 }
 
 #[derive(Debug, Args)]
