@@ -5,7 +5,7 @@
 ## What does it do?
 
 Nh is my own take at reimplementing some commands from the NixOS ecosystem. I aim
-to provide more feature and better ergonomics than the existing commands.
+to provide more features and better ergonomics than the existing commands.
 
 Nh has serveral subcommands, such as:
 
@@ -16,7 +16,7 @@ confirmation.
 client).
 - `clean`, my own take at cleaning GC roots from a NixOS system.
 
-This wouldn't be possible with the programs that nh runs under the hood:
+This wouldn't be possible without the programs that nh runs under the hood:
 
 - Tree of builds with [nix-output-monitor](https://github.com/maralorn/nix-output-monitor).
 - Visualization of the upgrade diff with [nvd](https://khumba.net/projects/nvd).
