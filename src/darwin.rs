@@ -135,36 +135,27 @@ impl DarwinRebuildArgs {
                 .args(["build", "--no-link", "--profile", SYSTEM_PROFILE])
                 .arg(out_path.get_path())
                 .elevate(true)
-                .dry(self.common.dry);
+                .dry(self.common.dry)
+                .run()?;
 
+            let darwin_rebuild = out_path.get_path().join("sw/bin/darwin-rebuild");
             let activate_user = out_path.get_path().join("activate-user");
 
-            let user_activation = Command::new(activate_user.clone())
-                .message("Activating configuration for user")
-                .dry(self.common.dry);
-
-            let activate = out_path.get_path().join("activate");
-
-            let activation = Command::new(activate)
-                .elevate(true)
-                .message("Activating configuration")
-                .dry(self.common.dry);
-
-            if activate_user.exists() {
-                // Check whether activate-user is deprecated
-                // If it is, only activate with root
-                if std::fs::read_to_string(&activate_user)
+            // Determine if we need to elevate privileges
+            let needs_elevation = !activate_user
+                .try_exists()
+                .context("Failed to check if activate-user file exists")?
+                || std::fs::read_to_string(&activate_user)
                     .context("Failed to read activate-user file")?
-                    .contains("# nix-darwin: deprecated")
-                {
-                    activation.run()?;
-                } else {
-                    user_activation.run()?;
-                    activation.run()?;
-                }
-            } else {
-                activation.run()?;
-            }
+                    .contains("# nix-darwin: deprecated");
+
+            // Create and run the activation command with or without elevation
+            Command::new(darwin_rebuild)
+                .arg("activate")
+                .message("Activating configuration")
+                .elevate(needs_elevation)
+                .dry(self.common.dry)
+                .run()?;
         }
 
         // Make sure out_path is not accidentally dropped
