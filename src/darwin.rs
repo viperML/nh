@@ -150,15 +150,19 @@ impl DarwinRebuildArgs {
                 .message("Activating configuration")
                 .dry(self.common.dry);
 
-            // Check whether to activate-user is deprecated
-            // If it is, only activate with root
-            if std::fs::read_to_string(&activate_user)
-                .context("Failed to read activate-user file")?
-                .contains("# nix-darwin: deprecated")
-            {
-                activation.run()?;
+            if activate_user.exists() {
+                // Check whether activate-user is deprecated
+                // If it is, only activate with root
+                if std::fs::read_to_string(&activate_user)
+                    .context("Failed to read activate-user file")?
+                    .contains("# nix-darwin: deprecated")
+                {
+                    activation.run()?;
+                } else {
+                    user_activation.run()?;
+                    activation.run()?;
+                }
             } else {
-                user_activation.run()?;
                 activation.run()?;
             }
         }
