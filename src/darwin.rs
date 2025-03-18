@@ -135,23 +135,32 @@ impl DarwinRebuildArgs {
                 .args(["build", "--no-link", "--profile", SYSTEM_PROFILE])
                 .arg(out_path.get_path())
                 .elevate(true)
-                .dry(self.common.dry)
-                .run()?;
+                .dry(self.common.dry);
 
-            let switch_to_configuration = out_path.get_path().join("activate-user");
+            let activate_user = out_path.get_path().join("activate-user");
 
-            Command::new(switch_to_configuration)
+            let user_activation = Command::new(activate_user.clone())
                 .message("Activating configuration for user")
-                .dry(self.common.dry)
-                .run()?;
+                .dry(self.common.dry);
 
-            let switch_to_configuration = out_path.get_path().join("activate");
+            let activate = out_path.get_path().join("activate");
 
-            Command::new(switch_to_configuration)
+            let activation = Command::new(activate)
                 .elevate(true)
                 .message("Activating configuration")
-                .dry(self.common.dry)
-                .run()?;
+                .dry(self.common.dry);
+
+            // Check whether to activate-user is deprecated
+            // If it is, only activate with root
+            if std::fs::read_to_string(&activate_user)
+                .context("Failed to read activate-user file")?
+                .contains("# nix-darwin: deprecated")
+            {
+                activation.run()?;
+            } else {
+                user_activation.run()?;
+                activation.run()?;
+            }
         }
 
         // Make sure out_path is not accidentally dropped
