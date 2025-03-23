@@ -177,7 +177,7 @@ impl SearchArgs {
                 }
             }
 
-            if !elem.package_platforms.is_empty() {
+            if self.platforms && !elem.package_platforms.is_empty() {
                 println!("  Platforms: {}", elem.package_platforms.join(", "));
             }
 
