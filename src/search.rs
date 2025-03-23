@@ -177,6 +177,10 @@ impl SearchArgs {
                 }
             }
 
+            if !elem.package_platforms.is_empty() {
+                println!("  Platforms: {}", elem.package_platforms.join(", "));
+            }
+
             if let Some(position) = &elem.package_position {
                 let position = position.split(':').next().unwrap();
                 print!("  Defined at: ");
