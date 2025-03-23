@@ -180,6 +180,10 @@ pub struct SearchArgs {
     /// Name of the channel to query (e.g nixos-23.11, nixos-unstable, etc)
     pub channel: String,
 
+    #[arg(long, short = 'P')]
+    /// Show supported platforms for each package
+    pub platforms: bool,
+
     /// Name of the package to search
     pub query: Vec<String>,
 }
