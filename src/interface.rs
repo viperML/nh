@@ -180,7 +180,7 @@ pub struct SearchArgs {
     /// Name of the channel to query (e.g nixos-23.11, nixos-unstable, etc)
     pub channel: String,
 
-    #[arg(long, short = 'P')]
+    #[arg(long, short = 'P', env = "NH_SEARCH_PLATFORM", value_parser = clap::builder::BoolishValueParser::new())]
     /// Show supported platforms for each package
     pub platforms: bool,
 
